@@ -4,18 +4,21 @@ import requests
 import time
 
 import credentials
+BASE_URL = 'https://www.deribit.com'
 
 
-def deribit_signature(nonce, uri, params, access_key, access_secret):
-    sign = '_={0}&_ackey={1}&_acsec={2}&_action={3}'.format(nonce, access_key, access_secret, uri)
+def deribit_signature(tstamp, uri, params, key, secret, debug=False):
+    sign = '_={0}&_ackey={1}&_acsec={2}&_action={3}'.format(tstamp, key, secret, uri)
     for key in sorted(params.keys()):
         sign += '&{0}={1}'.format(key, params[key])
     
-    return "{0}.{1}.{2}".format(access_key, nonce, base64.b64encode(hashlib.sha256(sign).digest()))
+    if debug:
+        print sign
+    return "{0}.{1}.{2}".format(key, tstamp, base64.b64encode(hashlib.sha256(sign).digest()))
 
 
 def get_instruments():
-    response = requests.get('https://www.deribit.com/api/v1/public/getinstruments').json()
+    response = requests.get(BASE_URL + '/api/v1/public/getinstruments').json()
 
     if response['success']:
         return response['result']
@@ -23,13 +26,42 @@ def get_instruments():
         raise RuntimeError
 
 
-
-def get_account():
-    uri = 'https://www.deribit.com/api/v1/private/account'
+def get_account(tstamp=None, debug=False):
+    uri = '/api/v1/private/account'
+    if not tstamp:
+        tstamp = int(time.time() * 1000)
     params = {}
-    nonce = int(time.time() * 1000)
-    access_key = credentials.KEY
-    access_secret = credentials.SECRET
-    response = requests.get(deribit_signature(nonce, uri, params, access_key, access_secret)).json()
+    signature = {
+            'x-deribit-sig': deribit_signature(tstamp, uri, params, credentials.KEY, credentials.SECRET, debug=debug)
+    }
+    if debug:
+        print signature
+    response = requests.get(BASE_URL + uri, signature).json()
     return response
 
+
+def buy(params, tstamp=None, debug=False):
+    uri = '/api/v1/private/buy'
+
+    if not tstamp:
+        tstamp = int(time.time() * 1000)
+
+    signature = {
+            'x-deribit-sig': deribit_signature(tstamp, uri, params, credentials.KEY, credentials.SECRET, debug=debug)
+    }
+    if debug:
+        print params
+
+    response = requests.post(BASE_URL + uri, params, signature).json()
+    return response
+
+    
+def compare_strings(str1, str2):
+
+    if str1 == str2:
+        return True
+    for i, (a, b) in enumerate(zip(str1, str2)):
+        if a == b:
+            pass
+        else:
+            print i, a, b

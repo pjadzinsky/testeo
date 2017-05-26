@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 import unittest
 
-import test1
+import sdk
 
 
 class TestClass(unittest.TestCase):
@@ -17,12 +17,15 @@ class TestClass(unittest.TestCase):
             'quantity': 1,
         }
         expected = '29mtdvvqV56.1452237485895.0nkPWTDunuuc220vojSTirSj8/2eGT8Wv30YeLj+i4c='
-        computed = test1.deribit_signature(tstamp, action, params, key, secret)
-        print expected
-        print computed
+        computed = sdk.deribit_signature(tstamp, action, params, key, secret)
 
         self.assertEqual(expected, computed)
 
+
+    def test_account(self):
+        tstamp = 1495359724041
+
+        print sdk.get_account(tstamp=tstamp, debug=True)
 
 if __name__ == "__main__":
     unittest.main()
