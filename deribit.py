@@ -6,6 +6,9 @@ import time
 import credentials
 BASE_URL = 'https://www.deribit.com'
 
+KEY = credentials.DERIBIT_KEY
+SECRET = credentials.DERIBIT_SECRET
+
 
 def deribit_signature(tstamp, uri, params, key, secret, debug=False):
     sign = '_={0}&_ackey={1}&_acsec={2}&_action={3}'.format(tstamp, key, secret, uri)
@@ -31,12 +34,12 @@ def get_account(tstamp=None, debug=False):
     if not tstamp:
         tstamp = int(time.time() * 1000)
     params = {}
-    signature = {
-            'x-deribit-sig': deribit_signature(tstamp, uri, params, credentials.KEY, credentials.SECRET, debug=debug)
+    headers = {
+            'x-deribit-sig': deribit_signature(tstamp, uri, params, KEY, SECRET, debug=debug)
     }
     if debug:
-        print signature
-    response = requests.get(BASE_URL + uri, signature).json()
+        print headers
+    response = requests.get(BASE_URL + uri, headers=headers).json()
     return response
 
 
@@ -47,7 +50,7 @@ def buy(params, tstamp=None, debug=False):
         tstamp = int(time.time() * 1000)
 
     signature = {
-            'x-deribit-sig': deribit_signature(tstamp, uri, params, credentials.KEY, credentials.SECRET, debug=debug)
+            'x-deribit-sig': deribit_signature(tstamp, uri, params, KEY, SECRET, debug=debug)
     }
     if debug:
         print params
