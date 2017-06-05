@@ -7,27 +7,6 @@ import credentials
 BASE_URL = 'https://www.bitstamp.net/api/v2/'
 
 
-class Ticker(object):
-    def __init__(self, symbol):
-        assert(symbol in ['btcusd', 'btceur', 'eurusd', 'xrpusd', 'xrpeur', 'xrpbtc'])
-        self.symbol = symbol
-        self._uri = BASE_URL + 'ticker/{}/'.format(symbol)
-
-    def get(self):
-        response = requests.get(self.uri).json()
-
-
-def _public_request(endpoint, symbol):
-    uri = BASE_URL + endpoint
-
-    if symbol:
-        _verify_symbol(symbol)
-        uri += '{0}/'.format(symbol)
-
-    response = requests.get(uri).json()
-    return response
-
-
 def ticker(symbol):
     return _public_request('ticker', symbol)
 
@@ -75,10 +54,48 @@ def cancel_order(order_id):
 def buy_limit_order(symbol, amount, price, limit_price):
     _verify_symbol(symbol)
     uri = 'buy/{}/'.format(symbol)
-    print uri
     params = {'amount': amount, 'price': price, 'limit_price': limit_price}
-    print params
     return _private_request(uri, params)
+
+
+def buy_market_order(symbol, amount):
+    _verify_symbol(symbol)
+    uri = 'buy/market/{}/'.format(symbol)
+    params = {'amount': amount}
+    return _private_request(uri, params)
+
+
+def buy_stop_order(symbol, amount, price):
+    _verify_symbol(symbol)
+    uri = 'buy/stop/{}/'.format(symbol)
+    params = {'amount': amount, 'price': price}
+    return _private_request(uri, params)
+    pass
+
+
+def sell_limit_order(symbol, amount, price, limit_price):
+    _verify_symbol(symbol)
+    uri = 'sell/{}/'.format(symbol)
+    params = {'amount': amount, 'price': price, 'limit_price': limit_price}
+    return _private_request(uri, params)
+
+
+def sell_market_order(symbol, amount):
+    _verify_symbol(symbol)
+    uri = 'sell/market/{}/'.format(symbol)
+    params = {'amount': amount}
+    return _private_request(uri, params)
+
+
+def _public_request(endpoint, symbol):
+    uri = BASE_URL + endpoint
+
+    if symbol:
+        _verify_symbol(symbol)
+        uri += '{0}/'.format(symbol)
+
+    response = requests.get(uri).json()
+    return response
 
 
 def _private_request(uri, params):
@@ -92,7 +109,8 @@ def _private_request(uri, params):
 
 
 def _verify_symbol(symbol):
-    assert(symbol in ['all', 'btcusd', 'btceur', 'eurusd', 'xrpusd', 'xrpeur', 'xrpbtc'])
+    assert(symbol in ['all', 'btcusd', 'btceur', 'eurusd', 'xrpusd', 'xrpeur',
+                      'xrpbtc'])
 
 
 def _get_nonce():
@@ -109,3 +127,5 @@ def _get_signature(nonce):
     ).hexdigest().upper()
 
     return signature
+
+
