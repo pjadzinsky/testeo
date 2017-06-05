@@ -1,7 +1,9 @@
 import boto3
+#import credentials
 import config
 
 TABLE_NAME = config.TABLE_NAME
+
 
 def get_or_create_table():
     client = boto3.client('dynamodb')

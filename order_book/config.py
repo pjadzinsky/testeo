@@ -1,1 +1,1 @@
-TABLE_NAME = "ORDER_BOOK"
+TABLE_NAME = "OrderBook"
