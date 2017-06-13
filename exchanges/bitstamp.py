@@ -92,8 +92,9 @@ def _public_request(endpoint, symbol):
 
     if symbol:
         _verify_symbol(symbol)
-        uri += '{0}/'.format(symbol)
+        uri += '/{0}/'.format(symbol)
 
+    print uri
     response = requests.get(uri).json()
     return response
 

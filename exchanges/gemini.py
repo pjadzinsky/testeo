@@ -1,7 +1,6 @@
-import requests
+import json
 import urllib2
 
-import credentials
 
 BASE_URL = "https://api.sandbox.gemini.com/v1/"
 
@@ -39,7 +38,7 @@ def _public_request(endpoint, symbol):
 
     print url
     response = urllib2.urlopen(url)
-    return response.read()
+    return json.loads(response.read())
 
 
 def _verify_symbol(symbol):
