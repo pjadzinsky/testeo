@@ -1,16 +1,36 @@
-import decimal
+from decimal import Decimal
 import get_data
 
 
-def data():
-    output = {}
+def add_data(table):
+    """ Add several values to a row in the table.
+    
+    Values to add are:
+        last ticker in several exchanges like bitstamp, GDAX, gemini, kraken, deribit
+
+        order book (from GDAX)
+
+        time (epoch seconds)
+    """
+
+    output = get_data.last()
     output['time'] = get_data.get_time()
-    output.update(get_data.last())
     ob = get_data.order_book()
     output['bids'] = ob['bids']
     output['asks'] = ob['asks']
-    return output
 
+    response = table.put_item(Item={
+        'symbol': 'BTC-USD',
+        'time': int(output['time']),
+        'bids': output['bids'],
+        'asks': output['asks'],
+        'bitstamp': Decimal(output['bitstamp']),
+        'GDAX': Decimal(output['GDAX']),
+        'kraken': Decimal(output['kraken']),
+        'gemini': Decimal(output['gemini'])
+    })
+
+    return response
 """
 def get_data():
 
@@ -21,9 +41,9 @@ def get_data():
 
     epoch = decimal.Decimal(epoch)
     return epoch, ticker, order_book
-"""
 
-def add_data(table, epoch, ticker, order_book):
+
+def add_data2(table, epoch, ticker, order_book):
     # Add an item
     response = table.put_item(Item={
         'symbol': SYMBOL,
@@ -48,3 +68,4 @@ def to_decimal_type(d):
             except Exception as e:
                 raise e
 
+"""

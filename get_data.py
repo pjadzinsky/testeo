@@ -1,5 +1,4 @@
 import time
-import decimal
 
 import deribit_api
 import GDAX

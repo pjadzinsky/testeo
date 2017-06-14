@@ -2,22 +2,22 @@
 # -*- coding: utf-8 -*-
 import pprint
 
-from exchanges import bitstamp
-from exchanges import deribit
-from exchanges import germini
-
-from order_book import table_manager
 from order_book import populate_table
+from order_book import table_manager
+import credentials
+
 
 
 def main():
     # table is flexible, we can define keys as we use it. The only required
     # keys are 'symbol' and 'time'
-    table = table_manager.get_or_create_table()
+    import pudb
+    pudb.set_trace()
+    table = table_manager.get_or_create_table(credentials.AWS_KEY,
+                                              credentials.AWS_SECRET,
+                                              'us-west-2')
 
-    # get 
-    epoch, ticker, order_book = populate_table.get_data()
-    response = populate_table.add_data(table, epoch, ticker, order_book)
+    response = populate_table.add_data(table)
 
     if response['ResponseMetadata'].get('HTTPStatusCode') == 200:
         pass
@@ -25,8 +25,9 @@ def main():
         pprint.pprint(response)
 
     scan = table.scan()
-    #pprint.pprint(scan['Items'])
-    pprint.pprint(table.describe_table())
+    print '#'*80
+    pprint.pprint(scan['Items'])
+    #pprint.pprint(table.describe_table())
 
 
 if __name__ == "__main__":
