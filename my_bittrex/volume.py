@@ -33,11 +33,15 @@ class Test(object):
 
         for base in set(self.summaries_df['Base']):
             try:
-                base_last = self.summaries_df.loc['USDT-' + base, 'Last']
+                if base == "USDT":
+                    base_last = 1
+                else:
+                    base_last = self.summaries_df.loc['USDT-' + base, 'Last']
                 self.summaries_df.loc[self.summaries_df['Base']==base, 'USD volume'] *= base_last
             except:
                 self.summaries_df.loc[self.summaries_df['Base']==base, 'USD volume'] = None
 
+        return self.summaries_df[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
 
     def _to_df(self, response):
         """
