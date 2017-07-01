@@ -7,8 +7,8 @@ import credentials
 
 
 client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
-class Test(object):
-    def __init__(self, target_state=[]):
+class Portfolio(object):
+    def __init__(self, target_state):
         self.target_state = target_state
 
 
@@ -21,7 +21,6 @@ class Test(object):
         Given a state, by/sell positions to approximate target_state
         """
         current = self.client.get_balances()['result']
-
 
 
 def get_USD_volume():
@@ -39,6 +38,7 @@ def get_USD_volume():
             summaries.loc[summaries['Base']==base, 'USD volume'] = None
 
     return summaries[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
+
 
 def _to_df(response, new_index=None):
     """
@@ -123,33 +123,37 @@ def get_total_balance(base='BTC'):
     return total
 
 
-def start_new_balance(N, usd):
+def start_new_porfolio(N, base_currency, value):
     """
     Start a new blanace out of the N crypto currencies with more volume
     balanced is generated as a DF and stored as a csv under
     'balance.csv'
     
-    :param N: number of cryptocurrencies to use. There will be N+1
-                elements since USDT will always be present
-    :param usd: float, initial value of portfolio
+    :param N: number of cryptocurrencies to use.
+    :param base_currency: str, currency we are funding the portfolio with ('ETH' or 'BTC')
+    :param value: float, initial value of portfolio in 'base_currency'
     :return: 
     """
+    summaries = get_summaries()
     volume = get_USD_volume().tail(N)
-
-    #summaries = get_summaries()
+    currencies = volume.index.values.tolist()
+    market_names = _market_names(volume, base_currency)
+    balances = value / summaries.loc[market_names, 'Last'].values / N
 
     df = pd.DataFrame({
-        "Currency": volume.index.values.tolist() + ['USDT'],
-        "Balance" : [1.0] * (N + 1),
-        "Available" : [1.0] * (N + 1),
-        "Pending" : [0] * (N + 1),
-        "CryptoAddress" : ["DLxcEt3AatMyr2NTatzjsfHNoB9NT62HiF"] * (N + 1),
-        "Requested" : [False] * (N + 1),
-        "Uuid" : [None] * (N + 1)
+        "Currency": currencies,
+        "Balance" : balances,
+        "Available" : balances,
+        "Pending" : [0] * N,
+        "CryptoAddress" : ["DLxcEt3AatMyr2NTatzjsfHNoB9NT62HiF"] * N,
+        "Requested" : [False] * N,
+        "Uuid" : [None] * N
         })
 
     df.set_index('Currency', drop=True, inplace=True)
     df.to_csv('balances.csv')
+
+    return df
 
 
 def _invert_base(summary_row):
@@ -158,7 +162,7 @@ def _invert_base(summary_row):
     row of summary
     
     :param summary_row: 
-    :return: 
+    :return: series with same index as summary_row
     """
     output = summary_row.copy()
     output['Ask'] = 1.0 / summary_row['Ask']
@@ -181,8 +185,14 @@ def _invert_base(summary_row):
     # new MarketName
     new_currency, new_base = summary_row.name.split('-')
     output.rename(new_base + '-' + new_currency, inplace=True)
-    print '*'*10
-    print summary_row
-    print '*'*10
-    print output
     return output
+
+def _market_names(df, base_currency):
+    """
+    :param df: DataFrame indexed by 'currency'
+    :param base_currency: str, base currency
+    :return: list of strings of the form base-currency_1, base-currency2, etc
+    """
+
+    currencies = df.index.values.tolist()
+    return [base_currency + "-" + c for c in currencies]

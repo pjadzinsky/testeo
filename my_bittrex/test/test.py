@@ -40,6 +40,14 @@ class TestClass(unittest.TestCase):
         computed = volume.get_USD_volume()
         print computed
 
+    @mock.patch('my_bittrex.volume.client.get_balances')
+    def test_market_names(self, mocked_balances):
+        mocked_balances.return_value = fake_get_balances()
+
+        computed = volume._market_names(volume.get_balances(), 'ABC')
+        expected = ['ABC-' + c for c in ['A3C', 'BTC', 'ETH']]
+        self.assertEqual(computed, expected)
+
 
 def fake_get_summaries():
     response = """ {
