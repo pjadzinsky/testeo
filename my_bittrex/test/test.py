@@ -34,6 +34,11 @@ class TestClass(unittest.TestCase):
         computed = volume.get_total_balance('BTC')
         print computed
 
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_usd_volume(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        computed = volume.get_USD_volume()
+        print computed
 
 
 def fake_get_summaries():
@@ -42,11 +47,11 @@ def fake_get_summaries():
         "message" : "",
         "result" : [{
                 "MarketName" : "BTC-888",
-                "High" : 0.00000919,
-                "Low" : 0.00000820,
-                "Volume" : 74339.61396015,
-                "Last" : 0.00000820,
-                "BaseVolume" : 0.64966963,
+                "High" : 0.2,
+                "Low" : 0.1,
+                "Volume" : 1,
+                "Last" : 0.1,
+                "BaseVolume" : 10,
                 "TimeStamp" : "2014-07-09T07:19:30.15",
                 "Bid" : 0.00000820,
                 "Ask" : 0.00000831,
@@ -54,6 +59,21 @@ def fake_get_summaries():
                 "OpenSellOrders" : 15,
                 "PrevDay" : 0.00000821,
                 "Created" : "2014-03-20T06:00:00",
+                "DisplayMarketName" : null
+            }, {
+                "MarketName" : "ETH-A3C",
+                "High" : 0.04,
+                "Low" : 0.02,
+                "Volume" : 1,
+                "Last" : 0.04,
+                "BaseVolume" : 50,
+                "TimeStamp" : "2014-07-09T07:21:40.51",
+                "Bid" : 0.00000004,
+                "Ask" : 0.00000005,
+                "OpenBuyOrders" : 18,
+                "OpenSellOrders" : 18,
+                "PrevDay" : 0.00000002,
+                "Created" : "2014-05-30T07:57:49.637",
                 "DisplayMarketName" : null
             }, {
                 "MarketName" : "BTC-A3C",
@@ -76,7 +96,37 @@ def fake_get_summaries():
                 "Low" : 0.2001,
                 "Volume" : 1.2,
                 "Last" : 0.2,
-                "BaseVolume" : 17.59720424,
+                "BaseVolume" : 20,
+                "TimeStamp" : "2014-07-09T07:21:40.51",
+                "Bid" : 0.00000004,
+                "Ask" : 0.00000005,
+                "OpenBuyOrders" : 18,
+                "OpenSellOrders" : 18,
+                "PrevDay" : 0.00000002,
+                "Created" : "2014-05-30T07:57:49.637",
+                "DisplayMarketName" : null
+            }, {
+                "MarketName" : "USDT-ETH",
+                "High" : 300,
+                "Low" : 300,
+                "Volume" : 1.2,
+                "Last" : 300,
+                "BaseVolume" : 1,
+                "TimeStamp" : "2014-07-09T07:21:40.51",
+                "Bid" : 0.00000004,
+                "Ask" : 0.00000005,
+                "OpenBuyOrders" : 18,
+                "OpenSellOrders" : 18,
+                "PrevDay" : 0.00000002,
+                "Created" : "2014-05-30T07:57:49.637",
+                "DisplayMarketName" : null
+            }, {
+                "MarketName" : "USDT-BTC",
+                "High" : 2500,
+                "Low" : 2500,
+                "Volume" : 1.2,
+                "Last" : 2500,
+                "BaseVolume" : 1,
                 "TimeStamp" : "2014-07-09T07:21:40.51",
                 "Bid" : 0.00000004,
                 "Ask" : 0.00000005,

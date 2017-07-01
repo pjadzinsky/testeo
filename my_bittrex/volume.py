@@ -20,22 +20,23 @@ class Test(object):
         """
         current = self.client.get_balances()['result']
 
-        print current
 
-    def get_USD_volume(self):
-        self.summaries_df.loc[:, 'USD volume'] = self.summaries_df['BaseVolume']
 
-        for base in set(self.summaries_df['Base']):
-            try:
-                if base == "USDT":
-                    base_last = 1
-                else:
-                    base_last = self.summaries_df.loc['USDT-' + base, 'Last']
-                self.summaries_df.loc[self.summaries_df['Base']==base, 'USD volume'] *= base_last
-            except:
-                self.summaries_df.loc[self.summaries_df['Base']==base, 'USD volume'] = None
+def get_USD_volume():
+    summaries = get_summaries()
+    summaries.loc[:, 'USD volume'] = summaries['BaseVolume']
 
-        return self.summaries_df[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
+    for base in set(summaries['Base']):
+        try:
+            if base == "USDT":
+                base_last = 1
+            else:
+                base_last = summaries.loc['USDT-' + base, 'Last']
+            summaries.loc[summaries['Base']==base, 'USD volume'] *= base_last
+        except:
+            summaries.loc[summaries['Base']==base, 'USD volume'] = None
+
+    return summaries[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
 
 def _to_df(response, new_index=None):
     """
@@ -53,17 +54,11 @@ def _to_df(response, new_index=None):
     return df
 
 
-def summary_by_base_volume():
-    summaries = client.get_market_summaries()
-    if not summaries['success']:
-        raise ValueError(summaries)
-
-    summaries = summaries['result']
-    summaries.sort(key=lambda x: -x['BaseVolume'])
-    return summaries
-
-
 def get_currencies():
+    """
+    
+    :return: Dataframe indexed by "Currency" with available currencies
+    """
     response = client.get_currencies()
     if response['success']:
         currencies_df = _to_df(response['result'], 'Currency')
@@ -72,6 +67,9 @@ def get_currencies():
 
 
 def get_summaries():
+    """
+    :return: Dataframe indexed by "MarketName" with market data about each urrency
+    """
     response = client.get_market_summaries()
     if response['success']:
         df = _to_df(response['result'], 'MarketName')
@@ -85,13 +83,20 @@ def get_summaries():
 
 
 def get_balances():
+    """
+    
+    :return: Dataframe indexed by 'Currency' with our portfolio
+    """
+    df = _to_df(client.get_balances()['result'], 'Currency')
+    if df.empty:
+        df = pd.read_csv('balances.csv')
 
-    return _to_df(client.get_balances()['result'], 'Currency')
+    return df
 
 
 def get_total_balance(base='BTC'):
     """
-    Compute the total amount of the portfolio in 'base' curreny
+    Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
     """
     summaries = get_summaries()
     balances = get_balances()
@@ -108,4 +113,31 @@ def get_total_balance(base='BTC'):
             total += series['Balance'] * summaries.loc[market_name, 'Last']
 
     return total
+
+
+def start_new_balance(N, volume):
+    """
+    Start a new blanace out of the N crypto currencies with more volume
+    balanced is generated as a DF and stored as a csv under
+    'balance.csv'
+    
+    :param N: number of cryptocurrencies to use. There will be N+1
+                elements since USDT will always be present
+    :return: 
+    """
+    #volume = get_USD_volume().tail(N)
+    volume = volume.tail(N)
+
+    df = pd.DataFrame({
+        "Currency": volume.index.values.tolist() + ['USDT'],
+        "Balance" : [1.0] * (N + 1),
+        "Available" : [1.0] * (N + 1),
+        "Pending" : [0] * (N + 1),
+        "CryptoAddress" : ["DLxcEt3AatMyr2NTatzjsfHNoB9NT62HiF"] * (N + 1),
+        "Requested" : [False] * (N + 1),
+        "Uuid" : [None] * (N + 1)
+        })
+
+    df.set_index('Currency', drop=True, inplace=True)
+    df.to_csv('balances.csv')
 
