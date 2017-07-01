@@ -1,6 +1,8 @@
 import pandas as pd
 
 from bittrex import bittrex
+from tensorflow.contrib.layers.python.layers import summaries
+
 import credentials
 
 
@@ -74,6 +76,12 @@ def get_summaries():
     if response['success']:
         df = _to_df(response['result'], 'MarketName')
 
+    # it becomes simpler later on if we treat USDT as another crypto-currency
+    # treated in BTC and ETH as anything else
+    df = df.append(_invert_base(df.loc['USDT-ETH']))
+    df = df.append(_invert_base(df.loc['USDT-BTC']))
+
+
     market_name = df.index.values
     base_currency = [mn.split('-') for mn in market_name]
     df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
@@ -115,7 +123,7 @@ def get_total_balance(base='BTC'):
     return total
 
 
-def start_new_balance(N, volume):
+def start_new_balance(N, usd):
     """
     Start a new blanace out of the N crypto currencies with more volume
     balanced is generated as a DF and stored as a csv under
@@ -123,10 +131,12 @@ def start_new_balance(N, volume):
     
     :param N: number of cryptocurrencies to use. There will be N+1
                 elements since USDT will always be present
+    :param usd: float, initial value of portfolio
     :return: 
     """
-    #volume = get_USD_volume().tail(N)
-    volume = volume.tail(N)
+    volume = get_USD_volume().tail(N)
+
+    #summaries = get_summaries()
 
     df = pd.DataFrame({
         "Currency": volume.index.values.tolist() + ['USDT'],
@@ -141,3 +151,38 @@ def start_new_balance(N, volume):
     df.set_index('Currency', drop=True, inplace=True)
     df.to_csv('balances.csv')
 
+
+def _invert_base(summary_row):
+    """
+    Invert the relationshipt between Base and Currency for a given
+    row of summary
+    
+    :param summary_row: 
+    :return: 
+    """
+    output = summary_row.copy()
+    output['Ask'] = 1.0 / summary_row['Ask']
+    output['BaseVolume'] = summary_row['BaseVolume'] / summary_row['Last']
+    output['Bid'] = 1.0 / summary_row['Bid']
+    output['Created'] = summary_row['Created']
+    output['High'] = 1.0 / summary_row['Low']
+    output['Last'] = 1.0 / summary_row['Last']
+    output['Low'] = 1.0 / summary_row['High']
+    output['OpenBuyOrders'] = summary_row['OpenSellOrders']
+    output['OpenSellOrders'] = summary_row['OpenBuyOrders']
+    output['PrevDay'] = 1.0 / summary_row['PrevDay']
+    output['TimeStamp'] = summary_row['TimeStamp']
+    output['Volume'] = summary_row['Volume']
+    if 'Currency' in summary_row:
+        output['Base'] = summary_row['Currency']
+    if 'Base' in summary_row:
+        output['Currency'] = summary_row['Base']
+
+    # new MarketName
+    new_currency, new_base = summary_row.name.split('-')
+    output.rename(new_base + '-' + new_currency, inplace=True)
+    print '*'*10
+    print summary_row
+    print '*'*10
+    print output
+    return output
