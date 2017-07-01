@@ -3,3 +3,4 @@ credentials.py
 Testeo.egg-info*
 build/*
 dist/*
+.idea/*

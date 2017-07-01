@@ -4,29 +4,23 @@ from bittrex import bittrex
 import credentials
 
 
+client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
 class Test(object):
-    client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
+    def __init__(self, target_state=[]):
+        self.target_state = target_state
 
-    def get_currencies(self):
-        response = self.client.get_currencies()
-        if response['success']:
-            self.currencies_df = self._to_df(response['result'])
 
-        self.currencies_df.set_index('Currency', drop=True, inplace=True)
+    def get_ticker(self, currency):
+        response = self.client.get_ticker(currency)
+        return response
 
-    def get_ticker(self):
-        response = self.client.get_ticker()
+    def rebalance(self):
+        """
+        Given a state, by/sell positions to approximate target_state
+        """
+        current = self.client.get_balances()['result']
 
-    def get_summaries(self):
-        response = self.client.get_market_summaries()
-        if response['success']:
-            df = self._to_df(response['result'])
-
-        df.loc[:, 'Base'] = df['MarketName'].apply(lambda x: x.split('-')[0])
-        df.loc[:, 'Currency'] = df['MarketName'].apply(lambda x: x.split('-')[1])
-        df.set_index('MarketName', drop=True, inplace=True)
-
-        self.summaries_df = df
+        print current
 
     def get_USD_volume(self):
         self.summaries_df.loc[:, 'USD volume'] = self.summaries_df['BaseVolume']
@@ -43,18 +37,20 @@ class Test(object):
 
         return self.summaries_df[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
 
-    def _to_df(self, response):
-        """
-        
-        :param summaries: 
-        :return: pd.DataFrame: Columns are the keys into each 'summaries'
-        
-        """
-        df = pd.DataFrame([])
-        for r in response:
-            df = df.append(r, ignore_index=True)
+def _to_df(response, new_index=None):
+    """
+    
+    :param summaries: 
+    :return: pd.DataFrame: Columns are the keys into each 'summaries'
+    
+    """
+    df = pd.DataFrame([])
+    for r in response:
+        df = df.append(r, ignore_index=True)
 
-        return df
+    if new_index and not df.empty:
+        df.set_index(new_index, drop=True, inplace=True)
+    return df
 
 
 def summary_by_base_volume():
@@ -67,17 +63,49 @@ def summary_by_base_volume():
     return summaries
 
 
+def get_currencies():
+    response = client.get_currencies()
+    if response['success']:
+        currencies_df = _to_df(response['result'], 'Currency')
+
+    return currencies_df
 
 
-def currency_by_USD_volume():
+def get_summaries():
+    response = client.get_market_summaries()
+    if response['success']:
+        df = _to_df(response['result'], 'MarketName')
+
+    market_name = df.index.values
+    base_currency = [mn.split('-') for mn in market_name]
+    df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
+    df.loc[:, 'Currency'] = [bc[1] for bc in base_currency]
+
+    return df
+
+
+def get_balances():
+
+    return _to_df(client.get_balances()['result'], 'Currency')
+
+
+def get_total_balance(base='BTC'):
     """
-    Each currency might be traded against several other currencies. Sum the total
-    traded volume in USD and return a dictionary with Ticker: Volume (USD) values
+    Compute the total amount of the portfolio in 'base' curreny
     """
-    summaries = client.get_market_summaries()
-    if not summaries['success']:
-        raise ValueError(summaries)
+    summaries = get_summaries()
+    balances = get_balances()
 
-    summaries = summaries['result']
-    summaries.sort(key=lambda x: -x['BaseVolume'])
-    return summaries
+    # restrict summaries to 'base' currency
+    summaries = summaries[summaries.Base==base]
+
+    total = 0
+    for currency, series in balances.iterrows():
+        market_name = base + "-" + currency
+        if currency == base:
+            total += series['Balance']
+        else:
+            total += series['Balance'] * summaries.loc[market_name, 'Last']
+
+    return total
+
