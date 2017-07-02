@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from my_bittrex import volume
+from my_bittrex.test import test_utils
 
 
 class TestClass(unittest.TestCase):
@@ -71,6 +72,18 @@ class TestPortfolio(unittest.TestCase):
 
     def test_value(self):
         print self.portfolio.value('BTC')
+
+
+class TestTestUtils(unittest.TestCase):
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_start_new_portfolio(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        summary = volume.get_summaries()
+        perturbed = test_utils.perturb_summary(summary, 0.1)
+
+        joined = perturbed.join(summary, lsuffix='l', rsuffix='r')
+        print joined[['Lastl', 'Lastr']]
+
 
 
 def fake_get_summaries():
