@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import pandas as pd
 import time
 
@@ -40,11 +39,9 @@ class Portfolio(object):
 
         balances.loc[:, 'excess'] = balances['market_value'] - mean
 
-        for currency, row in balances.iterrows():
-            if currency == base_currency:
-                balances.loc[currency, 'delta'] = row['excess']
-            else:
-                balances.loc[currency, 'delta'] = row['excess'] / cost_in_base_of_currency
+        balances.loc[:, 'delta'] = balances.apply(
+            lambda x: x['excess'] / self.market.currency_cost_in_base_currency(x.name, base_currency), axis=1)
+        print balances.head()
 
 
 class Market(object):
@@ -78,9 +75,9 @@ class Market(object):
         reversed_market_name = currency + "_" + base_currency
         if currency == base_currency:
             return 1
-        elif potential_market_name in summaries:
+        elif potential_market_name in summaries.index:
             return summaries.loc[potential_market_name, 'Last']
-        elif reversed_market_name in summaries:
+        elif reversed_market_name in summaries.index:
             return summaries.loc[reversed_market_name, 'Last']
         else:
             msg = "currency: {0} and base_currency {1} don't make a valid market name in 'summaries'".format(
