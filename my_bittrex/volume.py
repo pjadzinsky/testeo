@@ -1,26 +1,29 @@
+import numpy as np
+import os
 import pandas as pd
 
 from bittrex import bittrex
-from tensorflow.contrib.layers.python.layers import summaries
 
 import credentials
 
-
 client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
+
+
 class Portfolio(object):
-    def __init__(self, target_state):
+    def __init__(self, target_state, portfolio_file=None):
         self.target_state = target_state
+        self.portfolio_file = portfolio_file
 
+        self.balances = get_balances(portfolio_file=portfolio_file)
 
-    def get_ticker(self, currency):
-        response = self.client.get_ticker(currency)
-        return response
+    def value(self, base):
+        return get_total_balance(self.balances, base=base)
 
     def rebalance(self):
         """
         Given a state, by/sell positions to approximate target_state
         """
-        current = self.client.get_balances()['result']
+        pass
 
 
 def get_USD_volume():
@@ -90,30 +93,32 @@ def get_summaries():
     return df
 
 
-def get_balances():
+def get_balances(portfolio_file=None):
     """
     
     :return: Dataframe indexed by 'Currency' with our portfolio
     """
-    df = _to_df(client.get_balances()['result'], 'Currency')
-    if df.empty:
-        df = pd.read_csv('balances.csv')
+    if portfolio_file:
+        try:
+            df = pd.read_csv(portfolio_file, index_col=0)
+        except ValueError:
+            df = start_new_portfolio(10, 'BTC', 1, portfolio_file=portfolio_file)
+        except Exception as e:
+            raise e
+    else:
+        df = _to_df(client.get_balances()['result'], 'Currency')
 
     return df
 
 
-def get_total_balance(base='BTC'):
+def get_total_balance(balances_df, base='BTC'):
     """
     Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
     """
     summaries = get_summaries()
-    balances = get_balances()
-
-    # restrict summaries to 'base' currency
-    summaries = summaries[summaries.Base==base]
 
     total = 0
-    for currency, series in balances.iterrows():
+    for currency, series in balances_df.iterrows():
         market_name = base + "-" + currency
         if currency == base:
             total += series['Balance']
@@ -123,7 +128,7 @@ def get_total_balance(base='BTC'):
     return total
 
 
-def start_new_porfolio(N, base_currency, value):
+def start_new_portfolio(N, base_currency, value, portfolio_file=None):
     """
     Start a new blanace out of the N crypto currencies with more volume
     balanced is generated as a DF and stored as a csv under
@@ -138,7 +143,14 @@ def start_new_porfolio(N, base_currency, value):
     volume = get_USD_volume().tail(N)
     currencies = volume.index.values.tolist()
     market_names = _market_names(volume, base_currency)
-    balances = value / summaries.loc[market_names, 'Last'].values / N
+    price = summaries.loc[market_names, 'Last'].values
+    # price might a None, in that case replace it by 1.0, read below for an explanation
+    # Most likely, base_currency is one of the 'currencies'. In that case
+    # the corresponding market_names will be None and we don't get a price for it
+    # from summaries since the price of base_currency in base_currency is just 1
+    price = [p if not np.isnan(p) else 1.0 for p in price]
+    balances = [value / p / N for p in price]
+
 
     df = pd.DataFrame({
         "Currency": currencies,
@@ -151,7 +163,8 @@ def start_new_porfolio(N, base_currency, value):
         })
 
     df.set_index('Currency', drop=True, inplace=True)
-    df.to_csv('balances.csv')
+    if portfolio_file:
+        df.to_csv(portfolio_file)
 
     return df
 
@@ -195,4 +208,4 @@ def _market_names(df, base_currency):
     """
 
     currencies = df.index.values.tolist()
-    return [base_currency + "-" + c for c in currencies]
+    return [base_currency + "-" + c if c != base_currency else None for c in currencies]

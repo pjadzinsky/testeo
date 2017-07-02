@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 import json
-import unittest
 import mock
+import tempfile
+import unittest
 
 from my_bittrex import volume
 
@@ -47,6 +48,29 @@ class TestClass(unittest.TestCase):
         computed = volume._market_names(volume.get_balances(), 'ABC')
         expected = ['ABC-' + c for c in ['A3C', 'BTC', 'ETH']]
         self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    @mock.patch('my_bittrex.volume.client.get_balances')
+    def test_start_new_portfolio(self, mocked_balances, mocked_summaries):
+        mocked_balances.return_value = fake_get_balances()
+        mocked_summaries.return_value = fake_get_summaries()
+
+        csv_file = tempfile.mkstemp()
+        import pudb
+        pudb.set_trace()
+        volume.start_new_portfolio(10, 'BTC', 1, csv_file=csv_file)
+        btc_value = volume.get_total_balance('BTC')
+        print btc_value
+        #self.assertEqual(computed, expected)
+
+
+class TestPortfolio(unittest.TestCase):
+    def setUp(self):
+        _, balances_temp_csv = tempfile.mkstemp()
+        self.portfolio = volume.Portfolio('', balances_temp_csv)
+
+    def test_value(self):
+        print self.portfolio.value('BTC')
 
 
 def fake_get_summaries():
