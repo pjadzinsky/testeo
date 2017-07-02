@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
+import time
 
 from bittrex import bittrex
 
@@ -13,17 +14,79 @@ class Portfolio(object):
     def __init__(self, target_state, portfolio_file=None):
         self.target_state = target_state
         self.portfolio_file = portfolio_file
+        self.market = Market()
 
         self.balances = get_balances(portfolio_file=portfolio_file)
 
     def value(self, base):
         return get_total_balance(self.balances, base=base)
 
-    def rebalance(self):
+    def rebalance(self, base_currency):
         """
         Given a state, by/sell positions to approximate target_state
         """
-        pass
+        balances = self.balances.copy()
+        summaries = self.market.summaries()
+
+        for currency, row in balances.iterrows():
+            if currency == base_currency:
+                balances.loc[currency, 'Last'] = 1
+            else:
+                market_name = base_currency + '-' + currency
+                balances.loc[currency, 'Last'] = summaries.loc[market_name, 'Last']
+
+        balances.loc[:, 'market_value'] = balances['Available'] * balances['Last']
+        mean = balances['market_value'].mean()
+
+        balances.loc[:, 'excess'] = balances['market_value'] - mean
+
+        for currency, row in balances.iterrows():
+            if currency == base_currency:
+                balances.loc[currency, 'delta'] = row['excess']
+            else:
+                balances.loc[currency, 'delta'] = row['excess'] / cost_in_base_of_currency
+
+
+class Market(object):
+    def __init__(self, cache_timeout_sec=600):
+        self._timestamp = 0
+        self._cache_timeout_sec = cache_timeout_sec
+
+    def summaries(self):
+        """
+        Accdssor with caching for get_summaries()
+        :return: 
+        """
+        if self._timestamp + self._cache_timeout_sec > time.time():
+            pass
+        else:
+            print int(time.time())
+            self._summaries = get_summaries()
+            self._timestamp = time.time()
+
+        return self._summaries
+
+    def currency_cost_in_base_currency(self, currency, base_currency):
+        """
+        :param currency:
+        :param base_currency: 
+        :return: 
+        """
+
+        summaries = self.summaries()
+        potential_market_name = base_currency + "-" + currency
+        reversed_market_name = currency + "_" + base_currency
+        if currency == base_currency:
+            return 1
+        elif potential_market_name in summaries:
+            return summaries.loc[potential_market_name, 'Last']
+        elif reversed_market_name in summaries:
+            return summaries.loc[reversed_market_name, 'Last']
+        else:
+            msg = "currency: {0} and base_currency {1} don't make a valid market name in 'summaries'".format(
+                currency, base_currency)
+            raise ValueError(msg)
+
 
 
 def get_USD_volume():

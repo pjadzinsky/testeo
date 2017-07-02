@@ -2,6 +2,7 @@
 
 import json
 import mock
+import time
 import tempfile
 import unittest
 
@@ -66,12 +67,80 @@ class TestClass(unittest.TestCase):
 
 
 class TestPortfolio(unittest.TestCase):
-    def setUp(self):
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    @mock.patch('my_bittrex.volume.client.get_balances')
+    def setUp(self, mocked_balance, mocked_summary):
+        mocked_summary.return_value = fake_get_summaries()
+        mocked_balance.return_value = fake_get_balances()
+
         _, balances_temp_csv = tempfile.mkstemp()
         self.portfolio = volume.Portfolio('', balances_temp_csv)
 
     def test_value(self):
-        print self.portfolio.value('BTC')
+        self.assertAlmostEqual(self.portfolio.value('BTC'), 1, 3)
+
+    """
+    def test_rebalance(self):
+        pass
+        #volume.rebalance('BTC')
+    """
+
+class TestMarket(unittest.TestCase):
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_caching(self, mocked_get_summaries):
+        """
+        Test that caching works, and volume.get_summaries() gets called
+        only once
+        """
+        mocked_get_summaries.return_value = fake_get_summaries()
+        market = volume.Market(600)
+        for i in range(10):
+            market.summaries()
+        mocked_get_summaries.assert_called_once()
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_caching_2(self, mocked_get_summaries):
+        """
+        Test that caching works, and volume.get_summaries() gets called
+        twice if 'cache_timeout_sec' elapses in between calls
+        """
+        mocked_get_summaries.return_value = fake_get_summaries()
+        market = volume.Market(0.1)
+        market.summaries()
+        time.sleep(.2)
+        market.summaries()
+        mocked_get_summaries.assert_called_once()
+        raise ValueError('this test should faile, method is called twice')
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_currency_cost_in_base_currency_1(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        market = volume.Market()
+        computed = market.currency_cost_in_base_currency('XXX', 'XXX')
+        expected = 1
+        self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_currency_cost_in_base_currency_2(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        market = volume.Market()
+        computed = market.currency_cost_in_base_currency('BTC', 'USDT')
+        expected = 2500
+        self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_currency_cost_in_base_currency_3(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        market = volume.Market()
+        computed = market.currency_cost_in_base_currency('USDT', 'BTC')
+        expected = 1.0 / 2500
+        self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test_currency_cost_in_base_currency_4(self, mocked_summaries):
+        mocked_summaries.return_value = fake_get_summaries()
+        market = volume.Market()
+        self.assertRaises(ValueError, market.currency_cost_in_base_currency, 'YYY', 'XXX')
 
 
 class TestTestUtils(unittest.TestCase):
