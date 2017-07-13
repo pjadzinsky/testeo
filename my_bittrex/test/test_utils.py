@@ -7,7 +7,6 @@ def perturb_summary(summary, sigma):
     
     A market_name is a given currency trading for a different base currency ie, BTC-ETH
     
-    
     :param summary: 
     :param sigma: contrast of gaussian noise to add
                 a market_name trading at T will get noise from a gaussian distribution with std = T * sigma

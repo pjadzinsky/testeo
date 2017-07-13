@@ -4,3 +4,5 @@ Testeo.egg-info*
 build/*
 dist/*
 .idea/*
+*.csv
+*/*.csv

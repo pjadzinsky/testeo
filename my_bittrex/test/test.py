@@ -16,12 +16,12 @@ class TestClass(unittest.TestCase):
         mocked_summaries.return_value = fake_get_summaries()
         print volume.get_summaries()
 
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def test_get_balances(self, mocked_balances):
         mocked_balances.return_value = fake_get_balances()
-        print volume.get_balances()
+        print volume.get_portfolio()
 
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def test_rebalance(self, mocked_balances):
         mocked_balances.return_value = fake_get_balances()
         volume.rebalance()
@@ -29,7 +29,7 @@ class TestClass(unittest.TestCase):
         print 1
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def test_total(self, mocked_balances, mocked_summaries):
         mocked_balances.return_value = fake_get_balances()
         mocked_summaries.return_value = fake_get_summaries()
@@ -43,16 +43,16 @@ class TestClass(unittest.TestCase):
         computed = volume.get_USD_volume()
         print computed
 
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def test_market_names(self, mocked_balances):
         mocked_balances.return_value = fake_get_balances()
 
-        computed = volume._market_names(volume.get_balances(), 'ABC')
+        computed = volume._market_names(volume.get_portfolio(), 'ABC')
         expected = ['ABC-' + c for c in ['A3C', 'BTC', 'ETH']]
         self.assertEqual(computed, expected)
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def test_start_new_portfolio(self, mocked_balances, mocked_summaries):
         mocked_balances.return_value = fake_get_balances()
         mocked_summaries.return_value = fake_get_summaries()
@@ -68,7 +68,7 @@ class TestClass(unittest.TestCase):
 
 class TestPortfolio(unittest.TestCase):
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    @mock.patch('my_bittrex.volume.client.get_balances')
+    @mock.patch('my_bittrex.volume.client.get_portfolio')
     def setUp(self, mocked_balance, mocked_summary):
         mocked_summary.return_value = fake_get_summaries()
         mocked_balance.return_value = fake_get_balances()
