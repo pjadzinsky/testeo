@@ -28,24 +28,24 @@ class Portfolio(object):
         """
         self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
 
-    def value(self, base):
+    def value(self, market, base, intermediate_currencies):
         """
         Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
         """
 
+        summaries_df = market.summaries()
+
         total = 0
-        for currency, series in self.portfolio.iterrows():
-            total += series['Balance'] * market.currency_cost_in_base_currency(currency, base)
+        for intermediate_currency in intermediate_currencies:
+            market_name = intermediate_currency + "-" + currency
+            cost = self.currency_cost_in_base_currency(intermediate_currency, base)
+
+            if market_name in summaries_df.index:
+                total += summaries_df.loc[market_name, 'Last'] * cost
 
         return total
 
-    @staticmethod
-    def balance_ratio(original_balance, current_balance):
-        """ Compute the average ratio (across all currencies) between the current and the original balance """
-        ratio = current_balance / original_balance
-        return np.mean(ratio)
-
-    def rebalance(self, base_currency, threshold):
+    def rebalance(self, market, base_currency, threshold):
         """
         Given a state, buy/sell positions to approximate target_portfolio
         
@@ -77,7 +77,7 @@ class Portfolio(object):
 
         # what would the new average ratio between current and original balances be if we were to
         # sell 'sell_in_currency'?
-        mean_ratio = self.balance_ratio(self.initial_portfolio['Balance'], new_balances)
+        mean_ratio = np.mean(self.initial_portfolio['Balance'] / new_balances)
         # I want to limit buying/selling such that the ratio for each currency is not more than N times the mean.
         # This means that new_balances has to be the min between new_balances computed above and N * new_balances / mean_ratio
         new_balances = [min(nb, N * nb / mean_ratio) for nb in new_balances]
@@ -118,26 +118,31 @@ class Market(object):
 
         return self._summaries
 
-    def currency_cost_in_base_currency(self, currency, base_currency):
+    def currency_value(self, currencies):
         """
-        :param currency:
-        :param base_currency: 
-        :return: 
+        Convert currencies[0] into currencies[1] then into currencies[2], ..., until currencies[-1]
         """
 
-        summaries = self.summaries()
-        potential_market_name = base_currency + "-" + currency
-        reversed_market_name = currency + "-" + base_currency
-        if currency == base_currency:
-            return 1.0
-        elif potential_market_name in summaries.index:
-            return summaries.loc[potential_market_name, 'Last']
-        elif reversed_market_name in summaries.index:
-            return 1.0 / summaries.loc[reversed_market_name, 'Last']
+        if len(currencies) == 0:
+            return 0
+        elif len(currencies) == 1:
+            return 1
+
+        currency = currencies[0]
+        base = currencies[1]
+
+        potential_market_name = base + "-" + currency
+        reversed_market_name = currency + "-" + base
+        if currency == base:
+            cost = 1.0
+        elif potential_market_name in self.summaries().index:
+            cost = self.summaries().loc[potential_market_name, 'Last']
+        elif reversed_market_name in self.summaries().index:
+            cost = 1.0 / self.summaries().loc[reversed_market_name, 'Last']
         else:
-            msg = "currency: {0} and base_currency {1} don't make a valid market name in 'summaries'".format(
-                currency, base_currency)
-            raise ValueError(msg)
+            cost = 0
+
+        return cost * self.currency_value(currencies[1:])
 
     def usd_volumes(self, base, intermediate_currencies):
         """
@@ -169,7 +174,7 @@ class Market(object):
 
         for intermediate_currency in intermediate_currencies:
             market_name = intermediate_currency + "-" + currency
-            cost = self.currency_cost_in_base_currency(intermediate_currency, base)
+            cost = self.currency_value([intermediate_currency, base])
 
             if market_name in summaries_df.index:
                 usd_volume += summaries_df.loc[market_name, 'BaseVolume'] * cost
@@ -218,7 +223,6 @@ def start_new_portfolio(state, base_currency, value, portfolio_file=None):
     :return: 
     """
     assert(base_currency in ['ETH', 'BTC'])
-    market = Market()
     volumes_df = market.usd_volumes()
     selected_currencies = volumes_df.head(N).index.tolist()
 
@@ -314,5 +318,3 @@ def _market_names(currency, base_currency):
 
     return answer
 
-
-market = Market()

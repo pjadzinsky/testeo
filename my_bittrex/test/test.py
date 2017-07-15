@@ -10,17 +10,6 @@ from my_bittrex import volume
 from my_bittrex.test import test_utils
 
 
-class TestClass(unittest.TestCase):
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_get_summaries(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-
-    @mock.patch('my_bittrex.volume.client.get_balances')
-    def test_get_balances(self, mocked_balances):
-        mocked_balances.return_value = fake_get_balances()
-        print volume.get_portfolio()
-
-
 class TestMarket(unittest.TestCase):
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def setUp(self, mocked_get_market_summaries):
@@ -29,29 +18,39 @@ class TestMarket(unittest.TestCase):
 
     def test_summaries(self):
         df = self.market._summaries
-        self.assertItemsEqual(df.shape, (3, 15))
+        self.assertItemsEqual(df.shape, (4, 15))
 
     def test_cost_in_base_currency(self):
         market = self.market
-        cost = market.currency_cost_in_base_currency('XXX', 'XXX')
-        self.assertEqual(cost, 1)
+        cost = market.currency_value(['XXX', 'XXX'])
+        self.assertAlmostEqual(cost, 1, 3)
 
-        cost = market.currency_cost_in_base_currency('BBB', 'AAA')
-        self.assertEqual(cost, 0.1)
+        cost = market.currency_value(['BBB', 'AAA'])
+        self.assertAlmostEqual(cost, 0.1, 3)
 
-        cost = market.currency_cost_in_base_currency('AAA', 'BBB')
-        self.assertEqual(cost, 10)
+        cost = market.currency_value(['AAA', 'BBB'])
+        self.assertAlmostEqual(cost, 10, 3)
 
-        cost = market.currency_cost_in_base_currency('CCC', 'AAA')
-        self.assertEqual(cost, 0.01)
+        cost = market.currency_value(['CCC', 'AAA'])
+        self.assertAlmostEqual(cost, 0.01, 3)
 
-        cost = market.currency_cost_in_base_currency('AAA', 'CCC')
-        self.assertEqual(cost, 100)
+        cost = market.currency_value(['CCC', 'BBB', 'AAA'])
+        self.assertAlmostEqual(cost, 0.01, 3)
 
-        cost = market.currency_cost_in_base_currency('AAA', 'USDT')
-        self.assertEqual(cost, 2)
+        cost = market.currency_value(['AAA', 'BBB', 'CCC'])
+        self.assertAlmostEqual(cost, 100, 3)
 
-        self.assertRaises(ValueError, market.currency_cost_in_base_currency, 'AAA', 'DDD')
+        cost = market.currency_value(['AAA', 'CCC'])
+        self.assertAlmostEqual(cost, 100, 3)
+
+        cost = market.currency_value(['AAA', 'USDT'])
+        self.assertAlmostEqual(cost, 2, 3)
+
+        cost = market.currency_value(['USDT', 'AAA'])
+        self.assertAlmostEqual(cost, 0.5, 3)
+
+        cost = market.currency_value(['AAA', 'DDD'])
+        self.assertEqual(cost, 0)
 
     @mock.patch('my_bittrex.volume.client.get_currencies')
     def test_currency_volume_1(self, mocked_get_currencies):
@@ -82,21 +81,15 @@ class TestMarket(unittest.TestCase):
         expected = [2.0] * 3
         self.assertItemsEqual(computed, expected)
 
-
-'''
-    def test_usd_volume(self):
-        volume = self.market.usd_volumes()
-        self.assertEqual(volume, 2000002)
-
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test_caching(self, mocked_get_summaries):
         """
         Test that caching works, and volume.get_summaries() gets called
         only once
         """
         mocked_get_summaries.return_value = fake_get_summaries()
-        market = volume.Market(600)
         for i in range(10):
-            market.summaries()
+            self.market.summaries()
         mocked_get_summaries.assert_called_once()
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
@@ -107,11 +100,14 @@ class TestMarket(unittest.TestCase):
         """
         mocked_get_summaries.return_value = fake_get_summaries()
         market = volume.Market(0.1)
+        print 1
         market.summaries()
         time.sleep(.2)
+        print 2
         market.summaries()
         mocked_get_summaries.assert_called_once()
-        raise ValueError('this test should faile, method is called twice')
+        #raise ValueError('this test should faile, method is called twice')
+'''
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test_currency_cost_in_base_currency_1(self, mocked_summaries):
@@ -151,7 +147,34 @@ class TestPortfolio(unittest.TestCase):
     def setUp(self, mocked_get_balances, mocked_get_market_summaries):
         mocked_get_market_summaries.return_value = fake_get_summaries()
         mocked_get_balances.return_value = fake_get_balances()
+        self.market = volume.Market()
         self.portfolio = volume.Portfolio()
+
+    def test_currency_value_1(self):
+        value = self.portfolio.currency_value(self.market, ['AAA', 'AAA'])
+        self.assertEqual(value, 1)
+
+    def test_currency_value_2(self):
+        value = self.portfolio.currency_value(self.market, ['AAA', 'USDT'])
+        self.assertEqual(value, 2)
+
+    def test_currency_value_3(self):
+        value = self.portfolio.currency_value(self.market, ['BBB', 'AAA', 'USDT'])
+        self.assertEqual(value, 2)
+
+    def test_currency_value_3(self):
+        value = self.portfolio.currency_value(self.market, ['CCC', 'AAA', 'USDT'])
+        self.assertEqual(value, 2)
+
+    def test_currency_value_4(self):
+        value = self.portfolio.currency_value(self.market, ['CCC', 'BBB', 'AAA', 'USDT'])
+        self.assertEqual(value, 2)
+
+    def test_value(self):
+        import pudb
+        pudb.set_trace()
+        self.assertAlmostEqual(self.portfolio.value(self.market, 'AAA'), 3, 3)
+        self.assertAlmostEqual(self.portfolio.value(self.market, 'USDT'), 6, 3)
 
     def test_get_portfolio(self):
         print self.portfolio.value('AAA')
@@ -202,8 +225,6 @@ class TestPortfolio(unittest.TestCase):
         #self.assertEqual(computed, expected)
 
 
-    def test_value(self):
-        self.assertAlmostEqual(self.portfolio.value('BTC'), 1, 3)
 
     """
     def test_rebalance(self):
@@ -266,6 +287,21 @@ def fake_get_summaries():
                 "OpenBuyOrders" : 18,
                 "OpenSellOrders" : 18,
                 "PrevDay" : 0.01,
+                "Created" : "2014-05-30T07:57:49.637",
+                "DisplayMarketName" : null
+            }, {
+                "MarketName" : "BBB-CCC",
+                "High" : 0.1,
+                "Low" : 0.1,
+                "Volume" : 1,
+                "Last" : 0.1,
+                "BaseVolume" : 2,
+                "TimeStamp" : "2014-07-09T07:21:40.51",
+                "Bid" : 0.1,
+                "Ask" : 0.1,
+                "OpenBuyOrders" : 18,
+                "OpenSellOrders" : 18,
+                "PrevDay" : 0.1,
                 "Created" : "2014-05-30T07:57:49.637",
                 "DisplayMarketName" : null
             }, {
