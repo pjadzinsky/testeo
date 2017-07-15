@@ -139,7 +139,7 @@ class Market(object):
                 currency, base_currency)
             raise ValueError(msg)
 
-    def usd_volumes(self):
+    def usd_volumes(self, base, intermediate_currencies):
         """
         
         :return: pandas DataFrame indexed by currencies with one column ('USDT Volume')
@@ -155,7 +155,7 @@ class Market(object):
         volumes_df.sort_values('USDT Volume', inplace=True, ascending=False)
         return volumes_df
 
-    def currency_volume(self, currency):
+    def currency_volume(self, currency, base, intermediate_currencies=['BTC', 'ETH', 'USDT']):
         """
         Return total volume for currency in base_currency
         
@@ -165,22 +165,12 @@ class Market(object):
         """
         summaries_df = self.summaries()
 
-        BTC_marketname = "BTC" + "-" + currency
-        ETH_marketname = "ETH" + "-" + currency
-        USD_marketname = "USDT" + "-" + currency
         usd_volume = 0
 
-        USDT_BTC = self.currency_cost_in_base_currency('BTC', 'USDT')
-        USDT_ETH = self.currency_cost_in_base_currency('ETH', 'USDT')
-
-        if BTC_marketname in summaries_df.index:
-            usd_volume += summaries_df.loc[BTC_marketname, 'BaseVolume'] * USDT_BTC
-
-        if ETH_marketname in summaries_df.index:
-            usd_volume += summaries_df.loc[ETH_marketname, 'BaseVolume'] * USDT_ETH
-
-        if USD_marketname in summaries_df.index:
-            usd_volume += summaries_df.loc[USD_marketname, 'BaseVolume']
+        for intermediate_currency in intermediate_currencies:
+            market_name = intermediate_currency + "-" + currency
+            cost = self.currency_cost_in_base_currency(intermediate_currency, base)
+            usd_volume += summaries_df.loc[market_name, 'BaseVolume'] * cost
 
         return usd_volume
 
@@ -207,6 +197,7 @@ def get_currencies():
     :return: Dataframe indexed by "Currency" with available currencies
     """
     response = client.get_currencies()
+    print response
     if response['success']:
         currencies_df = _to_df(response['result'], 'Currency')
 

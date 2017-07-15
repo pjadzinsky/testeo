@@ -53,6 +53,13 @@ class TestMarket(unittest.TestCase):
 
         self.assertRaises(ValueError, market.currency_cost_in_base_currency, 'AAA', 'DDD')
 
+    @mock.patch('my_bittrex.volume.client.get_currencies')
+    def test_currency_volume(self, mocked_get_currencies):
+        import pudb
+        pudb.set_trace()
+        mocked_get_currencies.return_value = fake_get_currencies()
+        volume = self.market.currency_volume('AAA', 'USDT', ['USDT'])
+        self.assertEqual(volume, 2)
 
 '''
     def test_usd_volume(self):
@@ -243,9 +250,9 @@ def fake_get_summaries():
                 "MarketName" : "USDT-AAA",
                 "High" : 2,
                 "Low" : 2,
-                "Volume" : 2000,
+                "Volume" : 1,
                 "Last" : 2,
-                "BaseVolume" : 2000000,
+                "BaseVolume" : 2,
                 "TimeStamp" : "2014-07-09T07:21:40.51",
                 "Bid" : 2,
                 "Ask" : 2,
@@ -298,6 +305,42 @@ def fake_get_balances():
                 "Uuid" : null
             }
         ]
+    } """
+    return json.loads(response)
+
+
+def fake_get_currencies():
+    response = """{
+        "success" : true,
+        "message" : "",
+        "result" : [{
+            "Notice": null,
+            "TxFee": 0.002,
+            "CurrencyLong": "AAA long",
+            "CoinType": "BITCOIN",
+            "Currency": "AAA",
+            "MinConfirmation": 6,
+            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
+            "IsActive": true
+        }, {
+            "Notice": null,
+            "TxFee": 0.002,
+            "CurrencyLong": "BBB long",
+            "CoinType": "BITCOIN",
+            "Currency": "BBB",
+            "MinConfirmation": 6,
+            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
+            "IsActive": true
+        }, {
+            "Notice": null,
+            "TxFee": 0.002,
+            "CurrencyLong": "CCC long",
+            "CoinType": "BITCOIN",
+            "Currency": "CCC",
+            "MinConfirmation": 6,
+            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
+            "IsActive": true
+        } ]
     } """
     return json.loads(response)
 
