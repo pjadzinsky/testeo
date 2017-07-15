@@ -150,12 +150,12 @@ class Market(object):
         volumes_df = pd.DataFrame()
 
         for currency in currencies_df.index:
-            volumes_df.loc[currency, 'USDT Volume'] = self.currency_volume(currency)
+            volumes_df.loc[currency, 'USDT Volume'] = self.currency_volume(currency, base, intermediate_currencies)
 
         volumes_df.sort_values('USDT Volume', inplace=True, ascending=False)
         return volumes_df
 
-    def currency_volume(self, currency, base, intermediate_currencies=['BTC', 'ETH', 'USDT']):
+    def currency_volume(self, currency, base, intermediate_currencies):
         """
         Return total volume for currency in base_currency
         
@@ -170,7 +170,9 @@ class Market(object):
         for intermediate_currency in intermediate_currencies:
             market_name = intermediate_currency + "-" + currency
             cost = self.currency_cost_in_base_currency(intermediate_currency, base)
-            usd_volume += summaries_df.loc[market_name, 'BaseVolume'] * cost
+
+            if market_name in summaries_df.index:
+                usd_volume += summaries_df.loc[market_name, 'BaseVolume'] * cost
 
         return usd_volume
 
@@ -197,7 +199,6 @@ def get_currencies():
     :return: Dataframe indexed by "Currency" with available currencies
     """
     response = client.get_currencies()
-    print response
     if response['success']:
         currencies_df = _to_df(response['result'], 'Currency')
 

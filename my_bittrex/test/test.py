@@ -54,12 +54,34 @@ class TestMarket(unittest.TestCase):
         self.assertRaises(ValueError, market.currency_cost_in_base_currency, 'AAA', 'DDD')
 
     @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_currency_volume(self, mocked_get_currencies):
-        import pudb
-        pudb.set_trace()
+    def test_currency_volume_1(self, mocked_get_currencies):
         mocked_get_currencies.return_value = fake_get_currencies()
+
         volume = self.market.currency_volume('AAA', 'USDT', ['USDT'])
         self.assertEqual(volume, 2)
+
+    @mock.patch('my_bittrex.volume.client.get_currencies')
+    def test_currency_volume_2(self, mocked_get_currencies):
+        mocked_get_currencies.return_value = fake_get_currencies()
+
+        volume = self.market.currency_volume('BBB', 'AAA', ['AAA'])
+        self.assertEqual(volume, 1)
+
+    @mock.patch('my_bittrex.volume.client.get_currencies')
+    def test_currency_volume_3(self, mocked_get_currencies):
+        mocked_get_currencies.return_value = fake_get_currencies()
+
+        volume = self.market.currency_volume('BBB', 'USDT', ['AAA'])
+        self.assertEqual(volume, 2)
+
+    @mock.patch('my_bittrex.volume.client.get_currencies')
+    def test_usd_volumes(self, mocked_get_currencies):
+        mocked_get_currencies.return_value = fake_get_currencies()
+        volume_df = self.market.usd_volumes('USDT', ['USDT', 'AAA'])
+        computed = volume_df['USDT Volume']
+        expected = [2.0] * 3
+        self.assertItemsEqual(computed, expected)
+
 
 '''
     def test_usd_volume(self):
