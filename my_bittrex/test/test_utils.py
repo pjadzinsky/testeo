@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 
-def perturb_summary(summary, sigma):
+from my_bittrex import volume
+
+def perturb_market(market, sigma):
     """
     Add some noise to the Last price of each MarketName in summary
     
@@ -14,8 +16,6 @@ def perturb_summary(summary, sigma):
     :return: 
     """
 
-    assert(type(summary), pd.DataFrame)
-    sigmas = summary['Last'] * sigma
-    perturbed = summary.copy()
-    perturbed.loc[:, 'Last'] += np.random.randn(len(sigmas)) * sigmas
-    return perturbed
+    assert(type(market), volume.Market)
+    sigmas = market.summaries()['Last'] * sigma
+    market._summaries.loc[:, 'Last'] += np.random.randn(len(sigmas)) * sigmas

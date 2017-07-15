@@ -1,47 +1,32 @@
-import os
 import time
 
 import numpy as np
 import pandas as pd
 
 from bittrex import bittrex
-
 import credentials
 
 client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
 
 
 class Portfolio(object):
-    def __init__(self, target_portfolio_file=None, portfolio_file=None):
-        self.portfolio_file = portfolio_file
-        self.target_portfolio_file = target_portfolio_file
-        self.market = Market()
-
-        self.portfolio = self.get_portfolio(self.portfolio_file)
-        if target_portfolio_file is None:
-            self.target_portfolio = self.portfolio
-        else:
-            self.target_portfolio = self.get_portfolio(self.target_portfolio_file)
-
-
-    def get_portfolio(self, portfolio_file=None):
+    """
+    A portfolio is the type and amount of each cryptocurrency held.
+    There is a desired 'state' and due to fluctuations some currencies will have more (or less) value than their
+    desired target 'state'. We'll rebalance them periodically.
+    To avoid spending too much in commissions when rebalancing we have a 'threshold' and we only 'rebalance
+    cryptocurrencies that increased (or decreased) more than 'threshold' (as a percentage) from desired 'state'.
+    For example is the desired state is 100 and the threshold is 0.1 we'll sell only if the current value is at or above
+    110 (and buy if the current value is at or below 90)
+    To prevent from buying too much of a sinking currency we are going to put bounds on either the price and/or the
+    quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
+    per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
+    """
+    def __init__(self):
         """
-        Read portfolio from file (create one if portfolio_file given but file is missing) or API if portfolio_file
-        is not given
-        
-        :return: Dataframe indexed by 'Currency' with our portfolio
+        Read portfolio from API
         """
-        if portfolio_file:
-            try:
-                df = pd.read_csv(portfolio_file, index_col=0)
-            except IOError:
-                df = start_new_portfolio(10, 'BTC', 1, portfolio_file=portfolio_file)
-            except Exception as e:
-                raise e
-        else:
-            df = _to_df(client.get_balances()['result'], 'Currency')
-
-        return df
+        self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
 
     def value(self, base):
         """
@@ -50,58 +35,86 @@ class Portfolio(object):
 
         total = 0
         for currency, series in self.portfolio.iterrows():
-            total += series['Balance'] * self.market.currency_cost_in_base_currency(currency, base)
+            total += series['Balance'] * market.currency_cost_in_base_currency(currency, base)
 
         return total
 
+    @staticmethod
+    def balance_ratio(original_balance, current_balance):
+        """ Compute the average ratio (across all currencies) between the current and the original balance """
+        ratio = current_balance / original_balance
+        return np.mean(ratio)
 
-        return get_total_balance(self.balances, base=base)
-
-    def rebalance(self, base_currency):
+    def rebalance(self, base_currency, threshold):
         """
         Given a state, buy/sell positions to approximate target_portfolio
+        
+        base_currency:  base currency to do computations
+        threshold:  currencies are only balanced if difference with target is above/below this threshold (express
+                    as a percentage)
         """
-        portfolio = self.portfolio.copy()
-        summaries = self.market.summaries()
-
+        # value of all portfolio in base_currency
         total_value = self.value(base_currency)
-        mean = total_value / len(portfolio)
 
-        balances = portfolio['Balance'].tolist()
-        currencies = portfolio.index.tolist()
-        currency_in_base = [self.market.currency_cost_in_base_currency(c, base_currency) for c in currencies]
+        # amount in each currency if balanced according to self.state
+        target_value_in_base = total_value * self.state
 
-        portfolio.loc[:, 'Value'] = [b * cb for b, cb in zip(balances, currency_in_base)]
-        print portfolio
+        # compute money per currency (in base_currency)
+        balances = self.portfolio['Balance'].tolist()
+        currencies = self.portfolio.index.tolist()
+        currency_in_base = [market.currency_cost_in_base_currency(c, base_currency) for c in currencies]
+        market_value = [b * cb for b, cb in zip(balances, currency_in_base)]
 
-        """
-        balances.loc[:, 'market_value'] = balances['Available'] * balances['Last']
-        mean = balances['market_value'].mean()
+        # compute amount to sell (buy if negative) to maintain initial 'state'
+        excess_in_base = market_value - target_value_in_base
+        excess_percentage = [e / t for e, t in zip(excess_in_base, target_value_in_base)]
+        sell_in_base = [e if np.abs(ep) > threshold else 0 for e, ep in zip(excess_in_base, excess_percentage)]
 
-        balances.loc[:, 'excess'] = balances['market_value'] - mean
+        sell_in_currency = [sb / cb for sb, cb in zip(sell_in_base, currency_in_base)]
 
-        balances.loc[:, 'delta'] = balances.apply(
-            lambda x: x['excess'] / self.market.currency_cost_in_base_currency(x.name, base_currency), axis=1)
-        print balances.head()
-        """
+        # compute the new Balance for each currency after buying/selling for rebalancing
+        new_balances = np.array([b + sc for b, sc in zip(balances, sell_in_currency)])
+
+        # what would the new average ratio between current and original balances be if we were to
+        # sell 'sell_in_currency'?
+        mean_ratio = self.balance_ratio(self.initial_portfolio['Balance'], new_balances)
+        # I want to limit buying/selling such that the ratio for each currency is not more than N times the mean.
+        # This means that new_balances has to be the min between new_balances computed above and N * new_balances / mean_ratio
+        new_balances = [min(nb, N * nb / mean_ratio) for nb in new_balances]
+
+        sell_in_currency = [nb - b for nb, b in zip(new_balances, balances)]
+
+        return sell_in_currency
 
 
 class Market(object):
     def __init__(self, cache_timeout_sec=600):
         self._timestamp = 0
         self._cache_timeout_sec = cache_timeout_sec
+        self.summaries()
 
     def summaries(self):
         """
-        Accessor with caching for get_summaries()
-        :return: 
+        Accessor with caching to call client.get_market_summaries()
+        :return: Dataframe indexed by "MarketName" with market data about each currency
         """
         if self._timestamp + self._cache_timeout_sec > time.time():
             pass
         else:
+            print "about to call client.get_market_summaries()"
             print int(time.time())
-            self._summaries = get_summaries()
             self._timestamp = time.time()
+            response = client.get_market_summaries()
+            if response['success']:
+                df = _to_df(response['result'], 'MarketName')
+
+                market_name = df.index.values
+                base_currency = [mn.split('-') for mn in market_name]
+                df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
+                df.loc[:, 'Currency'] = [bc[1] for bc in base_currency]
+                self._summaries = df
+            else:
+                raise IOError
 
         return self._summaries
 
@@ -114,7 +127,7 @@ class Market(object):
 
         summaries = self.summaries()
         potential_market_name = base_currency + "-" + currency
-        reversed_market_name = currency + "_" + base_currency
+        reversed_market_name = currency + "-" + base_currency
         if currency == base_currency:
             return 1.0
         elif potential_market_name in summaries.index:
@@ -200,34 +213,14 @@ def get_currencies():
     return currencies_df
 
 
-def get_summaries():
-    """
-    :return: Dataframe indexed by "MarketName" with market data about each currency
-    """
-    response = client.get_market_summaries()
-    if response['success']:
-        df = _to_df(response['result'], 'MarketName')
-
-    # it becomes simpler later on if we treat USDT as another crypto-currency
-    # treated in BTC and ETH as anything else
-    #df = df.append(_invert_base(df.loc['USDT-ETH']))
-    #df = df.append(_invert_base(df.loc['USDT-BTC']))
-
-
-    market_name = df.index.values
-    base_currency = [mn.split('-') for mn in market_name]
-    df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
-    df.loc[:, 'Currency'] = [bc[1] for bc in base_currency]
-
-    return df
-
-
-def start_new_portfolio(N, base_currency, value, portfolio_file=None):
+def start_new_portfolio(state, base_currency, value, portfolio_file=None):
     """
     Start a new blanace out of the N crypto currencies with more volume
     balanced is generated as a DF and stored as a csv under portfolio_file if given
     
-    :param N: number of cryptocurrencies to use.
+    :param state: iterable with relative representation of each cryptocurrencies.
+                  len(state) is the number of cryptocurrencies to buy.
+                  state[i] / sum(state) is the fraction of 'value' that would be invested in currency[i]
     :param base_currency: str, currency we are funding the portfolio with ('ETH' or 'BTC')
     :param value: float, initial value of portfolio in 'base_currency'
     :return: 
@@ -237,7 +230,11 @@ def start_new_portfolio(N, base_currency, value, portfolio_file=None):
     volumes_df = market.usd_volumes()
     selected_currencies = volumes_df.head(N).index.tolist()
 
-    balances = [value / market.currency_cost_in_base_currency(c, base_currency) / N for c in selected_currencies]
+    initial_balance_in_base = np.array(state) * value * 1.0 / sum(state)
+    assert(sum(initial_balance_in_base) == value)
+
+    balances = [initial / market.currency_cost_in_base_currency(c, base_currency) for initial, c in
+                zip(initial_balance_in_base, selected_currencies)]
 
     df = pd.DataFrame({
         "Currency": selected_currencies,
@@ -326,3 +323,4 @@ def _market_names(currency, base_currency):
     return answer
 
 
+market = Market()
