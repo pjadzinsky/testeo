@@ -22,11 +22,14 @@ class Portfolio(object):
     quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
     per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
     """
-    def __init__(self):
+    def __init__(self, portfolio=None):
         """
         Read portfolio from API
         """
-        self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
+        if portfolio is not None:
+            self.portfolio = portfolio
+        else:
+            self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
 
     def value(self, market, intermediate_currencies):
         """
@@ -40,7 +43,7 @@ class Portfolio(object):
 
         return total
 
-    def rebalance(self, market, base_currency, threshold):
+    def rebalance(self, market, state, initial_portfolio, base_currency, threshold):
         """
         Given a state, buy/sell positions to approximate target_portfolio
         
@@ -49,15 +52,15 @@ class Portfolio(object):
                     as a percentage)
         """
         # value of all portfolio in base_currency
-        total_value = self.value(base_currency)
+        total_value = self.value(market, [base_currency])
 
-        # amount in each currency if balanced according to self.state
-        target_value_in_base = total_value * self.state
+        # amount in each currency if balanced according to state
+        target_value_in_base = total_value * state
 
         # compute money per currency (in base_currency)
         balances = self.portfolio['Balance'].tolist()
         currencies = self.portfolio.index.tolist()
-        currency_in_base = [market.currency_cost_in_base_currency(c, base_currency) for c in currencies]
+        currency_in_base = [market.currency_value([c, base_currency]) for c in currencies]
         market_value = [b * cb for b, cb in zip(balances, currency_in_base)]
 
         # compute amount to sell (buy if negative) to maintain initial 'state'
@@ -72,9 +75,10 @@ class Portfolio(object):
 
         # what would the new average ratio between current and original balances be if we were to
         # sell 'sell_in_currency'?
-        mean_ratio = np.mean(self.initial_portfolio['Balance'] / new_balances)
+        mean_ratio = np.mean(initial_portfolio.portfolio['Balance'] / new_balances)
         # I want to limit buying/selling such that the ratio for each currency is not more than N times the mean.
         # This means that new_balances has to be the min between new_balances computed above and N * new_balances / mean_ratio
+        N = len(state)
         new_balances = [min(nb, N * nb / mean_ratio) for nb in new_balances]
 
         sell_in_currency = [nb - b for nb, b in zip(new_balances, balances)]
@@ -205,7 +209,7 @@ def get_currencies():
     return currencies_df
 
 
-def start_new_portfolio(state, base_currency, value, portfolio_file=None):
+def start_new_portfolio(market, state, base_currency, value):
     """
     Start a new blanace out of the N crypto currencies with more volume
     balanced is generated as a DF and stored as a csv under portfolio_file if given
@@ -218,13 +222,14 @@ def start_new_portfolio(state, base_currency, value, portfolio_file=None):
     :return: 
     """
     assert(base_currency in ['ETH', 'BTC'])
-    volumes_df = market.usd_volumes()
+    volumes_df = market.usd_volumes('base_currency', ['BTC', 'USDT'])
+    N = len(state)
     selected_currencies = volumes_df.head(N).index.tolist()
 
     initial_balance_in_base = np.array(state) * value * 1.0 / sum(state)
     assert(sum(initial_balance_in_base) == value)
 
-    balances = [initial / market.currency_cost_in_base_currency(c, base_currency) for initial, c in
+    balances = [initial / market.currency_value([c, 'BTC', 'USDT']) for initial, c in
                 zip(initial_balance_in_base, selected_currencies)]
 
     df = pd.DataFrame({
@@ -238,62 +243,9 @@ def start_new_portfolio(state, base_currency, value, portfolio_file=None):
         })
 
     df.set_index('Currency', drop=True, inplace=True)
-    if portfolio_file:
-        df.to_csv(portfolio_file)
 
-    return df
+    return Portfolio(portfolio=df)
 
-
-'''
-def _invert_base(summary_row):
-    """
-    Invert the relationshipt between Base and Currency for a given
-    row of summary
-    
-    :param summary_row: 
-    :return: series with same index as summary_row
-    """
-    output = summary_row.copy()
-    output['Ask'] = 1.0 / summary_row['Ask']
-    output['BaseVolume'] = summary_row['BaseVolume'] / summary_row['Last']
-    output['Bid'] = 1.0 / summary_row['Bid']
-    output['Created'] = summary_row['Created']
-    output['High'] = 1.0 / summary_row['Low']
-    output['Last'] = 1.0 / summary_row['Last']
-    output['Low'] = 1.0 / summary_row['High']
-    output['OpenBuyOrders'] = summary_row['OpenSellOrders']
-    output['OpenSellOrders'] = summary_row['OpenBuyOrders']
-    output['PrevDay'] = 1.0 / summary_row['PrevDay']
-    output['TimeStamp'] = summary_row['TimeStamp']
-    output['Volume'] = summary_row['Volume']
-    if 'Currency' in summary_row:
-        output['Base'] = summary_row['Currency']
-    if 'Base' in summary_row:
-        output['Currency'] = summary_row['Base']
-
-    # new MarketName
-    new_currency, new_base = summary_row.name.split('-')
-    output.rename(new_base + '-' + new_currency, inplace=True)
-    return output
-    
-def get_USD_volume():
-    summaries = get_summaries()
-    summaries.loc[:, 'USD volume'] = summaries['BaseVolume']
-
-    for base in set(summaries['Base']):
-        try:
-            if base == "USDT":
-                base_last = 1
-            else:
-                base_last = summaries.loc['USDT-' + base, 'Last']
-            summaries.loc[summaries['Base']==base, 'USD volume'] *= base_last
-        except:
-            summaries.loc[summaries['Base']==base, 'USD volume'] = None
-
-    return summaries[['Currency', 'USD volume']].groupby('Currency').sum().sort_values('USD volume')
-
-
-'''
 
 def _market_names(currency, base_currency):
     """
