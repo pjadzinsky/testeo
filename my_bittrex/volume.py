@@ -28,20 +28,15 @@ class Portfolio(object):
         """
         self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
 
-    def value(self, market, base, intermediate_currencies):
+    def value(self, market, intermediate_currencies):
         """
         Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
         """
-
-        summaries_df = market.summaries()
+        portfolio = self.portfolio
 
         total = 0
-        for intermediate_currency in intermediate_currencies:
-            market_name = intermediate_currency + "-" + currency
-            cost = self.currency_cost_in_base_currency(intermediate_currency, base)
-
-            if market_name in summaries_df.index:
-                total += summaries_df.loc[market_name, 'Last'] * cost
+        for currency, series in portfolio.iterrows():
+            total += series['Balance'] * market.currency_value([currency] + intermediate_currencies)
 
         return total
 

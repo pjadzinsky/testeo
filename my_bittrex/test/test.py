@@ -20,7 +20,7 @@ class TestMarket(unittest.TestCase):
         df = self.market._summaries
         self.assertItemsEqual(df.shape, (4, 15))
 
-    def test_cost_in_base_currency(self):
+    def test_currency_value(self):
         market = self.market
         cost = market.currency_value(['XXX', 'XXX'])
         self.assertAlmostEqual(cost, 1, 3)
@@ -31,11 +31,20 @@ class TestMarket(unittest.TestCase):
         cost = market.currency_value(['AAA', 'BBB'])
         self.assertAlmostEqual(cost, 10, 3)
 
+        cost = market.currency_value(['BBB', 'AAA', 'USDT'])
+        self.assertAlmostEqual(cost, 0.2, 3)
+
         cost = market.currency_value(['CCC', 'AAA'])
         self.assertAlmostEqual(cost, 0.01, 3)
 
+        cost = market.currency_value(['CCC', 'AAA', 'USDT'])
+        self.assertEqual(cost, 0.02)
+
         cost = market.currency_value(['CCC', 'BBB', 'AAA'])
         self.assertAlmostEqual(cost, 0.01, 3)
+
+        cost = market.currency_value(['CCC', 'BBB', 'AAA', 'USDT'])
+        self.assertAlmostEqual(cost, 0.02)
 
         cost = market.currency_value(['AAA', 'BBB', 'CCC'])
         self.assertAlmostEqual(cost, 100, 3)
@@ -51,6 +60,7 @@ class TestMarket(unittest.TestCase):
 
         cost = market.currency_value(['AAA', 'DDD'])
         self.assertEqual(cost, 0)
+
 
     @mock.patch('my_bittrex.volume.client.get_currencies')
     def test_currency_volume_1(self, mocked_get_currencies):
@@ -100,10 +110,8 @@ class TestMarket(unittest.TestCase):
         """
         mocked_get_summaries.return_value = fake_get_summaries()
         market = volume.Market(0.1)
-        print 1
         market.summaries()
         time.sleep(.2)
-        print 2
         market.summaries()
         mocked_get_summaries.assert_called_once()
         #raise ValueError('this test should faile, method is called twice')
@@ -150,89 +158,11 @@ class TestPortfolio(unittest.TestCase):
         self.market = volume.Market()
         self.portfolio = volume.Portfolio()
 
-    def test_currency_value_1(self):
-        value = self.portfolio.currency_value(self.market, ['AAA', 'AAA'])
-        self.assertEqual(value, 1)
-
-    def test_currency_value_2(self):
-        value = self.portfolio.currency_value(self.market, ['AAA', 'USDT'])
-        self.assertEqual(value, 2)
-
-    def test_currency_value_3(self):
-        value = self.portfolio.currency_value(self.market, ['BBB', 'AAA', 'USDT'])
-        self.assertEqual(value, 2)
-
-    def test_currency_value_3(self):
-        value = self.portfolio.currency_value(self.market, ['CCC', 'AAA', 'USDT'])
-        self.assertEqual(value, 2)
-
-    def test_currency_value_4(self):
-        value = self.portfolio.currency_value(self.market, ['CCC', 'BBB', 'AAA', 'USDT'])
-        self.assertEqual(value, 2)
-
     def test_value(self):
-        import pudb
-        pudb.set_trace()
-        self.assertAlmostEqual(self.portfolio.value(self.market, 'AAA'), 3, 3)
-        self.assertAlmostEqual(self.portfolio.value(self.market, 'USDT'), 6, 3)
-
-    def test_get_portfolio(self):
-        print self.portfolio.value('AAA')
+        self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'AAA']), 3, 3)
+        self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'USDT']), 6, 3)
 
 '''
-    def test_rebalance(self, mocked_balances, mocked_summaries):
-        mocked_balances.return_value = fake_get_balances()
-        portfolio = volume.Portfolio(state, initial_portfolio, portfolio)
-        volume.rebalance()
-
-        print 1
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    @mock.patch('my_bittrex.volume.client.get_balances')
-    def test_total(self, mocked_balances, mocked_summaries):
-        mocked_balances.return_value = fake_get_balances()
-        mocked_summaries.return_value = fake_get_summaries()
-
-        computed = volume.get_total_balance('BTC')
-        print computed
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_usd_volume(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        computed = volume.get_USD_volume()
-        print computed
-
-    @mock.patch('my_bittrex.volume.client.get_portfolio')
-    def test_market_names(self, mocked_balances):
-        mocked_balances.return_value = fake_get_balances()
-
-        computed = volume._market_names(volume.get_portfolio(), 'ABC')
-        expected = ['ABC-' + c for c in ['A3C', 'BTC', 'ETH']]
-        self.assertEqual(computed, expected)
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    @mock.patch('my_bittrex.volume.client.get_portfolio')
-    def test_start_new_portfolio(self, mocked_balances, mocked_summaries):
-        mocked_balances.return_value = fake_get_balances()
-        mocked_summaries.return_value = fake_get_summaries()
-
-        csv_file = tempfile.mkstemp()
-        import pudb
-        pudb.set_trace()
-        volume.start_new_portfolio(10, 'BTC', 1, csv_file=csv_file)
-        btc_value = volume.get_total_balance('BTC')
-        print btc_value
-        #self.assertEqual(computed, expected)
-
-
-
-    """
-    def test_rebalance(self):
-        pass
-        #volume.rebalance('BTC')
-    """
-
-
 
 class TestTestUtils(unittest.TestCase):
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
