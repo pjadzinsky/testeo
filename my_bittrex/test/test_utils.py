@@ -19,3 +19,41 @@ def perturb_market(market, sigma):
     assert(type(market), volume.Market)
     sigmas = market.summaries()['Last'] * sigma
     market._summaries.loc[:, 'Last'] += np.random.randn(len(sigmas)) * sigmas
+
+
+def fake_market(currency_prices_dict):
+    """ Return a jsong blob as would be returned by bittrex.client.get_market_summaries
+    but where the currencies and prices are the key/value pairs in currency_prices_dict
+    """
+    response = """ {
+        "success" : true,
+        "message" : "",
+        "result" : [
+    """
+
+    template = """
+            "MarketName" : "{0}",
+            "High" : {1},
+            "Low" : {1},
+            "Volume" : 10,
+            "Last" : {1},
+            "BaseVolume" : 1,
+            "TimeStamp" : "2014-07-09T07:19:30.15",
+            "Bid" : {1},
+            "Ask" : {1},
+            "OpenBuyOrders" : 15,
+            "OpenSellOrders" : 15,
+            "PrevDay" : {1},
+            "Created" : "2014-03-20T06:00:00",
+            "DisplayMarketName" : null
+     """
+    '''
+    '''
+    response += ','.join([template.format(k, v) for k, v in currency_prices_dict.iteritems()])
+    response += ']}'
+
+
+    response = response.replace('"Market', '{"Market')
+    response = response.replace('null', 'null}')
+
+    return response
