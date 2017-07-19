@@ -1,5 +1,5 @@
 import time
-
+import json
 import numpy as np
 import pandas as pd
 
@@ -87,33 +87,40 @@ class Portfolio(object):
 
 
 class Market(object):
-    def __init__(self, cache_timeout_sec=600):
+    def __init__(self, cache_timeout_sec=600, json_blob=None):
         self._timestamp = 0
         self._cache_timeout_sec = cache_timeout_sec
-        self.summaries()
+        self._json_blob = json_blob
+        self.summaries(json_blob=json_blob)
 
-    def summaries(self):
+    def summaries(self, json_blob=None):
         """
         Accessor with caching to call client.get_market_summaries()
         :return: Dataframe indexed by "MarketName" with market data about each currency
         """
         if self._timestamp + self._cache_timeout_sec > time.time():
-            pass
+            return self._summaries
+
+        elif json_blob:
+            response = json.loads(json_blob)
+            import pprint
+            pprint.pprint( response)
         else:
             print "about to call client.get_market_summaries()"
             print int(time.time())
-            self._timestamp = time.time()
             response = client.get_market_summaries()
-            if response['success']:
-                df = _to_df(response['result'], 'MarketName')
 
-                market_name = df.index.values
-                base_currency = [mn.split('-') for mn in market_name]
-                df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
-                df.loc[:, 'Currency'] = [bc[1] for bc in base_currency]
-                self._summaries = df
-            else:
-                raise IOError
+        self._timestamp = time.time()
+        if response['success']:
+            df = _to_df(response['result'], 'MarketName')
+
+            market_name = df.index.values
+            base_currency = [mn.split('-') for mn in market_name]
+            df.loc[:, 'Base'] = [bc[0] for bc in base_currency]
+            df.loc[:, 'Currency'] = [bc[1] for bc in base_currency]
+            self._summaries = df
+        else:
+            raise IOError
 
         return self._summaries
 

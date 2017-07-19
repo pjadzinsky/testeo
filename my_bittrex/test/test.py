@@ -11,16 +11,16 @@ from my_bittrex.test import test_utils
 
 
 class TestMarket(unittest.TestCase):
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def setUp(self, mocked_get_market_summaries):
-        mocked_get_market_summaries.return_value = fake_get_summaries()
-        self.market = volume.Market()
+    def setUp(self):
+        self.market = volume.Market(json_blob=market0())
 
     def test_summaries(self):
         df = self.market._summaries
         self.assertItemsEqual(df.shape, (4, 15))
 
     def test_currency_value(self):
+        import pudb
+        pudb.set_trace()
         market = self.market
         cost = market.currency_value(['XXX', 'XXX'])
         self.assertAlmostEqual(cost, 1, 3)
@@ -120,12 +120,10 @@ class TestMarket(unittest.TestCase):
 
 
 class TestPortfolio(unittest.TestCase):
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')#, return_value=fake_get_summaries())
     @mock.patch('my_bittrex.volume.client.get_balances')#, return_value=fake_get_balances())
-    def setUp(self, mocked_get_balances, mocked_get_market_summaries):
-        mocked_get_market_summaries.return_value = fake_get_summaries()
+    def setUp(self, mocked_get_balances):
         mocked_get_balances.return_value = fake_get_balances()
-        self.market = volume.Market()
+        self.market = volume.Market(market0())
         self.portfolio = volume.Portfolio()
 
     def test_value(self):
@@ -141,8 +139,6 @@ class TestRebalance1(unittest.TestCase):
         market = volume.Market()
         print market._summaries
 
-        import pudb
-        pudb.set_trace()
         portfolio = volume.start_new_portfolio(market, [1, 1], 'BTC', 2000)
         #print portfolio.portfolio
 
@@ -156,7 +152,7 @@ def market2():
     l = [('USDT-BTC', 2000, 1), ('USDT-ETH', 500, 1), ('BTC-ETH', 4, 1)]
     return json.loads(test_utils.fake_market(l))
 
-def fake_get_summaries():
+def market0():
     """
     Fake a summary as would be returned by bittrex.client. Each element in the input list is a tuple of the form
     (market_name, last_price, BaseVolume)
@@ -168,6 +164,7 @@ def fake_get_summaries():
         ("BBB-CCC", 0.1, 2),
         ("USDT-AAA", 2.0, 2)
     ]
+    return test_utils.fake_market(l)
     as_dict = json.loads(test_utils.fake_market(l))
     return as_dict
 
