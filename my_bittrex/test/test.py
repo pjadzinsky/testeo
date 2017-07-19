@@ -134,10 +134,27 @@ class TestPortfolio(unittest.TestCase):
 
 
 class TestRebalance1(unittest.TestCase):
-    def test1(self):
-        pass
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test1(self, mocked_market):
+        mocked_market.side_effect = [market1(), market2()]
+        market = volume.Market()
+        print market._summaries
+
+        import pudb
+        pudb.set_trace()
+        portfolio = volume.start_new_portfolio(market, [1, 1], 'BTC', 2000)
+        #print portfolio.portfolio
 
 
+
+def market1():
+    l = [('USDT-BTC', 1000, 1), ('USDT-ETH', 1000, 1), ('BTC-ETH', 1, 1)]
+    return json.loads(test_utils.fake_market(l))
+
+def market2():
+    l = [('USDT-BTC', 2000, 1), ('USDT-ETH', 500, 1), ('BTC-ETH', 4, 1)]
+    return json.loads(test_utils.fake_market(l))
 
 def fake_get_summaries():
     """
