@@ -88,7 +88,9 @@ class TestMarket(unittest.TestCase):
         mocked_get_currencies.return_value = fake_get_currencies()
         volume_df = self.market.usd_volumes('USDT', ['USDT', 'AAA'])
         computed = volume_df['USDT Volume']
+        print computed
         expected = [2.0] * 3
+        print expected
         self.assertItemsEqual(computed, expected)
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
@@ -115,39 +117,7 @@ class TestMarket(unittest.TestCase):
         market.summaries()
         mocked_get_summaries.assert_called_once()
         #raise ValueError('this test should faile, method is called twice')
-'''
 
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_currency_cost_in_base_currency_1(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        market = volume.Market()
-        computed = market.currency_cost_in_base_currency('XXX', 'XXX')
-        expected = 1
-        self.assertEqual(computed, expected)
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_currency_cost_in_base_currency_2(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        market = volume.Market()
-        computed = market.currency_cost_in_base_currency('BTC', 'USDT')
-        expected = 2500
-        self.assertEqual(computed, expected)
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_currency_cost_in_base_currency_3(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        market = volume.Market()
-        computed = market.currency_cost_in_base_currency('USDT', 'BTC')
-        expected = 1.0 / 2500
-        self.assertEqual(computed, expected)
-
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_currency_cost_in_base_currency_4(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        market = volume.Market()
-        self.assertRaises(ValueError, market.currency_cost_in_base_currency, 'YYY', 'XXX')
-        
-'''
 
 class TestPortfolio(unittest.TestCase):
     @mock.patch('my_bittrex.volume.client.get_market_summaries')#, return_value=fake_get_summaries())
@@ -162,97 +132,27 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'AAA']), 3, 3)
         self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'USDT']), 6, 3)
 
-'''
 
-class TestTestUtils(unittest.TestCase):
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test_start_new_portfolio(self, mocked_summaries):
-        mocked_summaries.return_value = fake_get_summaries()
-        summary = volume.get_summaries()
-        perturbed = test_utils.perturb_market(summary, 0.1)
+class TestRebalance1(unittest.TestCase):
+    def test1(self):
+        pass
 
-        joined = perturbed.join(summary, lsuffix='l', rsuffix='r')
-        print joined[['Lastl', 'Lastr']]
 
-'''
 
 def fake_get_summaries():
     """
-    Fake a summary with 3 currencies. Prices are not included in balance but to help keep things streight
-    prices are:
-    AAA:    1
-    BBB:    0.1
-    CCC:    0.01
+    Fake a summary as would be returned by bittrex.client. Each element in the input list is a tuple of the form
+    (market_name, last_price, BaseVolume)
     :return: 
     """
-    print 'faking get summaries'
-    response = """ {
-        "success" : true,
-        "message" : "",
-        "result" : [{
-                "MarketName" : "AAA-BBB",
-                "High" : 0.1,
-                "Low" : 0.1,
-                "Volume" : 10,
-                "Last" : 0.1,
-                "BaseVolume" : 1,
-                "TimeStamp" : "2014-07-09T07:19:30.15",
-                "Bid" : 0.1,
-                "Ask" : 0.1,
-                "OpenBuyOrders" : 15,
-                "OpenSellOrders" : 15,
-                "PrevDay" : 0.1,
-                "Created" : "2014-03-20T06:00:00",
-                "DisplayMarketName" : null
-            }, {
-                "MarketName" : "AAA-CCC",
-                "High" : 0.01,
-                "Low" : 0.01,
-                "Volume" : 100,
-                "Last" : 0.01,
-                "BaseVolume" : 1,
-                "TimeStamp" : "2014-07-09T07:21:40.51",
-                "Bid" : 0.01,
-                "Ask" : 0.01,
-                "OpenBuyOrders" : 18,
-                "OpenSellOrders" : 18,
-                "PrevDay" : 0.01,
-                "Created" : "2014-05-30T07:57:49.637",
-                "DisplayMarketName" : null
-            }, {
-                "MarketName" : "BBB-CCC",
-                "High" : 0.1,
-                "Low" : 0.1,
-                "Volume" : 1,
-                "Last" : 0.1,
-                "BaseVolume" : 2,
-                "TimeStamp" : "2014-07-09T07:21:40.51",
-                "Bid" : 0.1,
-                "Ask" : 0.1,
-                "OpenBuyOrders" : 18,
-                "OpenSellOrders" : 18,
-                "PrevDay" : 0.1,
-                "Created" : "2014-05-30T07:57:49.637",
-                "DisplayMarketName" : null
-            }, {
-                "MarketName" : "USDT-AAA",
-                "High" : 2,
-                "Low" : 2,
-                "Volume" : 1,
-                "Last" : 2,
-                "BaseVolume" : 2,
-                "TimeStamp" : "2014-07-09T07:21:40.51",
-                "Bid" : 2,
-                "Ask" : 2,
-                "OpenBuyOrders" : 18,
-                "OpenSellOrders" : 18,
-                "PrevDay" : 2,
-                "Created" : "2014-05-30T07:57:49.637",
-                "DisplayMarketName" : null
-            }
-        ]
-    } """
-    return json.loads(response)
+    l = [
+        ("AAA-BBB", 0.1, 1),
+        ("AAA-CCC", 0.01, 1),
+        ("BBB-CCC", 0.1, 2),
+        ("USDT-AAA", 2.0, 2)
+    ]
+    as_dict = json.loads(test_utils.fake_market(l))
+    return as_dict
 
 
 def fake_get_balances():
@@ -264,73 +164,15 @@ def fake_get_balances():
     CCC:    0.02
     :return: 
     """
-    response = """ {
-        "success" : true,
-        "message" : "",
-        "result" : [{
-                "Currency" : "AAA",
-                "Balance" : 1.0,
-                "Available" : 1.0,
-                "Pending" : 0.00000000,
-                "CryptoAddress" : "DLxcEt3AatMyr2NTatzjsfHNoB9NT62HiF",
-                "Requested" : false,
-                "Uuid" : null
-            }, {
-                "Currency" : "BBB",
-                "Balance" : 10.0,
-                "Available" : 10.0,
-                "Pending" : 0.00000000,
-                "CryptoAddress" : "1Mrcdr6715hjda34pdXuLqXcju6qgwHA31",
-                "Requested" : false,
-                "Uuid" : null
-            }, {
-                "Currency" : "CCC",
-                "Balance" : 100.0,
-                "Available" : 100.0,
-                "Pending" : 0.00000000,
-                "CryptoAddress" : "1Mrcdr6715hjda34pdXuLqXcju6qgwHA31",
-                "Requested" : false,
-                "Uuid" : null
-            }
-        ]
-    } """
-    return json.loads(response)
+    l = [('AAA', 1), ('BBB', 10), ('CCC', 100)]
+    as_dict = json.loads(test_utils.fake_balance(l))
+    return as_dict
 
 
 def fake_get_currencies():
-    response = """{
-        "success" : true,
-        "message" : "",
-        "result" : [{
-            "Notice": null,
-            "TxFee": 0.002,
-            "CurrencyLong": "AAA long",
-            "CoinType": "BITCOIN",
-            "Currency": "AAA",
-            "MinConfirmation": 6,
-            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
-            "IsActive": true
-        }, {
-            "Notice": null,
-            "TxFee": 0.002,
-            "CurrencyLong": "BBB long",
-            "CoinType": "BITCOIN",
-            "Currency": "BBB",
-            "MinConfirmation": 6,
-            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
-            "IsActive": true
-        }, {
-            "Notice": null,
-            "TxFee": 0.002,
-            "CurrencyLong": "CCC long",
-            "CoinType": "BITCOIN",
-            "Currency": "CCC",
-            "MinConfirmation": 6,
-            "BaseAddress": "LhyLNfBkoKshT7R8Pce6vkB9T2cP2o84hx",
-            "IsActive": true
-        } ]
-    } """
-    return json.loads(response)
+    l = [('AAA', 'AAA long', .002), ('BBB', 'BBB long', .002), ('CCC', 'CCC long', .002)]
+    as_dict = json.loads(test_utils.fake_currencies(l))
+    return as_dict
 
 
 if __name__ == "__main__":
