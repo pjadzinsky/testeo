@@ -124,9 +124,21 @@ class Market(object):
 
         return self._summaries
 
+    def last(self, base, currency):
+        """
+        Return last price for the given currency
+        
+        ### This is redundant with currency_value but easier to use although a lot less flexible
+        :return: 
+        """
+        return self.summaries().loc[self._market_name(base, currency), 'Last']
+
     def currency_value(self, currencies):
         """
-        Convert currencies[0] into currencies[1] then into currencies[2], ..., until currencies[-1]
+        Travers currencies (from 0 to -1)
+        
+        ie, if A trades with B and B trades with C and you want to know the price of A in C, then
+        currencies = [A, B, C]
         """
 
         if len(currencies) == 0:
@@ -137,8 +149,8 @@ class Market(object):
         currency = currencies[0]
         base = currencies[1]
 
-        potential_market_name = base + "-" + currency
-        reversed_market_name = currency + "-" + base
+        potential_market_name = self._market_name(base, currency)
+        reversed_market_name = self._market_name(currency, base)
         if currency == base:
             cost = 1.0
         elif potential_market_name in self.summaries().index:
@@ -150,42 +162,64 @@ class Market(object):
 
         return cost * self.currency_value(currencies[1:])
 
-    def usd_volumes(self, base, intermediate_currencies):
+    def _market_name(self, base, currency):
+        return base + "-" + currency
+
+    def volume_in_base(self, base, currency):
+        """ Comute total volume of currency in either BTC, ETH or USDT """
+        assert base in ['BTC', 'ETH', 'USDT']
+
+        if base == 'BTC':
+            return self._volume_in_base(currency)
+        elif base == 'ETH':
+            return self._volume_in_base(currency)
+        elif baes == 'USDT':
+            return self._volume_in_base(currency)
+        else:
+            raise IOError
+
+    def _volume_in_btc(self, currency):
+        """ Compute the total volume of currency in BTC
         """
-        
-        :return: pandas DataFrame indexed by currencies with one column ('USDT Volume')
-                 DataFrame is sorted in descending order (row 0 has the currency with the highest volume)
+        usdt_vol = self._volume_in_base(currency, 'USDT')
+        eth_vol = self._volume_in_base(currency, 'ETH')
+        btc_vol = self._volume_in_base(currency, 'BTC')
+
+        btc_vol += eth_vol * self.last('BTC-ETH') + usdt_vol * self.last('BTC-USDT')
+
+    def _volume_in_eth(self, currency):
+        """ Compute the total volume of currency in ETH
         """
-        currencies_df = get_currencies()
+        usdt_vol = self._volume_in_base(currency, 'USDT')
+        eth_vol = self._volume_in_base(currency, 'ETH')
+        btc_vol = self._volume_in_base(currency, 'BTC')
 
-        volumes_df = pd.DataFrame()
+        eth_vol += btc_vol * self.last('ETH-BTC') + usdt_vol * self.last('ETH-USDT')
 
-        for currency in currencies_df.index:
-            volumes_df.loc[currency, 'USDT Volume'] = self.currency_volume(currency, base, intermediate_currencies)
-
-        volumes_df.sort_values('USDT Volume', inplace=True, ascending=False)
-        return volumes_df
-
-    def currency_volume(self, currency, base, intermediate_currencies):
+    def _volume_in_usdt(self, currency):
+        """ Compute the total volume of currency in ETH
         """
-        Return total volume for currency in base_currency
-        
-        :param currency: str, any currency in bittrex
-        :param base_currency: either 'USDT', 'BTC', 'ETH'
-        :return: 
-        """
-        summaries_df = self.summaries()
+        usdt_vol = self._volume_in_base(currency, 'USDT')
+        eth_vol = self._volume_in_base(currency, 'ETH')
+        btc_vol = self._volume_in_base(currency, 'BTC')
 
-        usd_volume = 0
+        usdt_vol += btc_vol * self.last('USDT-BTC') + eth_vol * self.last('USDT-ETH')
 
-        for intermediate_currency in intermediate_currencies:
-            market_name = intermediate_currency + "-" + currency
-            cost = self.currency_value([intermediate_currency, base])
+    def _direct_volume_in_base(self, base, currency):
+        """ Return the volume from self._summaries of currency in base. If potential_market_name and/or
+        reversed_market_name don't show up in self._summaries 0 is returned
+        In other words, return the volume of currency in base only if currency and base trade with each other directly,
+        ie: base-currency or currency-base is a valid market_name"""
+        potential_market_name = self._market_name(base, currency)
+        reversed_market_name = self._market_name(currency, base)
+        if potential_market_name in self._summaries.index:
+            volume = self._summaries.loc[potential_market_name, 'BaseVolume']
+        elif reversed_market_name in self._summaries.index:
+            volume = self._summaries.loc[reversed_market_name, 'Volume']
+        else:
+            volume = 0
 
-            if market_name in summaries_df.index:
-                usd_volume += summaries_df.loc[market_name, 'BaseVolume'] * cost
-
-        return usd_volume
+        return volume
 
 
 def _to_df(response, new_index=None):
@@ -229,7 +263,7 @@ def start_new_portfolio(market, state, base_currency, value):
     :return: 
     """
     assert(base_currency in ['ETH', 'BTC'])
-    volumes_df = market.usd_volumes('base_currency', ['BTC', 'USDT'])
+    volumes_df = market.usd_volumes(base_currency, ['BTC', 'USDT'])
     N = len(state)
     selected_currencies = volumes_df.head(N).index.tolist()
 

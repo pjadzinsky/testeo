@@ -35,9 +35,9 @@ def fake_market(currency_prices_vols):
             "MarketName" : "{0}",
             "High" : {1},
             "Low" : {1},
-            "Volume" : {3},
+            "Volume" : {2},
             "Last" : {1},
-            "BaseVolume" : {2},
+            "BaseVolume" : {3},
             "TimeStamp" : "2014-07-09T07:19:30.15",
             "Bid" : {1},
             "Ask" : {1},
@@ -47,7 +47,7 @@ def fake_market(currency_prices_vols):
             "Created" : "2014-03-20T06:00:00",
             "DisplayMarketName" : null
      """
-    response += '}, {'.join([template.format(c, p, v, v/p) for c, p, v in currency_prices_vols])
+    response += '}, {'.join([template.format(c, b, v, v*b) for c, b, v in currency_prices_vols])
     response += '}]}'
 
     return response
