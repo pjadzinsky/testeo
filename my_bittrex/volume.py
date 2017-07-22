@@ -124,15 +124,6 @@ class Market(object):
 
         return self._summaries
 
-    def last(self, base, currency):
-        """
-        Return last price for the given currency
-        
-        ### This is redundant with currency_value but easier to use although a lot less flexible
-        :return: 
-        """
-        return self.summaries().loc[self._market_name(base, currency), 'Last']
-
     def currency_value(self, currencies):
         """
         Travers currencies (from 0 to -1)
@@ -170,40 +161,43 @@ class Market(object):
         assert base in ['BTC', 'ETH', 'USDT']
 
         if base == 'BTC':
-            return self._volume_in_base(currency)
+            return self._volume_in_btc(currency)
         elif base == 'ETH':
-            return self._volume_in_base(currency)
-        elif baes == 'USDT':
-            return self._volume_in_base(currency)
+            return self._volume_in_eth(currency)
+        elif base == 'USDT':
+            return self._volume_in_usdt(currency)
         else:
             raise IOError
 
     def _volume_in_btc(self, currency):
         """ Compute the total volume of currency in BTC
         """
-        usdt_vol = self._volume_in_base(currency, 'USDT')
-        eth_vol = self._volume_in_base(currency, 'ETH')
-        btc_vol = self._volume_in_base(currency, 'BTC')
+        usdt_vol = self._direct_volume_in_base('USDT', currency)
+        eth_vol = self._direct_volume_in_base('ETH', currency)
+        btc_vol = self._direct_volume_in_base('BTC', currency)
 
-        btc_vol += eth_vol * self.last('BTC-ETH') + usdt_vol * self.last('BTC-USDT')
+        btc_vol += eth_vol * self.currency_value(['ETH', 'BTC']) + usdt_vol * self.currency_value(['USDT', 'BTC'])
+        return btc_vol
 
     def _volume_in_eth(self, currency):
         """ Compute the total volume of currency in ETH
         """
-        usdt_vol = self._volume_in_base(currency, 'USDT')
-        eth_vol = self._volume_in_base(currency, 'ETH')
-        btc_vol = self._volume_in_base(currency, 'BTC')
+        usdt_vol = self._direct_volume_in_base('USDT', currency)
+        eth_vol = self._direct_volume_in_base('ETH', currency)
+        btc_vol = self._direct_volume_in_base('BTC', currency)
 
-        eth_vol += btc_vol * self.last('ETH-BTC') + usdt_vol * self.last('ETH-USDT')
+        eth_vol += btc_vol * self.currency_value(['BTC', 'ETH']) + usdt_vol * self.currency_value(['USDT', 'ETH'])
+        return eth_vol
 
     def _volume_in_usdt(self, currency):
         """ Compute the total volume of currency in ETH
         """
-        usdt_vol = self._volume_in_base(currency, 'USDT')
-        eth_vol = self._volume_in_base(currency, 'ETH')
-        btc_vol = self._volume_in_base(currency, 'BTC')
+        usdt_vol = self._direct_volume_in_base('USDT', currency)
+        eth_vol = self._direct_volume_in_base('ETH', currency)
+        btc_vol = self._direct_volume_in_base('BTC', currency)
 
-        usdt_vol += btc_vol * self.last('USDT-BTC') + eth_vol * self.last('USDT-ETH')
+        usdt_vol += btc_vol * self.currency_value(['BTC', 'USDT']) + eth_vol * self.currency_value(['ETH', 'USDT'])
+        return usdt_vol
 
     def _direct_volume_in_base(self, base, currency):
         """ Return the volume from self._summaries of currency in base. If potential_market_name and/or

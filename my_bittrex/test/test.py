@@ -113,6 +113,31 @@ class TestMarket(unittest.TestCase):
         computed = market._direct_volume_in_base('USDT', 'ETH')
         self.assertEqual(computed, 5000)
 
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test__volume_in_usdt_1(self, mocked_market):
+        # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        market = volume.Market(json_blob=market2())
+        computed = market._volume_in_usdt('ETH')
+        expected = 10 * 500 + 10 * 500
+        self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test__volume_in_btc_1(self, mocked_market):
+        # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        market = volume.Market(json_blob=market2())
+        computed = market._volume_in_btc('ETH')
+        expected = 10 * 0.25 + 10 * 500 / 2000.0
+        self.assertEqual(computed, expected)
+
+    @mock.patch('my_bittrex.volume.client.get_market_summaries')
+    def test__volume_in_eth_1(self, mocked_market):
+        # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        market = volume.Market(json_blob=market2())
+        import pudb
+        pudb.set_trace()
+        computed = market._volume_in_eth('USDT')
+        expected = 10 + 10 * 2000 / 500.0
+        self.assertEqual(computed, expected)
     @mock.patch('my_bittrex.volume.client.get_currencies')
     def test_currency_volume_1(self, mocked_get_currencies):
         mocked_get_currencies.return_value = fake_get_currencies()
@@ -135,7 +160,7 @@ class TestMarket(unittest.TestCase):
         self.assertEqual(volume, 2)
 
     @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_usd_volumes(self, mocked_get_currencies):
+    def test_volume_in_base(self, mocked_get_currencies):
         mocked_get_currencies.return_value = fake_get_currencies()
         volume_df = self.market.usd_volumes('USDT', ['USDT', 'AAA'])
         computed = volume_df['USDT Volume']
