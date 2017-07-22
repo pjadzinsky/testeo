@@ -155,7 +155,17 @@ class Market(object):
     def _market_name(self, base, currency):
         return base + "-" + currency
 
-    def volume_in_base(self, base, currency):
+    def usd_volumes(self):
+        """ Return a dataframe with volumes for all currencies in USDT """
+        currencies = set(self.summaries()['Currency'].values)
+
+        volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
+        for currency in currencies:
+            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume_in_base('USDT', currency)
+
+        return volumes_df
+
+    def currency_volume_in_base(self, base, currency):
         """ Comute total volume of currency in either BTC, ETH or USDT """
         assert base in ['BTC', 'ETH', 'USDT']
 

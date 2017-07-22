@@ -132,9 +132,21 @@ class TestMarket(unittest.TestCase):
         expected = 10 + 10 * 2000 / 500.0
         self.assertEqual(computed, expected)
 
-    def test_volume_in_base_raises(self):
+    def test_currency_volume_in_base_raises(self):
         market = volume.Market(json_blob=market2())
-        self.assertRaises(AssertionError, market.volume_in_base, 'XXX', 'BTC')
+        self.assertRaises(AssertionError, market.currency_volume_in_base, 'XXX', 'BTC')
+
+    def test_currency_volume_in_base_1(self):
+        # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        market = volume.Market(json_blob=market2())
+        computed = market.currency_volume_in_base('USDT', 'BTC')
+        expected = 10 * 2000 + 10 * .25 * 2000
+        self.assertEqual(computed, expected)
+
+    def test_usd_volumes(self):
+        # Market is: [('USDT-BTC', 1000, 1), ('USDT-ETH', 1000, 1), ('BTC-ETH', 1, 1)]
+        market = volume.Market(json_blob=market1())
+        print market.usd_volumes()
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test_caching(self, mocked_get_summaries):
