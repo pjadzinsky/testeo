@@ -93,8 +93,6 @@ class TestMarket(unittest.TestCase):
     def test_direct_volume_in_base2(self, mocked_market):
         # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         market = volume.Market(json_blob=market2())
-        import pudb
-        pudb.set_trace()
         computed = market._direct_volume_in_base('BTC', 'USDT')
         self.assertEqual(computed, 10)
 
@@ -113,68 +111,30 @@ class TestMarket(unittest.TestCase):
         computed = market._direct_volume_in_base('USDT', 'ETH')
         self.assertEqual(computed, 5000)
 
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test__volume_in_usdt_1(self, mocked_market):
+    def test__volume_in_usdt_1(self):
         # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         market = volume.Market(json_blob=market2())
         computed = market._volume_in_usdt('ETH')
         expected = 10 * 500 + 10 * 500
         self.assertEqual(computed, expected)
 
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test__volume_in_btc_1(self, mocked_market):
+    def test__volume_in_btc_1(self):
         # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         market = volume.Market(json_blob=market2())
         computed = market._volume_in_btc('ETH')
         expected = 10 * 0.25 + 10 * 500 / 2000.0
         self.assertEqual(computed, expected)
 
-    @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test__volume_in_eth_1(self, mocked_market):
+    def test__volume_in_eth_1(self):
         # Market is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         market = volume.Market(json_blob=market2())
-        import pudb
-        pudb.set_trace()
         computed = market._volume_in_eth('USDT')
         expected = 10 + 10 * 2000 / 500.0
         self.assertEqual(computed, expected)
-    @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_currency_volume_1(self, mocked_get_currencies):
-        mocked_get_currencies.return_value = fake_get_currencies()
 
-        volume = self.market.currency_volume('AAA', 'USDT', ['USDT'])
-        self.assertEqual(volume, 2)
-
-    @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_currency_volume_2(self, mocked_get_currencies):
-        mocked_get_currencies.return_value = fake_get_currencies()
-
-        volume = self.market.currency_volume('BBB', 'AAA', ['AAA'])
-        self.assertEqual(volume, 1)
-
-    @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_currency_volume_3(self, mocked_get_currencies):
-        mocked_get_currencies.return_value = fake_get_currencies()
-
-        volume = self.market.currency_volume('BBB', 'USDT', ['AAA'])
-        self.assertEqual(volume, 2)
-
-    @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_volume_in_base(self, mocked_get_currencies):
-        mocked_get_currencies.return_value = fake_get_currencies()
-        volume_df = self.market.usd_volumes('USDT', ['USDT', 'AAA'])
-        computed = volume_df['USDT Volume']
-        print computed
-        expected = [2.0] * 3
-        print expected
-        self.assertItemsEqual(computed, expected)
-
-    @mock.patch('my_bittrex.volume.client.get_currencies')
-    def test_volumes(self, mocked_get_currencies):
-        mocked_get_currencies.return_value = fake_get_currencies()
-        volume_df = self.market.usd_volumes('USDT', ['AAA', 'USDT'])
-        print volume_df
-        #computed = volume_df['USDT Volume']
+    def test_volume_in_base_raises(self):
+        market = volume.Market(json_blob=market2())
+        self.assertRaises(AssertionError, market.volume_in_base, 'XXX', 'BTC')
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test_caching(self, mocked_get_summaries):
@@ -227,7 +187,6 @@ class TestRebalance1(unittest.TestCase):
         portfolio = volume.start_new_portfolio(market, [1, 1], 'BTC', 2000)
 
         print portfolio.portfolio
-
 
 
 def market1():

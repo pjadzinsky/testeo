@@ -102,14 +102,13 @@ class Market(object):
             return self._summaries
 
         elif json_blob:
-            response = json.loads(json_blob)
-            import pprint
-            pprint.pprint( response)
+            response = json_blob
         else:
             print "about to call client.get_market_summaries()"
             print int(time.time())
             response = client.get_market_summaries()
 
+        response = json.loads(response)
         self._timestamp = time.time()
         if response['success']:
             df = _to_df(response['result'], 'MarketName')
