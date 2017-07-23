@@ -22,14 +22,24 @@ class Portfolio(object):
     quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
     per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
     """
-    def __init__(self, portfolio=None):
+    def __init__(self, weights, portfolio=None):
         """
         Read portfolio from API
         """
+        assert type(weights) == dict
+        for k, v in weights.iteritems():
+            assert type(k) == str
+            assert type(v) in [float, int]
+
+        # dictionary linking currencies to ideal weights for total investment
+        self.weights = pd.DataFrame.from_dict(weights, orient='index')
+        self.weights.columns = ['Weight']
+
         if portfolio is not None:
             self.portfolio = portfolio
         else:
             self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
+
 
     def value(self, market, intermediate_currencies):
         """
@@ -43,6 +53,17 @@ class Portfolio(object):
 
         return total
 
+    def ideal_rebalance(self, market, state):
+        """
+        Given a state, return the amount to buy (+) or sell (-) for each quantity to achieve this balance.
+        
+        At this point we don't look at trading costs, sinking currencies, etc
+        """
+        # value of all portfolio in 'USDT'
+        total_value = self.value(market, ['USDT'])
+        #target = total_value np.array(state)/ np.sum(state)
+
+
     def rebalance(self, market, state, initial_portfolio, base_currency, threshold):
         """
         Given a state, buy/sell positions to approximate target_portfolio
@@ -55,8 +76,11 @@ class Portfolio(object):
         total_value = self.value(market, [base_currency])
 
         # amount in each currency if balanced according to state
-        target_value_in_base = total_value * state
+        target_value_in_base = total_value / np.sum(state)
 
+        currencies = self.portfolio.index.tolist()
+
+        _rebalance(currency, target_value)
         # compute money per currency (in base_currency)
         balances = self.portfolio['Balance'].tolist()
         currencies = self.portfolio.index.tolist()
@@ -68,7 +92,7 @@ class Portfolio(object):
         excess_percentage = [e / t for e, t in zip(excess_in_base, target_value_in_base)]
         sell_in_base = [e if np.abs(ep) > threshold else 0 for e, ep in zip(excess_in_base, excess_percentage)]
 
-        sell_in_currency = [sb / cb for sb, cb in zip(sell_in_base, currency_in_base)]
+        sell_in_currency = [cb / sb for sb, cb in zip(sell_in_base, currency_in_base)]
 
         # compute the new Balance for each currency after buying/selling for rebalancing
         new_balances = np.array([b + sc for b, sc in zip(balances, sell_in_currency)])
@@ -253,20 +277,42 @@ def get_currencies():
     return currencies_df
 
 
+def define_state(market, N, usd_value, include_usd=True):
+    """
+    
+    :param market: 
+    :param N: 
+    :param usd_value: 
+    :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
+    :return: 
+    """
+    volumes_df = market.usd_volumes()
+    selected_currencies = volumes_df.head(N).index.tolist()
+
+    if include_usd:
+        selected_currencies[-1] = 'USDT'
+
+    state = pd.DataFrame([1. / N] * N, index=selected_currencies, columns=['Weight'])
+    return state
+
 def start_new_portfolio(market, state, base_currency, value):
     """
-    Start a new blanace out of the N crypto currencies with more volume
-    balanced is generated as a DF and stored as a csv under portfolio_file if given
+    Start a new balance out of the N crypto currencies with more volume
     
-    :param state: iterable with relative representation of each cryptocurrencies.
+    :param state: dictionary linking each cryptocurrencies to important information
+                  like 'weight' (the relative weight of investment in this currency)
                   len(state) is the number of cryptocurrencies to buy.
-                  state[i] / sum(state) is the fraction of 'value' that would be invested in currency[i]
+                  state[Weight][currency] / state[Weight].sum() is the fraction of 'value' that would be invested in
+                   currency
     :param base_currency: str, currency we are funding the portfolio with ('ETH' or 'BTC')
     :param value: float, initial value of portfolio in 'base_currency'
     :return: 
     """
-    assert(base_currency in ['ETH', 'BTC'])
-    volumes_df = market.usd_volumes(base_currency, ['BTC', 'USDT'])
+    assert(base_currency in ['ETH', 'BTC', 'USDT'])
+    assert(type(state) == pd.DataFrame)
+    assert('Weight' in state)
+
+    volumes_df = market.usd_volumes()
     N = len(state)
     selected_currencies = volumes_df.head(N).index.tolist()
 

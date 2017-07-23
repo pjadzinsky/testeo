@@ -186,18 +186,45 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'USDT']), 6, 3)
 
 
+class TestState(unittest.TestCase):
+    def test_uniform(self):
+        """
+        [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10), ('BTC-AAA', 1E-5, 1000),
+         ('BTC-BBB', 1E-3, 1E6)]
+        
+        :return: 
+        """
+        market = volume.Market(json_blob=market3())
+        import pudb
+        pudb.set_trace()
+        state = volume.define_state(market, 4, 1000)
+        print state
+        self.assertEqual(state.shape, (4, 1))
+
 class TestRebalance1(unittest.TestCase):
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test1(self, mocked_market):
         """ start_new_portfolio will call get_currencies, we could mock it but there is not need for it as long
-        as we use currencies that do exist for real (unlike 'AAA')"""
-        mocked_market.side_effect = [market2()]
-        market = volume.Market(json_blob=market1())
-        print market._summaries
+        as we use currencies that do exist for real (unlike 'AAA')
+        
+        """
+        mocked_market.return_value = market2()
+        market = volume.Market(.1, json_blob=market1())
+        print market.summaries()
 
         portfolio = volume.start_new_portfolio(market, [1, 1], 'BTC', 2000)
 
+        time.sleep(.1)
+        print market.summaries()
+
+        # Now we have 2500 , after rebalancing there should 1250 in each
+        # since Market2 is [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        # 'BTC' @ 2000, position should be 1250/2000 = 0.625
+        # 'ETH' @ 500, position should be 1250/500 = 2.5
+        import pudb
+        pudb.set_trace()
+        portfolio.rebalance(market, [1, 1], portfolio, 'USDT', 0)
         print portfolio.portfolio
 
 
@@ -210,6 +237,10 @@ def market2():
     l = [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
     return test_utils.fake_market(l)
 
+def market3():
+    l = [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10), ('BTC-AAA', 1E-5, 1000),
+         ('BTC-BBB', 1E-3, 1E6), ('ETH-CCC', 2, 100)]
+    return test_utils.fake_market(l)
 
 def market0():
     """
