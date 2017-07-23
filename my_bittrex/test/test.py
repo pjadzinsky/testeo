@@ -185,6 +185,12 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'AAA']), 3, 3)
         self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'USDT']), 6, 3)
 
+    def test_empty_init(self):
+        portfolio = volume.Portfolio()
+        self.assertItemsEqual(portfolio.portfolio.columns, ['Balance', 'Available', 'Pending', 'CryptoAddress',
+                                                            'Requested', 'Uuid'])
+        self.assertEqual(portfolio.portfolio.index.name, 'Currency')
+        self.assertTrue(portfolio.portfolio.empty)
 
 class TestState(unittest.TestCase):
     def test_uniform(self):
@@ -195,11 +201,10 @@ class TestState(unittest.TestCase):
         :return: 
         """
         market = volume.Market(json_blob=market3())
-        import pudb
-        pudb.set_trace()
-        state = volume.define_state(market, 4, 1000)
-        print state
+        state = volume.define_state(market, 4)
         self.assertEqual(state.shape, (4, 1))
+        self.assertItemsEqual(state['Weight'], [0.25] * 4)
+
 
 class TestRebalance1(unittest.TestCase):
 
@@ -211,10 +216,11 @@ class TestRebalance1(unittest.TestCase):
         """
         mocked_market.return_value = market2()
         market = volume.Market(.1, json_blob=market1())
+        state = volume.define_state(market, 2, include_usd=False)
         print market.summaries()
+        print state
 
-        portfolio = volume.start_new_portfolio(market, [1, 1], 'BTC', 2000)
-
+        """
         time.sleep(.1)
         print market.summaries()
 
@@ -224,7 +230,8 @@ class TestRebalance1(unittest.TestCase):
         # 'ETH' @ 500, position should be 1250/500 = 2.5
         import pudb
         pudb.set_trace()
-        portfolio.rebalance(market, [1, 1], portfolio, 'USDT', 0)
+        """
+        portfolio.rebalance(market, state, portfolio, 'USDT', 0)
         print portfolio.portfolio
 
 

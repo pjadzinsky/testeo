@@ -22,24 +22,19 @@ class Portfolio(object):
     quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
     per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
     """
-    def __init__(self, weights, portfolio=None):
+    def __init__(self, portfolio=None):
         """
         Read portfolio from API
         """
-        assert type(weights) == dict
-        for k, v in weights.iteritems():
-            assert type(k) == str
-            assert type(v) in [float, int]
-
-        # dictionary linking currencies to ideal weights for total investment
-        self.weights = pd.DataFrame.from_dict(weights, orient='index')
-        self.weights.columns = ['Weight']
-
         if portfolio is not None:
             self.portfolio = portfolio
         else:
             self.portfolio = _to_df(client.get_balances()['result'], 'Currency')
 
+        if self.portfolio.empty:
+            self.portfolio = pd.DataFrame([], columns=['Balance', 'Available', 'Pending', 'CryptoAddress',
+                                                       'Requested', 'Uuid'])
+            self.portfolio.index.name = 'Currency'
 
     def value(self, market, intermediate_currencies):
         """
@@ -59,10 +54,15 @@ class Portfolio(object):
         
         At this point we don't look at trading costs, sinking currencies, etc
         """
+        temp_portfolio = pd.merge(self.portfolio, state, how='outer')
+        print temp_portfolio
+
+        """
         # value of all portfolio in 'USDT'
         total_value = self.value(market, ['USDT'])
         #target = total_value np.array(state)/ np.sum(state)
 
+        """
 
     def rebalance(self, market, state, initial_portfolio, base_currency, threshold):
         """
@@ -277,22 +277,26 @@ def get_currencies():
     return currencies_df
 
 
-def define_state(market, N, usd_value, include_usd=True):
+def define_state(market, N, currencies=None, include_usd=True):
     """
     
     :param market: 
     :param N: 
     :param usd_value: 
+    :param currencies: dict linking currencies to the values of the 'state'
     :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
     :return: 
     """
     volumes_df = market.usd_volumes()
-    selected_currencies = volumes_df.head(N).index.tolist()
+    if currencies is None:
+        currencies = volumes_df.head(N).index.tolist()
+        if include_usd:
+            currencies[-1] = 'USDT'
 
-    if include_usd:
-        selected_currencies[-1] = 'USDT'
+        state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
+    else:
+        pd.DataFrame.from_dict(currencies, object='index')
 
-    state = pd.DataFrame([1. / N] * N, index=selected_currencies, columns=['Weight'])
     return state
 
 def start_new_portfolio(market, state, base_currency, value):
