@@ -3,6 +3,7 @@
 import json
 import mock
 import time
+import pandas as pd
 import tempfile
 import unittest
 
@@ -146,7 +147,6 @@ class TestMarket(unittest.TestCase):
     def test_usd_volumes(self):
         # Market is: [('USDT-BTC', 1000, 1), ('USDT-ETH', 1000, 1), ('BTC-ETH', 1, 1)]
         market = volume.Market(json_blob=market1())
-        print market.usd_volumes()
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
     def test_caching(self, mocked_get_summaries):
@@ -182,8 +182,8 @@ class TestPortfolio(unittest.TestCase):
         self.portfolio = volume.Portfolio()
 
     def test_value(self):
-        self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'AAA']), 3, 3)
-        self.assertAlmostEqual(self.portfolio.value(self.market, ['AAA', 'USDT']), 6, 3)
+        self.assertAlmostEqual(self.portfolio.total_value(self.market, ['AAA', 'AAA']), 3, 3)
+        self.assertAlmostEqual(self.portfolio.total_value(self.market, ['AAA', 'USDT']), 6, 3)
 
     def test_empty_init(self):
         portfolio = volume.Portfolio()
@@ -191,6 +191,53 @@ class TestPortfolio(unittest.TestCase):
                                                             'Requested', 'Uuid'])
         self.assertEqual(portfolio.portfolio.index.name, 'Currency')
         self.assertTrue(portfolio.portfolio.empty)
+
+    @mock.patch('my_bittrex.volume.client.get_balances')
+    def test_value_per_currency(self, mocked_get_balances):
+        """
+        balance1 is: [('BTC', 2), ('ETH', 3), ('USDT', 4)]
+        market2 is: [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
+        
+        :param mocked_get_balances: 
+        :return: 
+        """
+        mocked_get_balances.return_value = balance1()
+        market = volume.Market(json_blob=market2())
+
+        portfolio = volume.Portfolio()
+        computed = portfolio.value_per_currency(market, ['BTC', 'USDT'])
+        self.assertEqual(type(computed), pd.Series)
+        self.assertItemsEqual(computed.tolist(), [4000, 1500, 4])
+
+        computed = portfolio.value_per_currency(market, ['ETH', 'USDT'])
+        self.assertItemsEqual(computed.tolist(), [4000, 1500, 4])
+
+
+    def test_start_portfolio(self):
+        market = volume.Market(json_blob=market1())
+        state = volume.define_state(market, 2, include_usd=False)
+        portfolio = volume.Portfolio()
+        portfolio.start_portfolio(market, state, 'USDT', 1000)
+        # we are overestimating the cost of the transaction because we are counting 4 transactions instead of 2
+        # to establish the portfolio (selling USDT to buy BTC pays only once and I'm counting it twice, same for
+        # ETH)
+        self.assertEqual(portfolio.total_value(market, ['USDT']), 995)
+        # 0.5 * (1 - 0.25%/100) = 0.49875
+        # buy selling all 1000 dollars, due to a fake commission I end up with a -2.5 balance
+        self.assertItemsEqual(portfolio.portfolio['Balance'], [.49875, .49875, -2.5])
+
+
+class TestApplyTransactionCost(unittest.TestCase):
+    def test_sell(self):
+        computed = volume.apply_transaction_cost(-100)
+        expected = -100.25
+        self.assertEqual(computed, expected)
+
+    def test_buy(self):
+        computed = volume.apply_transaction_cost(100)
+        expected = 99.75
+        self.assertEqual(computed, expected)
+
 
 class TestState(unittest.TestCase):
     def test_uniform(self):
@@ -209,16 +256,16 @@ class TestState(unittest.TestCase):
 class TestRebalance1(unittest.TestCase):
 
     @mock.patch('my_bittrex.volume.client.get_market_summaries')
-    def test1(self, mocked_market):
+    def test_from_empty_balance(self, mocked_market):
         """ start_new_portfolio will call get_currencies, we could mock it but there is not need for it as long
         as we use currencies that do exist for real (unlike 'AAA')
         
         """
-        mocked_market.return_value = market2()
-        market = volume.Market(.1, json_blob=market1())
+        mocked_market.return_value = market1()
+        market = volume.Market()
         state = volume.define_state(market, 2, include_usd=False)
-        print market.summaries()
-        print state
+        portfolio = volume.Portfolio()
+        portfolio.ideal_rebalance(market, state)
 
         """
         time.sleep(.1)
@@ -230,9 +277,9 @@ class TestRebalance1(unittest.TestCase):
         # 'ETH' @ 500, position should be 1250/500 = 2.5
         import pudb
         pudb.set_trace()
-        """
         portfolio.rebalance(market, state, portfolio, 'USDT', 0)
         print portfolio.portfolio
+        """
 
 
 def market1():
@@ -300,6 +347,10 @@ def fake_get_balances():
     as_dict = json.loads(test_utils.fake_balance(l))
     return as_dict
 
+
+def balance1():
+    l = [('BTC', 2), ('ETH', 3), ('USDT', 4)]
+    return json.loads(test_utils.fake_balance(l))
 
 def fake_get_currencies():
     l = [('AAA', 'AAA long', .002), ('BBB', 'BBB long', .002), ('CCC', 'CCC long', .002)]

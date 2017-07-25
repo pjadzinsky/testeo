@@ -12,12 +12,12 @@ client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
 class Portfolio(object):
     """
     A portfolio is the type and amount of each cryptocurrency held.
-    There is a desired 'state' and due to fluctuations some currencies will have more (or less) value than their
+    There is a desired 'state' and due to fluctuations some currencies will have more (or less) total_value than their
     desired target 'state'. We'll rebalance them periodically.
     To avoid spending too much in commissions when rebalancing we have a 'threshold' and we only 'rebalance
     cryptocurrencies that increased (or decreased) more than 'threshold' (as a percentage) from desired 'state'.
-    For example is the desired state is 100 and the threshold is 0.1 we'll sell only if the current value is at or above
-    110 (and buy if the current value is at or below 90)
+    For example is the desired state is 100 and the threshold is 0.1 we'll sell only if the current total_value is at or above
+    110 (and buy if the current total_value is at or below 90)
     To prevent from buying too much of a sinking currency we are going to put bounds on either the price and/or the
     quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
     per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
@@ -36,17 +36,58 @@ class Portfolio(object):
                                                        'Requested', 'Uuid'])
             self.portfolio.index.name = 'Currency'
 
-    def value(self, market, intermediate_currencies):
+    def total_value(self, market, intermediate_currencies):
         """
         Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
         """
+        return self.value_per_currency(market, intermediate_currencies).sum()
+
+    def value_per_currency(self, market, intermediate_currencies):
         portfolio = self.portfolio
 
-        total = 0
-        for currency, series in portfolio.iterrows():
-            total += series['Balance'] * market.currency_value([currency] + intermediate_currencies)
+        return portfolio.apply(lambda x: market.currency_value([x.name] + intermediate_currencies) * x['Balance'],
+                               axis=1)
 
-        return total
+    def start_portfolio(self, market, state, base, value):
+        """
+        We first start a portfolio that has just 'value' in 'base' and unden execute ideal_rebalance on it
+        :param market: 
+        :param state: 
+        :param base: 
+        :param value: 
+        :return: 
+        """
+        if not self.portfolio.empty:
+            raise ValueError('portfolio was not empty')
+
+        self.portfolio = self.portfolio.append(pd.Series({'Balance': value, 'Available': value, 'Pending': 0}, name=base))
+        # compute what needs to be bought (+) or sold (-) to balance the portfolio
+        buy = self.ideal_rebalance(market, state)
+
+        # now balance the portfolio
+        self.mock_buy(buy)
+
+    def mock_buy(self, buy):
+        """
+        This is a method that mocks sending a buy/sell order to the client and its execution.
+        After this method executes, we'll assume that we buy/sell whatever we requested at the requested prices
+        
+        I don't understand if bittrex client talks in usdt, base or currency when placing orders. I'm just
+        mocking the result here, not the call
+        
+        :param buy: 
+        :return: 
+        """
+
+        # There is 0.25% cost on each buy/sell transaction. Although exchanging ETH for BTC shows as two transactions
+        # in 'buy' and should pay 0.25% only once, most transactions in 'buy' should pay the 0.25%. I'm going to
+        # overestimate the transaction cost by paying the 0.25% for every transaction in buy
+        # when we want to buy X, we end up with x * (1 - cost)
+        # when we want to sell X, we end up with x * (1 - cost) base. I'm modeling this as we actuall sold
+        # x * (1 + cost)
+        buy = buy.map(apply_transaction_cost)
+        self.portfolio['Balance'] += buy
+        self.portfolio['Available'] += buy
 
     def ideal_rebalance(self, market, state):
         """
@@ -54,15 +95,25 @@ class Portfolio(object):
         
         At this point we don't look at trading costs, sinking currencies, etc
         """
-        temp_portfolio = pd.merge(self.portfolio, state, how='outer')
-        print temp_portfolio
+        temp_portfolio = pd.merge(self.portfolio, state, how='outer', left_index=True, right_index=True)
+        temp_portfolio.fillna({'Balance': 0, 'Available': 0, 'Pending': 0, 'CryptoAddress': '', 'Requested': True,
+                              'Uuid': '', 'Weight': 0}, inplace=True)
+        # We just added all currencies in 'state' to 'temp_portfolio', but we also need them in
+        self.portfolio = temp_portfolio.drop(['Weight'], axis=1)
 
-        """
-        # value of all portfolio in 'USDT'
-        total_value = self.value(market, ['USDT'])
-        #target = total_value np.array(state)/ np.sum(state)
+        # total_value of each investment in 'USDT'
+        temp_portfolio['Value (USDT)'] = temp_portfolio.apply(
+            lambda x: market.currency_value([x.name, 'BTC', 'USDT']) * x['Balance'], axis=1)
 
-        """
+        total_value = temp_portfolio['Value (USDT)'].sum()
+
+        temp_portfolio['Target_USDT'] = total_value * temp_portfolio['Weight']/ temp_portfolio['Weight'].sum()
+        temp_portfolio['Buy_USDT'] = temp_portfolio['Target_USDT'] - temp_portfolio['Value (USDT)']
+        temp_portfolio['Buy'] = temp_portfolio.apply(
+            lambda x: x['Buy_USDT'] / market.currency_value([x.name, 'BTC', 'USDT']), axis=1)
+
+        return temp_portfolio['Buy']
+
 
     def rebalance(self, market, state, initial_portfolio, base_currency, threshold):
         """
@@ -72,8 +123,8 @@ class Portfolio(object):
         threshold:  currencies are only balanced if difference with target is above/below this threshold (express
                     as a percentage)
         """
-        # value of all portfolio in base_currency
-        total_value = self.value(market, [base_currency])
+        # total_value of all portfolio in base_currency
+        total_value = self.total_value(market, [base_currency])
 
         # amount in each currency if balanced according to state
         target_value_in_base = total_value / np.sum(state)
@@ -306,10 +357,10 @@ def start_new_portfolio(market, state, base_currency, value):
     :param state: dictionary linking each cryptocurrencies to important information
                   like 'weight' (the relative weight of investment in this currency)
                   len(state) is the number of cryptocurrencies to buy.
-                  state[Weight][currency] / state[Weight].sum() is the fraction of 'value' that would be invested in
+                  state[Weight][currency] / state[Weight].sum() is the fraction of 'total_value' that would be invested in
                    currency
     :param base_currency: str, currency we are funding the portfolio with ('ETH' or 'BTC')
-    :param value: float, initial value of portfolio in 'base_currency'
+    :param value: float, initial total_value of portfolio in 'base_currency'
     :return: 
     """
     assert(base_currency in ['ETH', 'BTC', 'USDT'])
@@ -359,3 +410,17 @@ def _market_names(currency, base_currency):
 
     return answer
 
+def apply_transaction_cost(buy):
+    """ buy is a float, the amount of either currency or collars to buy (if positive) or sell (if negative)
+    """
+    try:
+        buy *= 1.0
+    except:
+        raise IOError('buy should be numeric')
+
+    if buy > 0:
+        buy -= buy * 0.25/100
+    else:
+        buy += buy * 0.25/100
+
+    return buy
