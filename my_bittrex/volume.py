@@ -1,5 +1,8 @@
-import time
 import json
+import os
+import time
+
+import glob
 import numpy as np
 import pandas as pd
 
@@ -7,6 +10,7 @@ from bittrex import bittrex
 import credentials
 
 client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
+portfolio_filename = os.path.join('data', 'portfolio_{}.csv')
 
 
 class Portfolio(object):
@@ -50,7 +54,7 @@ class Portfolio(object):
 
     def start_portfolio(self, market, state, base, value):
         """
-        We first start a portfolio that has just 'value' in 'base' and unden execute ideal_rebalance on it
+        We first start a portfolio that has just 'value' in 'base' and then execute ideal_rebalance on it
         :param market: 
         :param state: 
         :param base: 
@@ -160,6 +164,39 @@ class Portfolio(object):
 
         return sell_in_currency
 
+    def to_csv(self, header=False):
+        """
+        
+        :return: 
+        """
+        try:
+            os.mkdir('data')
+        except:
+            pass
+
+        with open(portfolio_filename.format(int(time.time())), 'a') as fid:
+            self.portfolio.to_csv(fid)
+
+    @classmethod
+    def from_csv(cls, filename=None):
+        """ Return a Portfolio generated from the latest portfolio_<timestamp>.csv file from my_bittrex/data/
+        If no files available return None
+        """
+
+        if not filename:
+            wildcard = os.path.expanduser(os.path.join('~', 'Testeo', 'my_bittrex', 'data', 'portfolio_*.csv'))
+            csv_files = glob.glob(wildcard)
+            if csv_files:
+                csv_files.sort()
+                filename = csv_files[-1]
+                print filename
+
+                portfolio = cls(portfolio = pd.read_csv(filename, index_col=0))
+            else:
+                portfolio = None
+
+        return portfolio
+
 
 class Market(object):
     def __init__(self, cache_timeout_sec=600, json_blob=None):
@@ -178,12 +215,12 @@ class Market(object):
 
         elif json_blob:
             response = json_blob
+            response = json.loads(response)
         else:
             print "about to call client.get_market_summaries()"
             print int(time.time())
             response = client.get_market_summaries()
 
-        response = json.loads(response)
         self._timestamp = time.time()
         if response['success']:
             df = _to_df(response['result'], 'MarketName')
@@ -205,7 +242,6 @@ class Market(object):
         ie, if A trades with B and B trades with C and you want to know the price of A in C, then
         currencies = [A, B, C]
         """
-
         if len(currencies) == 0:
             return 0
         elif len(currencies) == 1:
@@ -238,6 +274,7 @@ class Market(object):
         for currency in currencies:
             volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume_in_base('USDT', currency)
 
+        volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
         return volumes_df
 
     def currency_volume_in_base(self, base, currency):
@@ -298,6 +335,24 @@ class Market(object):
             volume = 0
 
         return volume
+
+    def to_csv(self, header=False):
+        """
+        
+        :return: 
+        """
+        try:
+            os.mkdir('data')
+        except:
+            pass
+        output_name = os.path.join('data', 'market.csv')
+
+        # flip dataframe and keep only 'Last' column
+        df = self.summaries()[['Last']].T
+        df.index = [int(time.time())]
+
+        with open(output_name, 'a') as fid:
+            df.to_csv(fid, header=header)
 
 
 def _to_df(response, new_index=None):
@@ -424,3 +479,4 @@ def apply_transaction_cost(buy):
         buy += buy * 0.25/100
 
     return buy
+
