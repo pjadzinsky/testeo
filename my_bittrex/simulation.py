@@ -30,6 +30,8 @@ def main():
     market.to_csv(header=header)
     portfolio.to_csv()
 
+    print "Market value:", portfolio.total_value(market, ['BTC', 'USDT'])
+
 
 if __name__ == "__main__":
     main()
