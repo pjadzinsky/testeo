@@ -26,8 +26,6 @@ class Portfolio(object):
         """
         Read portfolio from API
         """
-        import pudb
-        pudb.set_trace()
         if dataframe is not None:
             self.dataframe = dataframe
         else:
@@ -71,33 +69,27 @@ class Portfolio(object):
         self.dataframe['Balance'] += buy
         self.dataframe['Available'] += buy
 
-    def ideal_rebalance(self, market, state):
+    def ideal_rebalance(self, market, state, intermediate_currencies):
         """
         Given a state, return the amount to buy (+) or sell (-) for each quantity to achieve this balance.
         
         At this point we don't look at trading costs, sinking currencies, etc
         """
-        temp_portfolio = pd.merge(self.dataframe, state, how='outer', left_index=True, right_index=True)
-        temp_portfolio.fillna({'Balance': 0, 'Available': 0, 'Pending': 0, 'CryptoAddress': '', 'Requested': True,
-                               'Uuid': '', 'Weight': 0}, inplace=True)
-        # We just added all currencies in 'state' to 'temp_portfolio', but we also need them in
-        self.dataframe = temp_portfolio.drop(['Weight'], axis=1)
+        total_value = self.total_value(market, ['BTC', 'USDT'])
 
-        # total_value of each investment in 'USDT'
-        temp_portfolio['Value (USDT)'] = temp_portfolio.apply(
-            lambda x: market_operations.currency_value(market, [x.name, 'BTC', 'USDT']) * x['Balance'], axis=1)
+        df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
+        df.fillna(0, inplace=True)
 
-        total_value = temp_portfolio['Value (USDT)'].sum()
+        df.loc[:, 'target_usdt'] = df['Weight'] * total_value
+        df.loc[:, 'target_currency'] = df.apply(
+            lambda x: x.target_usdt / market_operations.currency_value(market, [x.name] + intermediate_currencies),
+            axis = 1)
 
-        temp_portfolio['Target_USDT'] = total_value * temp_portfolio['Weight']/ temp_portfolio['Weight'].sum()
-        temp_portfolio['Buy_USDT'] = temp_portfolio['Target_USDT'] - temp_portfolio['Value (USDT)']
-        temp_portfolio['Buy'] = temp_portfolio.apply(
-            lambda x: x['Buy_USDT'] / market_operations.currency_value(market, [x.name, 'BTC', 'USDT']), axis=1)
-
-        return temp_portfolio['Buy']
+        df.loc[:, 'Buy'] = df['target_currency'] - df['Available']
+        return df['Buy']
 
 
-    def rebalance(self, market, state, initial_portfolio, base_currency, threshold):
+    def rebalance(self, market, state, intermediate_currencies):
         """
         Given a state, buy/sell positions to approximate target_portfolio
         
@@ -105,42 +97,14 @@ class Portfolio(object):
         threshold:  currencies are only balanced if difference with target is above/below this threshold (express
                     as a percentage)
         """
-        # total_value of all portfolio in base_currency
-        total_value = self.total_value(market, [base_currency])
+        buy = self.ideal_rebalance(market, state, intermediate_currencies)
+        buy = buy.apply(apply_transaction_cost)
+        self.dataframe = pd.merge(self.dataframe, buy.to_frame(), left_index=True, right_index=True, how='outer')
+        self.dataframe.fillna(0, inplace=True)
 
-        # amount in each currency if balanced according to state
-        target_value_in_base = total_value / np.sum(state)
-
-        currencies = self.dataframe.index.tolist()
-
-        _rebalance(currency, target_value)
-        # compute money per currency (in base_currency)
-        balances = self.dataframe['Balance'].tolist()
-        currencies = self.dataframe.index.tolist()
-        currency_in_base = [market_operations.currency_value(market, [c, base_currency]) for c in currencies]
-        market_value = [b * cb for b, cb in zip(balances, currency_in_base)]
-
-        # compute amount to sell (buy if negative) to maintain initial 'state'
-        excess_in_base = market_value - target_value_in_base
-        excess_percentage = [e / t for e, t in zip(excess_in_base, target_value_in_base)]
-        sell_in_base = [e if np.abs(ep) > threshold else 0 for e, ep in zip(excess_in_base, excess_percentage)]
-
-        sell_in_currency = [cb / sb for sb, cb in zip(sell_in_base, currency_in_base)]
-
-        # compute the new Balance for each currency after buying/selling for rebalancing
-        new_balances = np.array([b + sc for b, sc in zip(balances, sell_in_currency)])
-
-        # what would the new average ratio between current and original balances be if we were to
-        # sell 'sell_in_currency'?
-        mean_ratio = np.mean(initial_portfolio.portfolio['Balance'] / new_balances)
-        # I want to limit buying/selling such that the ratio for each currency is not more than N times the mean.
-        # This means that new_balances has to be the min between new_balances computed above and N * new_balances / mean_ratio
-        N = len(state)
-        new_balances = [min(nb, N * nb / mean_ratio) for nb in new_balances]
-
-        sell_in_currency = [nb - b for nb, b in zip(new_balances, balances)]
-
-        return sell_in_currency
+        self.dataframe['Available'] += self.dataframe['Buy']
+        self.dataframe['Balance'] += self.dataframe['Buy']
+        self.dataframe.drop('Buy', axis=1, inplace=True)
 
 
 def apply_transaction_cost(buy):
@@ -170,12 +134,6 @@ def start_portfolio(market, state, base, value):
     dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
     portfolio = Portfolio(dataframe=dataframe)
 
-    # compute what needs to be bought (+) or sold (-) to balance the portfolio
-    buy = portfolio.ideal_rebalance(market, state)
-
-    # now balance the portfolio
-    portfolio.mock_buy(buy)
-
     return portfolio
 
 
@@ -190,10 +148,10 @@ def uniform_state(market, N, include_usd=True):
     :return: Dataframe with the weight of each currency (1/N)
     """
     volumes_df = market_operations.usd_volumes(market)
-    if not include_usd:
-        volumes_df.drop('USDT', axis=0, inplace=True)
+    volumes_df.drop('USDT', axis=0, inplace=True)
 
     currencies = volumes_df.head(N).index.tolist()
+    assert 'USDT' not in volumes_df.index
     if include_usd:
         currencies[-1] = 'USDT'
 

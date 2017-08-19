@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 
 Download keys from s3 and generate a dataframe with all
@@ -23,9 +22,6 @@ cache_timeout = 3600 * 24  # in seconds
 
 def get_markets():
     if os.path.isfile(cache_file):
-        print os.stat(cache_file).st_mtime
-        print cache_timeout
-        print time.time()
         if os.stat(cache_file).st_mtime + cache_timeout > time.time():
             df = pd.read_csv(cache_file, index_col=[0, 1])
             return df
@@ -75,8 +71,4 @@ def closest_market(time):
     diff = times - time
     closest = np.argmin(diff ** 2)
     closest_time = times[closest]
-    print closest_time - time
     return market_at_time(closest_time)
-
-if __name__ == "__main__":
-    get_markets()

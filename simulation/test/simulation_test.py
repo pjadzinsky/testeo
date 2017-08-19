@@ -2,7 +2,8 @@
 import unittest
 
 from markets import recreate_markets
-from simulation import portfolio
+from portfolio import portfolio
+
 
 class TestState(unittest.TestCase):
     def test_uniform_state_1(self):
@@ -27,8 +28,6 @@ class TestStartPortfolio(unittest.TestCase):
         state = portfolio.uniform_state(first_market, 20, True)
         base = 'BTC'
         value = 10
-        import pudb
-        pudb.set_trace()
         first_portfolio = portfolio.start_portfolio(first_market, state, base, value)
         print first_portfolio.value_per_currency(first_market, ['BTC', 'USDT'])
         print first_portfolio.total_value(first_market, ['BTC'])
