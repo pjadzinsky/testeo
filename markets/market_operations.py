@@ -48,7 +48,7 @@ def _market_name( base, currency):
 
 def usd_volumes(market):
     """ Return a dataframe with volumes for all currencies in USDT """
-    currencies = bittrex_utils.currencies_df()['Currency']
+    currencies = bittrex_utils.currencies_df().index.values
 
     volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
     for currency in currencies:
@@ -121,20 +121,3 @@ def _direct_volume_in_base(market, base, currency):
     return volume
 
 
-def to_csv( header=False):
-    """
-    
-    :return: 
-    """
-    try:
-        os.mkdir('data')
-    except:
-        pass
-    output_name = os.path.join('data', 'market.csv')
-
-    # flip dataframe and keep only 'Last' column
-    df = market[['Last']].T
-    df.index = [int(time.time())]
-
-    with open(output_name, 'a') as fid:
-        df.to_csv(fid, header=header)

@@ -2,25 +2,13 @@
 import time
 
 from markets import recreate_markets, market_operations
+from simulation import portfolio
+from markets import recreate_markets
 
 
 def main():
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
-    df = recreate_markets.get_markets()
-
-    print df.shape
-    print df.head()
-    df = df.loc[(1502981286, slice(None)), :]
-    df.index = df.index.droplevel()
-    print df.head()
-    t0 = time.time()
-    first_market = recreate_markets.first_market()
-    t1 = time.time() - 12 * 3600
-    recreate_markets.closest_market(t1)
-    market_volumes = market_operations.usd_volumes(first_market)
-    print market_volumes
-    t2 = time.time()
 
 
     """
