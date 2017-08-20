@@ -14,7 +14,9 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+import numpy as np
 import pandas as pd
+
 import bittrex_utils
 from markets import market_operations
 
@@ -47,7 +49,71 @@ class Portfolio(object):
 
         return portfolio.apply(lambda x: market_operations.currency_value(market, [x.name] + intermediate_currencies) * x['Balance'],
                                axis=1)
-    def mock_buy(self, buy):
+    def ideal_rebalance(self, market, state, intermediate_currencies):
+        """
+        Given market, state and intermediate_currencies return the amount to buy (+) or sell (-) for each currency
+        to achieve perfect balance.
+        
+        At this point we don't look at trading costs, sinking currencies, etc
+        
+        returned dataframe has columns:
+        target_usdt:    the value in USD we should have in each currency after rebalancing
+        target_currency:    the ideal amount of each currency that achieves this ideal rebalancing
+        Buy:            the amount of currency that we have to buy (if > 0) or sell (if < 0) to obtain
+                        target_currency
+        Buy (USDT):     Amount of USDT needed for the transaction (not taking transactions costs into accoun)
+        """
+        total_value = self.total_value(market, ['BTC', 'USDT'])
+
+        buy_df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
+        buy_df.fillna(0, inplace=True)
+
+        buy_df.loc[:, 'target_usdt'] = buy_df['Weight'] * total_value
+        buy_df.loc[:, 'target_currency'] = buy_df.apply(
+            lambda x: x.target_usdt / market_operations.currency_value(market, [x.name] + intermediate_currencies),
+            axis=1
+        )
+
+        buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
+        buy_df.loc[:, 'Buy (USDT)'] = buy_df.apply(
+            lambda x: x.Buy * market_operations.currency_value(market, [x.name] + intermediate_currencies),
+            axis=1
+        )
+
+        return buy_df
+
+    def rebalance(self, market, state, intermediate_currencies, min_percentage_change):
+        """
+        Given a state, buy/sell positions to approximate target_portfolio
+        
+        base_currency:  base currency to do computations
+        threshold:  currencies are only balanced if difference with target is above/below this threshold (express
+                    as a percentage)
+        """
+        buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
+        # apply transaction costs
+        buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
+
+        # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
+        by_currency = True
+        for currency in buy_df.index:
+            if by_currency:
+                percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
+            else:
+                percentage_change = np.abs(buy_df.loc[currency, 'Buy (USDT)']) / buy_df.loc[currency, 'target_usdt']
+            buy_df.loc[currency, "change"] = percentage_change
+            if percentage_change < min_percentage_change:
+                buy_df.loc[currency, 'Buy'] = 0
+
+        # if 'USDT' is in self.dataframe, remove it. Each transaction is simulated against 'USDT' but we don't
+        # buy/sell 'USDT' directly. Not doing this will lead to problems and double counting
+        if 'USDT' in buy_df.index:
+            buy_df.loc['USDT', 'Buy'] = 0
+            buy_df.loc['USDT', 'Buy (USDT)'] = 0
+
+        self.mock_buy(buy_df[['Buy', 'Buy (USDT)', 'change']])
+
+    def mock_buy(self, buy_df):
         """
         This is a method that mocks sending a buy/sell order to the client and its execution.
         After this method executes, we'll assume that we buy/sell whatever we requested at the requested prices
@@ -55,7 +121,7 @@ class Portfolio(object):
         I don't understand if bittrex client talks in usdt, base or currency when placing orders. I'm just
         mocking the result here, not the call
         
-        :param buy: 
+        :param buy_df: 
         :return: 
         """
 
@@ -65,46 +131,18 @@ class Portfolio(object):
         # when we want to buy X, we end up with x * (1 - cost)
         # when we want to sell X, we end up with x * (1 - cost) base. I'm modeling this as we actuall sold
         # x * (1 + cost)
-        buy = buy.map(apply_transaction_cost)
-        self.dataframe['Balance'] += buy
-        self.dataframe['Available'] += buy
 
-    def ideal_rebalance(self, market, state, intermediate_currencies):
-        """
-        Given a state, return the amount to buy (+) or sell (-) for each quantity to achieve this balance.
-        
-        At this point we don't look at trading costs, sinking currencies, etc
-        """
-        total_value = self.total_value(market, ['BTC', 'USDT'])
-
-        df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
-        df.fillna(0, inplace=True)
-
-        df.loc[:, 'target_usdt'] = df['Weight'] * total_value
-        df.loc[:, 'target_currency'] = df.apply(
-            lambda x: x.target_usdt / market_operations.currency_value(market, [x.name] + intermediate_currencies),
-            axis = 1)
-
-        df.loc[:, 'Buy'] = df['target_currency'] - df['Available']
-        return df['Buy']
-
-
-    def rebalance(self, market, state, intermediate_currencies):
-        """
-        Given a state, buy/sell positions to approximate target_portfolio
-        
-        base_currency:  base currency to do computations
-        threshold:  currencies are only balanced if difference with target is above/below this threshold (express
-                    as a percentage)
-        """
-        buy = self.ideal_rebalance(market, state, intermediate_currencies)
-        buy = buy.apply(apply_transaction_cost)
-        self.dataframe = pd.merge(self.dataframe, buy.to_frame(), left_index=True, right_index=True, how='outer')
+        # the 'index' in buy_df might not be the same as in self.dataframe. That's why we start merging based on
+        # index and we use 'outer'.
+        self.dataframe = pd.merge(self.dataframe, buy_df, left_index=True, right_index=True, how='outer')
+        #  If new values are added to index there will be NaN
         self.dataframe.fillna(0, inplace=True)
-
-        self.dataframe['Available'] += self.dataframe['Buy']
         self.dataframe['Balance'] += self.dataframe['Buy']
-        self.dataframe.drop('Buy', axis=1, inplace=True)
+        self.dataframe['Available'] += self.dataframe['Buy']
+
+        self.dataframe.loc['USDT', 'Balance'] -= self.dataframe['Buy (USDT)'].sum()
+        self.dataframe.loc['USDT', 'Available'] -= self.dataframe['Buy (USDT)'].sum()
+        self.dataframe.drop(['Buy', 'Buy (USDT)'], inplace=True, axis=1)
 
 
 def apply_transaction_cost(buy):
