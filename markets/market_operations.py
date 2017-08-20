@@ -121,3 +121,18 @@ def _direct_volume_in_base(market, base, currency):
     return volume
 
 
+def variance(markets):
+    """
+    Compute some estimate of variance
+    :param market: 
+    :return: 
+    """
+    market_names = markets.index.levels[1]
+    variances_df = pd.DataFrame([])
+    for name in market_names:
+        market = markets.loc[(slice(None), name), :]
+        variances_df.loc[name, 'Var'] = market['Last'].var()
+
+    variances_df.sort_values('Var', ascending=False, inplace=True)
+    return variances_df
+

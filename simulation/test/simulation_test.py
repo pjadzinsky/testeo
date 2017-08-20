@@ -2,6 +2,7 @@
 import unittest
 
 from markets import recreate_markets
+from markets import market_operations
 from portfolio import portfolio
 
 
@@ -31,6 +32,12 @@ class TestStartPortfolio(unittest.TestCase):
         first_portfolio = portfolio.start_portfolio(first_market, state, base, value)
         print first_portfolio.value_per_currency(first_market, ['BTC', 'USDT'])
         print first_portfolio.total_value(first_market, ['BTC'])
+
+class TestMarketOperations(unittest.TestCase):
+    def test_variance(self):
+        markets = recreate_markets.get_markets()
+        variances_df = market_operations.variance(markets)
+        print variances_df
 
 
 if __name__ == "__main__":
