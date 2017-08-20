@@ -2,6 +2,7 @@
 import sys
 
 import gflags
+import pandas as pd
 
 from markets import recreate_markets
 from portfolio import portfolio
@@ -9,11 +10,21 @@ from portfolio import portfolio
 gflags.DEFINE_integer('delay', 1, 'Hours in between markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "Should be between 0 and 1")
+gflags.DEFINE_integer('N', None, "Number of currencies to use")
+gflags.DEFINE_string('currencies', None, "comma separated list of currencies")
 FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >=0, 'Should be positive or 0')
 
+@gflags.multi_flags_validator(['N', 'currencies'], 'One has to be defined')
+def _XOR(flags_dict):
+    if not flags_dict['N'] and not flags_dict['currencies']:
+        return False
+    if flags_dict['N'] and flags_dict['currencies']:
+        return False
+    return True
 
-def simulation(delay, min_percentage_change):
+
+def simulation(delay, min_percentage_change, N, currencies):
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
 
@@ -23,10 +34,14 @@ def simulation(delay, min_percentage_change):
     market_time = market_times[0]
 
     first_market = recreate_markets.first_market()
-    N = 20
     base = 'USDT'
     value = 10000
-    state = portfolio.uniform_state(first_market, N, include_usd=False)
+
+    if N:
+        state = portfolio.uniform_state(first_market, N, include_usd=False)
+    elif currencies:
+        state = custom_state(currencies.split(','))
+
     position = portfolio.start_portfolio(first_market, state, base, value)
 
 
@@ -38,52 +53,18 @@ def simulation(delay, min_percentage_change):
         if market_time > market_times[-1]:
             break
 
+
+def custom_state(currencies):
     """
-    base_currency = 'USDT'
-    value = 10000
-
-    if portfolio is None:
-        portfolio = volume.Portfolio()
-        portfolio.start_portfolio(market, state, 'USDT', value)
-        header = True
-    else:
-        header = False
-
-    portfolio.ideal_rebalance(market, state)
-
-    market.to_csv(header=header)
-    portfolio.to_csv()
-
-    print "Market value:", portfolio.total_value(market, ['BTC', 'USDT'])
+    Define a custome state
+    :return: 
     """
-
-    #
-
-    """
-    value = 10
-
-    market = volume.Market()
-    state = volume.define_state(market, 20, include_usd=True)
-    base_currency = 'BTC'
-    value = 10000
-
-    portfolio = volume.Portfolio.from_csv()
-    if portfolio is None:
-        portfolio = volume.Portfolio()
-        portfolio.start_portfolio(market, state, 'USDT', value)
-        header = True
-    else:
-        header = False
-
-    portfolio.ideal_rebalance(market, state)
-
-    market.to_csv(header=header)
-    portfolio.to_csv()
-
-    print "Market value:", portfolio.total_value(market, ['BTC', 'USDT'])
-    """
+    N = len(currencies)
+    state = pd.DataFrame({'Weight': [1.0/N] * N}, index=currencies)
+    return state
 
 
 if __name__ == "__main__":
     gflags.FLAGS(sys.argv)
-    simulation(FLAGS.delay, FLAGS.min_percentage_change)
+
+    simulation(FLAGS.delay, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
