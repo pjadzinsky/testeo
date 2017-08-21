@@ -7,7 +7,7 @@ import pandas as pd
 from markets import recreate_markets
 from portfolio import portfolio
 
-gflags.DEFINE_integer('delay', 1, 'Hours in between markets')
+gflags.DEFINE_integer('hours', 1, 'Hours in between markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "Should be between 0 and 1")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
@@ -24,7 +24,7 @@ def _XOR(flags_dict):
     return True
 
 
-def simulation(delay, min_percentage_change, N, currencies):
+def simulation(hours, min_percentage_change, N, currencies):
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
 
@@ -49,7 +49,7 @@ def simulation(delay, min_percentage_change, N, currencies):
         market = recreate_markets.closest_market(market_time)
         position.rebalance(market, state, ['BTC', 'USDT'], min_percentage_change)
         print market_time, value, min_percentage_change, position.total_value(market, ['BTC', 'USDT'])
-        market_time += delay * 3600
+        market_time += hours * 3600
         if market_time > market_times[-1]:
             break
 
@@ -67,4 +67,4 @@ def custom_state(currencies):
 if __name__ == "__main__":
     gflags.FLAGS(sys.argv)
 
-    simulation(FLAGS.delay, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
+    simulation(FLAGS.hours, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)

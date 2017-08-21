@@ -9,8 +9,12 @@ import tempfile
 import time
 
 import boto3
-import pandas as pd
+import gflags
 import numpy as np
+import pandas as pd
+
+gflags.DEFINE_integer('cache_timeout_sec', 24 * 3600, 'seconds before downloading all the data from s3 again')
+FLAGS = gflags.FLAGS
 
 boto3.setup_default_session(profile_name='user2')
 s3_client = boto3.resource('s3')
@@ -18,11 +22,10 @@ s3_client = boto3.resource('s3')
 bucket = s3_client.Bucket('my-bittrex')
 
 cache_file = '/tmp/markets.csv'
-cache_timeout = 3600 * 24  # in seconds
 
 def get_markets():
     if os.path.isfile(cache_file):
-        if os.stat(cache_file).st_mtime + cache_timeout > time.time():
+        if os.stat(cache_file).st_mtime + FLAGS.cache_timeout_sec > time.time():
             df = pd.read_csv(cache_file, index_col=[0, 1])
             return df
 

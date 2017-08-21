@@ -94,7 +94,7 @@ def _volume_in_eth(market, currency):
 
 
 def _volume_in_usdt(market, currency):
-    """ Compute the total volume of currency in ETH
+    """ Compute the total volume of currency in USDT
     """
     usdt_vol = _direct_volume_in_base(market, 'USDT', currency)
     eth_vol = _direct_volume_in_base(market, 'ETH', currency)
@@ -136,3 +136,20 @@ def variance(markets):
     variances_df.sort_values('Var', ascending=False, inplace=True)
     return variances_df
 
+
+def volume(markets, ascending=False):
+    """
+    Compute average market size
+    :param markets: 
+    :return: 
+    """
+    market_names = markets.index.levels[1]
+    volumes_df = pd.DataFrame([])
+    for name in market_names:
+        market = markets.loc[(slice(None), name), :]
+        mean = market.mean()
+        mean.name = name
+        volumes_df = volumes_df.append(mean)
+
+    volumes_df.sort_values('BaseVolume', ascending=ascending, inplace=True)
+    return volumes_df
