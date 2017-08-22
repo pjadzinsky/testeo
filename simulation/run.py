@@ -65,6 +65,10 @@ def custom_state(currencies):
 
 
 if __name__ == "__main__":
-    gflags.FLAGS(sys.argv)
+    try:
+        argv = FLAGS(sys.argv)
+    except gflags.FlagsError as e:
+        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
+        sys.exit(1)
 
     simulation(FLAGS.hours, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
