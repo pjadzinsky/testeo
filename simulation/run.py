@@ -3,11 +3,12 @@ import sys
 
 import gflags
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from markets import recreate_markets
 from portfolio import portfolio
 
-gflags.DEFINE_integer('hours', 1, 'Hours in between markets')
+gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "Should be between 0 and 1")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
@@ -22,6 +23,18 @@ def _XOR(flags_dict):
     if flags_dict['N'] and flags_dict['currencies']:
         return False
     return True
+
+
+def compare_simulations(hours, min_percentage_change, N, currencies):
+    dfs = []
+    fig, ax = plt.subplots()
+    for hour in hours:
+        df = simulation(hour, min_percentage_change, N, currencies)
+        dfs.append(df)
+        df.plot(x='time', y='value', ax=ax)
+
+    plt.show()
+    print df
 
 
 def simulation(hours, min_percentage_change, N, currencies):
@@ -44,14 +57,20 @@ def simulation(hours, min_percentage_change, N, currencies):
 
     position = portfolio.start_portfolio(first_market, state, base, value)
 
-
+    total_values = []
+    times = []
     while True:
         market = recreate_markets.closest_market(market_time)
         position.rebalance(market, state, ['BTC', 'USDT'], min_percentage_change)
-        print market_time, value, min_percentage_change, position.total_value(market, ['BTC', 'USDT'])
+        times.append(market_time)
+        total_values.append(position.total_value(market, ['BTC', 'USDT']))
+        print market_time, position.total_value(market, ['BTC', 'USDT'])
         market_time += hours * 3600
         if market_time > market_times[-1]:
             break
+
+    df = pd.DataFrame({'time': times, 'value': total_values})
+    return df
 
 
 def custom_state(currencies):
@@ -71,4 +90,4 @@ if __name__ == "__main__":
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    simulation(FLAGS.hours, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
+    compare_simulations(FLAGS.hours, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
