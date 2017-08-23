@@ -48,6 +48,13 @@ def get_markets():
     return df
 
 
+def times():
+    markets = get_markets()
+    times_list = markets.index.levels[0].tolist()
+    times_list.sort()
+    return times_list
+
+
 def market_at_time(time):
     """
     markets is a dataframe as returned by get_markets. Has a multiindex (time, MarketName)
@@ -66,6 +73,12 @@ def first_market():
     markets = get_markets()
     first_time = markets.index.get_level_values(0).min()
     return market_at_time(first_time)
+
+
+def last_market():
+    markets = get_markets()
+    last_time = markets.index.get_level_values(0).max()
+    return market_at_time(last_time)
 
 
 def closest_market(time):

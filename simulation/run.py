@@ -24,10 +24,15 @@ def _XOR(flags_dict):
         return False
     return True
 
+base = 'USDT'
+value = 10000
+to_usdt = ['BTC', 'USDT']
 
 def compare_simulations(hours, min_percentage_change, N, currencies):
-    dfs = []
     fig, ax = plt.subplots()
+    dfs = [baseline(12, N, currencies)]
+    dfs[0].plot(x='time', y='value', ax=ax)
+
     for hour in hours:
         df = simulation(hour, min_percentage_change, N, currencies)
         dfs.append(df)
@@ -37,18 +42,8 @@ def compare_simulations(hours, min_percentage_change, N, currencies):
     print df
 
 
-def simulation(hours, min_percentage_change, N, currencies):
-    # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
-    # to keep rations between different currencies matching those of 'state'
-
-    all_markets = recreate_markets.get_markets()
-    market_times = all_markets.index.levels[0].tolist()
-    market_times.sort()
-    market_time = market_times[0]
-
+def first_position(N, currencies):
     first_market = recreate_markets.first_market()
-    base = 'USDT'
-    value = 10000
 
     if N:
         state = portfolio.uniform_state(first_market, N, include_usd=False)
@@ -57,14 +52,35 @@ def simulation(hours, min_percentage_change, N, currencies):
 
     position = portfolio.start_portfolio(first_market, state, base, value)
 
+    return state, position
+
+
+def baseline(hours, N, currencies):
+    import pudb
+    pudb.set_trace()
+    df = simulation(hours, None, N, currencies, rebalance=False)
+    return df
+
+
+def simulation(hours, min_percentage_change, N, currencies, rebalance=True):
+    # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
+    # to keep rations between different currencies matching those of 'state'
+
+    all_markets = recreate_markets.get_markets()
+    market_times = all_markets.index.levels[0].tolist()
+    market_times.sort()
+    market_time = market_times[0]
+
+    state, position = first_position(N, currencies)
     total_values = []
     times = []
     while True:
         market = recreate_markets.closest_market(market_time)
-        position.rebalance(market, state, ['BTC', 'USDT'], min_percentage_change)
+        if rebalance:
+            position.rebalance(market, state, to_usdt, min_percentage_change)
         times.append(market_time)
-        total_values.append(position.total_value(market, ['BTC', 'USDT']))
-        print market_time, position.total_value(market, ['BTC', 'USDT'])
+        total_values.append(position.total_value(market, to_usdt))
+        print market_time, position.total_value(market, to_usdt)
         market_time += hours * 3600
         if market_time > market_times[-1]:
             break
