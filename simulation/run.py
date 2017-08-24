@@ -56,19 +56,19 @@ def first_position(N, currencies):
 
 
 def baseline(hours, N, currencies):
-    import pudb
-    pudb.set_trace()
-    df = simulation(hours, None, N, currencies, rebalance=False)
+    first_market = recreate_markets.first_market()
+    desired_state, position = first_position(N, currencies)
+    position.rebalance(first_market, desired_state, to_usdt, 0)
+
+    markets = recreate_markets.Market
     return df
 
 
-def simulation(hours, min_percentage_change, N, currencies, rebalance=True):
+def simulation(hours, min_percentage_change, N, currencies):
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
 
-    all_markets = recreate_markets.get_markets()
-    market_times = all_markets.index.levels[0].tolist()
-    market_times.sort()
+    market_times = recreate_markets.times()
     market_time = market_times[0]
 
     state, position = first_position(N, currencies)
@@ -76,8 +76,7 @@ def simulation(hours, min_percentage_change, N, currencies, rebalance=True):
     times = []
     while True:
         market = recreate_markets.closest_market(market_time)
-        if rebalance:
-            position.rebalance(market, state, to_usdt, min_percentage_change)
+        position.rebalance(market, state, to_usdt, min_percentage_change)
         times.append(market_time)
         total_values.append(position.total_value(market, to_usdt))
         print market_time, position.total_value(market, to_usdt)
