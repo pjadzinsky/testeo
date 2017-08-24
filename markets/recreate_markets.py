@@ -201,28 +201,33 @@ class Market(object):
     def _market_name(self,  base, currency):
         return base + "-" + currency
 
-    def usd_volumes(self):
+    def usd_volumes(self, intermediates):
         """ Return a dataframe with volumes for all currencies in USDT """
         currencies = bittrex_utils.currencies_df().index.values
 
         volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
         for currency in currencies:
-            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume_in_base('USDT', currency)
+            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume_in_base('USDT', intermediates, currency)
 
         volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
         return volumes_df
 
     def currency_volume_in_base(self, base, intermediates, currency):
-        """ Compute total volume of currency in base. Computes the volume of currency when maybe going through
-        each intermediate n intermediates.
+        """ Compute total volume of currency in base.
         
-        i.e.
-        base = 'AAA'
-        intermediates = ['BBB', 'CCC']
-        currency = 'DDD'
+        3 cases to consider
+        1. base and currency don't trade directly with each other but through one of the 'intermediates'
+            i.e.
+            base = 'AAA'
+            intermediates = ['BBB', 'CCC']
+            currency = 'DDD'
         
-        computes (BaseVolume of BBB-DDD) * (price AAA-BBB) + (BaseVolume of CCC-DDD) * price (AAA-CCC) + 
-                 (BaseVolume of AAA-DDD)
+            computes (BaseVolume of BBB-DDD) * (price AAA-BBB) + (BaseVolume of CCC-DDD) * price (AAA-CCC) + 
+                     (BaseVolume of AAA-DDD)
+                     
+        2. base and currency trade with each other directly
+        3. base and currency are the same, in which case is just the volume of any traded symbol that includes
+            'base'
         """
 
         volume = 0
@@ -235,6 +240,18 @@ class Market(object):
         name = self._market_name(base, currency)
         if name in self.prices_df.index:
             volume += self.prices_df.loc[name, 'BaseVolume']
+
+        if base == currency:
+            all_market_names = self.prices_df.index.tolist()
+            all_market_names_with_base = [m for m in all_market_names if base in m]
+            for market_name in all_market_names_with_base:
+                if market_name.startswith(base):
+                    volume += self.prices_df.loc[market_name, 'BaseVolume']
+                elif market_name.endswith(base):
+                    volume += self.prices_df.loc[market_name, 'Volume']
+                else:
+                    raise IOError
+
 
         return volume
 
