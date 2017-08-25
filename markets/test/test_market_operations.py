@@ -142,11 +142,11 @@ class TestMarket(unittest.TestCase):
 
     @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
     def test_usd_volumes(self, mocked_currencies):
-        values = [None] * 4
-        names = ['USDT', 'AAA', 'BBB', 'CCC']
-        mocked_currencies.return_value = pd.DataFrame(values, index=names)
+        computed = self.market.usd_volumes(['AAA', 'XXX'])
 
-        computed = self.market.usd_volumes()
+        self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4020)
+        computed = self.market.usd_volumes(['AAA'])
+        self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4000)
 
 
 

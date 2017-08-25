@@ -255,38 +255,14 @@ class Market(object):
             volume += self.currency_chain_volume(chain)
 
         return volume
-        """
-        for intermediate in intermediates:
-            name1 = self._market_name(intermediate, currency)
-            name2 = self._market_name(base, intermediate)
-            if name1 in self.prices_df.index and name2 in self.prices_df.index:
-                volume += self.prices_df.loc[name1, 'BaseVolume'] * self.prices_df.loc[name2, 'Last']
 
-        name = self._market_name(base, currency)
-        if name in self.prices_df.index:
-            volume += self.prices_df.loc[name, 'BaseVolume']
-
-        if base == currency:
-            all_market_names = self.prices_df.index.tolist()
-            all_market_names_with_base = [m for m in all_market_names if base in m]
-            for market_name in all_market_names_with_base:
-                if market_name.startswith(base):
-                    volume += self.prices_df.loc[market_name, 'BaseVolume']
-                elif market_name.endswith(base):
-                    volume += self.prices_df.loc[market_name, 'Volume']
-                else:
-                    raise IOError
-
-
-        return volume
-        """
     def usd_volumes(self, intermediates):
         """ Return a dataframe with volumes for all currencies in USDT """
         currencies = bittrex_utils.currencies_df().index.values
 
         volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
         for currency in currencies:
-            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume('USDT', intermediates, currency)
+            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume('USDT', [intermediates, [currency]])
 
         volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
         return volumes_df
