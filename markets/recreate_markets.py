@@ -25,70 +25,60 @@ s3_client = boto3.resource('s3')
 
 bucket = s3_client.Bucket('my-bittrex')
 
-cache_file = '/tmp/markets.csv'
 
 class Markets(object):
-    def __init__(self, hours, offset):
+    def __init__(self, hours, offset, max_markets=10):
         self.hours = hours
         self.offset = offset
         self.current_time = None
+        times = []
+        markets = []
 
-        # load csv from file
-        if os.path.isfile(cache_file):
-            if os.stat(cache_file).st_mtime + FLAGS.cache_timeout_sec > time.time():
-                df = pd.read_csv(cache_file, index_col=[0, 1])
-
-
-        _, filename = tempfile.mkstemp(suffix='.csv')
         for object in bucket.objects.all():
             if 'short' in object.key:
                 timestamp = int(object.key.split('_')[0])
-                if timestamp in df.index.levels[0]:
-                    continue
 
                 # object points to a row that we don't have in df, add it
-                bucket.download_file(object.key, filename)
-                with open(filename, 'r') as fid:
-                    temp_df = pd.DataFrame(json.loads(fid.readline()))
-                    temp_df.loc[:, 'time'] = timestamp
-                    temp_df.set_index(['time', 'MarketName'], inplace=True)
+                market = Market.from_s3_key(object.key)
 
-                df = df.append(temp_df)
+                times.append(timestamp)
+                markets.append(market)
 
+                if len(times) == max_markets:
+                    break
 
-        df.sort_index(inplace=True)
-        self.markets = df
-        self.times = df.index.levels[0].tolist()
-        df.to_csv(cache_file)
+        sorted_indexes = np.argsort(timestamp)
+        timestamp = [times[i] for i in sorted_indexes]
+        markets = [markets[i] for i in sorted_indexes]
+
+        self.markets = markets
+        self.times = times
 
 
     def market_at_time(self, time):
         """
         markets is a dataframe as returned by get_markets. Has a multiindex (time, MarketName)
         Here we just return the market associated with 'time' dropping one level from the multiindex
-        :param markets: 
         :param time: 
         :return: 
         """
         market = None
-        if time in self.markets.index.levels[0]:
-            market = self.markets.loc[(time, slice(None)), :]
-            market.index = market.index.droplevel()
-        return market
+        try:
+            index = self.times.index(time)
+            return self.markets[index]
+        except ValueError:
+            pass
 
     def first_market(self):
-        first_time = self.markets.index.levels[0].min()
-        return self.market_at_time(first_time)
+        return self.markets[0]
 
     def last_market(self):
-        last_time = self.markets.index.levels[0].max()
-        return self.market_at_time(last_time)
+        return self.markets[-1]
 
     def closest_market(self, time):
         diff = np.array(self.times) - time
         closest_index = np.argmin(diff ** 2)
-        closest_time = self.times[closest_index]
-        return self.market_at_time(closest_time)
+        return self.markets[closest_index]
 
     def __iter__(self):
         return self
@@ -167,14 +157,15 @@ class Market(object):
             with open(filename, 'r') as fid:
                 prices_df = pd.DataFrame(json.loads(fid.readline()))
                 prices_df.set_index('MarketName', inplace=True)
-        return cls(timestamp, prices_df)
+
+            return cls(timestamp, prices_df)
 
     def _market_name(self,  base, currency):
         return base + "-" + currency
 
     def currency_chain_value(self, currencies):
         """
-        Travers currencies (from index 0 to index -1)
+        Travers currencies (from index -1 to index 0)
         
         ie, if A trades with B and B trades with C and you want to know the price of C in A, then
         currencies = [A, B, C]
@@ -203,6 +194,15 @@ class Market(object):
         return cost * self.currency_chain_value(currencies[:-1])
 
     def currency_chain_volume(self, currencies):
+        """
+        Travers currencies (from index -1 to index 0)
+        
+        ie, if A trades with B and B trades with C and you want to know the price of C in A, then
+        currencies = [A, B, C]
+        
+        currencies: list of str, ie ['USDT', 'BTC']
+        """
+
         if len(currencies) <= 1:
             return 0
 

@@ -5,26 +5,12 @@ import time
 import pandas as pd
 import mock
 
-from markets import market_operations
 from markets import recreate_markets
-
 
 def currencies_df():
     values = [None] * 6
     names = ['USDT', 'AAA', 'BBB', 'CCC', 'XXX', 'YYY']
     return pd.DataFrame(values, index=names)
-
-
-class TestRecreateMarkets(unittest.TestCase):
-    def test1(self):
-        hours = 1
-        offset = 0
-        markets = recreate_markets.Markets(hours, offset)
-
-        import pudb
-        pudb.set_trace()
-        first_market = markets.next()
-        self.assertItemsEqual(first_market.shape, (261, 3))
 
 
 class TestMarketOperations(unittest.TestCase):
@@ -39,6 +25,17 @@ class TestMarketOperations(unittest.TestCase):
     def test_currency_chain_value(self):
         computed = market_operations.volume(self.market, ['A', 'USDT'])
         expected = 1 * 1 + 10 * 1 * 10 + 20 * 1 * 1
+
+
+class TestMarkets(unittest.TestCase):
+    def test1(self):
+
+        hours = 1
+        offset = 0
+        markets = recreate_markets.Markets(hours, offset)
+
+        first_market = markets.next()
+        self.assertItemsEqual(first_market.prices_df.shape, (261, 3))
 
 
 class TestMarket(unittest.TestCase):
