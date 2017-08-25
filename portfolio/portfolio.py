@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 
 import bittrex_utils
-from markets import recreate_markets
+from market import market
 
 
 class Portfolio(object):
@@ -31,23 +31,55 @@ class Portfolio(object):
         self.dataframe = dataframe
 
     @classmethod
-    def from_largets_markes(cls, N, base, value):
-        market = recreate_markets.Market.first_market()
+    def from_largest_markes(cls, market, N, base, value):
         state = cls.uniform_state(market, N, include_usd=False)
-        position = cls.start_portfolio(market, state, base, value)
-        return cls(position)
-
-        """
-        
-        :param state: dictionary linking
-        :return: 
-        """
+        p = cls.start_portfolio(market, state, base, value)
+        return p
 
     @classmethod
-    def from_currencies(cls, currencies, base, value):
-        market = recreate_markets.Market.first_market()
+    def from_currencies(cls, market, currencies, base, value):
         state = cls.custom_state(currencies.split(','))
-        return cls.start_portfolio(market, state, base, value)
+        p = cls.start_portfolio(market, state, base, value)
+
+    @staticmethod
+    def start_portfolio(market, state, base, value):
+        """
+        We first start a portfolio that has just 'value' in 'base' and then execute ideal_rebalance on it
+        :param market: 
+        :param state: 
+        :param base: 
+        :param value: 
+        :return: 
+        """
+        intermediate_currencies = ['BTC', 'ETH']
+        dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
+        portfolio = Portfolio(dataframe=dataframe)
+        portfolio.rebalance(market, state, intermediate_currencies, 0)
+
+        return portfolio
+
+    @staticmethod
+    def uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
+        """
+        
+        :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
+            state
+        :param N: number of cryptocurrencies to include
+        :param currencies: dict linking currencies to the values of the 'state'
+        :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
+        :return: Dataframe with the weight of each currency (1/N)
+        """
+        volumes_df = market.usd_volumes(intermediates)
+        volumes_df.drop('USDT', axis=0, inplace=True)
+
+        currencies = volumes_df.head(N).index.tolist()
+        assert 'USDT' not in volumes_df.index
+        if include_usd:
+            currencies[-1] = 'USDT'
+
+        state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
+
+        return state
 
     def total_value(self, market, intermediate_currencies):
         """
@@ -58,7 +90,7 @@ class Portfolio(object):
     def value_per_currency(self, market, intermediate_currencies):
         portfolio = self.dataframe
 
-        return portfolio.apply(lambda x: market_operations.currency_value(market, [x.name] + intermediate_currencies) * x['Balance'],
+        return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Balance'],
                                axis=1)
     def ideal_rebalance(self, market, state, intermediate_currencies):
         """
@@ -73,21 +105,22 @@ class Portfolio(object):
         Buy:            the amount of currency that we have to buy (if > 0) or sell (if < 0) to obtain
                         target_currency
         Buy (USDT):     Amount of USDT needed for the transaction (not taking transactions costs into accoun)
+        intermediate_currencies: ?
         """
-        total_value = self.total_value(market, ['BTC', 'USDT'])
+        total_value = self.total_value(market, ['USDT', 'BTC'])
 
         buy_df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
         buy_df.fillna(0, inplace=True)
 
         buy_df.loc[:, 'target_usdt'] = buy_df['Weight'] * total_value
         buy_df.loc[:, 'target_currency'] = buy_df.apply(
-            lambda x: x.target_usdt / market_operations.currency_value(market, [x.name] + intermediate_currencies),
+            lambda x: x.target_usdt / market.currency_chain_value(intermediate_currencies + [x.name]),
             axis=1
         )
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
         buy_df.loc[:, 'Buy (USDT)'] = buy_df.apply(
-            lambda x: x.Buy * market_operations.currency_value(market, [x.name] + intermediate_currencies),
+            lambda x: x.Buy * market.currency_chain_value(intermediate_currencies + [x.name]),
             axis=1
         )
 
@@ -153,7 +186,7 @@ class Portfolio(object):
 
         self.dataframe.loc['USDT', 'Balance'] -= self.dataframe['Buy (USDT)'].sum()
         self.dataframe.loc['USDT', 'Available'] -= self.dataframe['Buy (USDT)'].sum()
-        self.dataframe.drop(['Buy', 'Buy (USDT)'], inplace=True, axis=1)
+        self.dataframe.drop(['Buy', 'Buy (USDT)', 'change'], inplace=True, axis=1)
 
 
 def apply_transaction_cost(buy):
@@ -171,39 +204,3 @@ def apply_transaction_cost(buy):
 
     return buy
 
-def start_portfolio(market, state, base, value):
-    """
-    We first start a portfolio that has just 'value' in 'base' and then execute ideal_rebalance on it
-    :param market: 
-    :param state: 
-    :param base: 
-    :param value: 
-    :return: 
-    """
-    dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
-    portfolio = Portfolio(dataframe=dataframe)
-
-    return portfolio
-
-
-def uniform_state(market, N, include_usd=True):
-    """
-    
-    :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
-        state
-    :param N: number of cryptocurrencies to include
-    :param currencies: dict linking currencies to the values of the 'state'
-    :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
-    :return: Dataframe with the weight of each currency (1/N)
-    """
-    volumes_df = market_operations.usd_volumes(market)
-    volumes_df.drop('USDT', axis=0, inplace=True)
-
-    currencies = volumes_df.head(N).index.tolist()
-    assert 'USDT' not in volumes_df.index
-    if include_usd:
-        currencies[-1] = 'USDT'
-
-    state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
-
-    return state

@@ -5,10 +5,10 @@ import gflags
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from markets import recreate_markets
+from market import market
 from portfolio import portfolio
 
-gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between markets')
+gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "Should be between 0 and 1")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
@@ -43,7 +43,7 @@ def compare_simulations(hours, min_percentage_change, N, currencies):
 
 
 def first_position(N, currencies):
-    first_market = recreate_markets.first_market()
+    first_market = market.first_market()
 
     if N:
         state = portfolio.uniform_state(first_market, N, include_usd=False)
@@ -56,11 +56,11 @@ def first_position(N, currencies):
 
 
 def baseline(hours, N, currencies):
-    first_market = recreate_markets.first_market()
+    first_market = market.first_market()
     desired_state, position = first_position(N, currencies)
     position.rebalance(first_market, desired_state, to_usdt, 0)
 
-    markets = recreate_markets.Market
+    markets = market.Market
     return df
 
 
@@ -68,14 +68,14 @@ def simulation(hours, min_percentage_change, N, currencies):
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
 
-    market_times = recreate_markets.times()
+    market_times = market.times()
     market_time = market_times[0]
 
     state, position = first_position(N, currencies)
     total_values = []
     times = []
     while True:
-        market = recreate_markets.closest_market(market_time)
+        market = market.closest_market(market_time)
         position.rebalance(market, state, to_usdt, min_percentage_change)
         times.append(market_time)
         total_values.append(position.total_value(market, to_usdt))

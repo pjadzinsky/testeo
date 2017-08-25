@@ -43,12 +43,12 @@ class Markets(object):
 
     def market_at_time(self, time):
         """
-        markets is a dataframe as returned by get_markets. Has a multiindex (time, MarketName)
+        market is a dataframe as returned by get_markets. Has a multiindex (time, MarketName)
         Here we just return the market associated with 'time' dropping one level from the multiindex
         :param time: 
         :return: 
         """
-        # market will be None if not in self.markets dictionary
+        # market will be None if not in self.market dictionary
         market = self.markets.get(time)
         if not market:
             if time in self.times:
@@ -57,6 +57,7 @@ class Markets(object):
         return market
 
     def first_market(self):
+        print self.times[0]
         return self.market_at_time(self.times[0])
 
     def last_market(self):
@@ -99,7 +100,7 @@ class Markets(object):
     def volume(self, ascending=False):
         """
         Compute average market size
-        :param markets: 
+        :param market: 
         :return: 
         """
         market_names = self.markets.index.levels[1]
@@ -115,14 +116,14 @@ class Markets(object):
 
 """
 Originally coded in my_bittrex.volume as a class.
-Now I'm logging markets with log_markets/log_market.py and
-log_market/recreate_markets.py loads a DataFrame with a multiindex
+Now I'm logging market with log_markets/log_market.py and
+log_market/market.py loads a DataFrame with a multiindex
 (timestamp, MarketName)
 
 All 'market' dataframes below are indexed by just MarketName and are equivalent to
 doing
- markets = recreate_markets.get_markets()
- market = recreate_markets(markets, timestamp)
+ market = recreate_markets.get_markets()
+ market = recreate_markets(market, timestamp)
 """
 
 class Market(object):

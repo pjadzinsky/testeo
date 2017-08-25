@@ -5,7 +5,8 @@ import time
 import pandas as pd
 import mock
 
-from markets import recreate_markets
+from market import market
+FIRST_S3_KEY = '1502981286_short'
 
 def currencies_df():
     values = [None] * 6
@@ -18,7 +19,7 @@ class TestMarkets(unittest.TestCase):
 
         seconds = 3600
         offset = 0
-        self.markets = recreate_markets.Markets(seconds, offset, max_markets=10)
+        self.markets = market.Markets(seconds, offset, max_markets=10)
 
     def test_first_market(self):
         time, first_market = self.markets.next()
@@ -43,15 +44,15 @@ class TestMarket(unittest.TestCase):
         volume += [10, 100]
 
         df = fake_short_s3_key(names, last, volume)
-        self.market = recreate_markets.Market(time, df)
+        self.market = market.Market(time, df)
 
     def test_caching(self):
 
-        recreate_markets.Market.from_s3_key('1502981286_short')
+        market.Market.from_s3_key('1502981286_short')
         t0 = time.time()
-        recreate_markets.Market.from_s3_key('1502981286_short')
+        market.Market.from_s3_key('1502981286_short')
         t1 = time.time()
-        recreate_markets.Market.from_s3_key('1502981286_short')
+        market.Market.from_s3_key('1502981286_short')
         t2 = time.time()
         self.assertLess(t1 - t0, 1E-3)
         self.assertLess(t2 - t1, 1E-3)
@@ -138,6 +139,11 @@ class TestMarket(unittest.TestCase):
         self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4020)
         computed = self.market.usd_volumes(['AAA'])
         self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4000)
+
+    def test_usd_volumes2(self):
+        market = market.Market.from_s3_key(FIRST_S3_KEY)
+        print market.usd_volumes(['BTC', 'ETH'])
+
 
 
 
