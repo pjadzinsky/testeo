@@ -18,6 +18,47 @@ class TestPortfolio(unittest.TestCase):
         p = portfolio.Portfolio.from_largest_markes(market, N, base, value)
         print p.dataframe
 
+    def test_from_currencies_1(self):
+        market = self.markets.first_market()
+        currencies = "USDT"
+        base = 'USDT'
+        value = 10000
+        p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        print p.dataframe
+
+    def test_from_currencies_2(self):
+        market = self.markets.first_market()
+        currencies = "BTC"
+        base = 'USDT'
+        value = 10000
+        p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        print p.dataframe
+
+    def test_from_currencies_3(self):
+        market = self.markets.first_market()
+        currencies = "BTC,USDT"
+        base = 'USDT'
+        value = 10000
+        p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        print p.dataframe
+
+    def test_from_currencies_4(self):
+        market = self.markets.first_market()
+        currencies = "BTC,ETH,XRP,LTC,BCC"
+        base = 'USDT'
+        value = 10000
+        p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        print p.total_value(market, ['USDT', 'BTC'])
+        print p.dataframe
+
+    def test_total_value(self):
+        market = self.markets.first_market()
+        currencies = "BTC"
+        base = 'USDT'
+        value = 10000
+        p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        computed = p.total_value(market, ['USDT', 'BTC'])
+        self.assertEqual(computed, value * (1 - portfolio.COMMISION))
 
 if __name__ == "__main__":
     unittest.main()

@@ -20,6 +20,7 @@ import pandas as pd
 import bittrex_utils
 from market import market
 
+COMMISION = 0.25/100
 
 class Portfolio(object):
     """
@@ -32,17 +33,20 @@ class Portfolio(object):
 
     @classmethod
     def from_largest_markes(cls, market, N, base, value):
-        state = cls.uniform_state(market, N, include_usd=False)
-        p = cls.start_portfolio(market, state, base, value)
+        state = cls._uniform_state(market, N, include_usd=False)
+        p = cls._start_portfolio(market, state, base, value)
         return p
 
     @classmethod
     def from_currencies(cls, market, currencies, base, value):
-        state = cls.custom_state(currencies.split(','))
-        p = cls.start_portfolio(market, state, base, value)
+        currencies = currencies.split(',')
+        weights = 1.0 / len(currencies)
+        state = pd.DataFrame({'Weight': weights}, index=currencies)
+        p = cls._start_portfolio(market, state, base, value)
+        return p
 
     @staticmethod
-    def start_portfolio(market, state, base, value):
+    def _start_portfolio(market, state, base, value):
         """
         We first start a portfolio that has just 'value' in 'base' and then execute ideal_rebalance on it
         :param market: 
@@ -59,7 +63,7 @@ class Portfolio(object):
         return portfolio
 
     @staticmethod
-    def uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
+    def _uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
         """
         
         :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
@@ -83,7 +87,11 @@ class Portfolio(object):
 
     def total_value(self, market, intermediate_currencies):
         """
-        Compute the total amount of the portfolio in 'base' currency ('ETH' and 'BTC' for the time being but not USDT)
+        Compute the total amount of the portfolio
+        param: intermediate_currendcies: list of str
+            for each currency in self.dataframe.index 
+            intermdiate_currencies + [currency] has to be a valid currency chain
+            [A, B, C] (c trades with B and B trades with A and A is the base price to return in)
         """
         return self.value_per_currency(market, intermediate_currencies).sum()
 
@@ -92,7 +100,7 @@ class Portfolio(object):
 
         return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Balance'],
                                axis=1)
-    def ideal_rebalance(self, market, state, intermediate_currencies):
+    def ideal_rebalance(self, market, state, intermediate_currencies = ['BTC']):
         """
         Given market, state and intermediate_currencies return the amount to buy (+) or sell (-) for each currency
         to achieve perfect balance.
@@ -114,13 +122,13 @@ class Portfolio(object):
 
         buy_df.loc[:, 'target_usdt'] = buy_df['Weight'] * total_value
         buy_df.loc[:, 'target_currency'] = buy_df.apply(
-            lambda x: x.target_usdt / market.currency_chain_value(intermediate_currencies + [x.name]),
+            lambda x: x.target_usdt / market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]),
             axis=1
         )
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
         buy_df.loc[:, 'Buy (USDT)'] = buy_df.apply(
-            lambda x: x.Buy * market.currency_chain_value(intermediate_currencies + [x.name]),
+            lambda x: x.Buy * market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]),
             axis=1
         )
 
@@ -198,9 +206,9 @@ def apply_transaction_cost(buy):
         raise IOError('buy should be numeric')
 
     if buy > 0:
-        buy -= buy * 0.25/100
+        buy -= buy * COMMISION
     else:
-        buy += buy * 0.25/100
+        buy += buy * COMMISION
 
     return buy
 
