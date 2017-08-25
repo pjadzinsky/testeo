@@ -17,7 +17,6 @@ import pandas as pd
 import bittrex_utils
 import memoize
 
-#gflags.DEFINE_integer('cache_timeout_sec', 3600, 'seconds before downloading all the data from s3 again')
 FLAGS = gflags.FLAGS
 
 boto3.setup_default_session(profile_name='user2')

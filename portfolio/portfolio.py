@@ -18,25 +18,36 @@ import numpy as np
 import pandas as pd
 
 import bittrex_utils
-from markets import market_operations
+from markets import recreate_markets
 
 
 class Portfolio(object):
     """
     """
-    def __init__(self, dataframe=None):
+    def __init__(self, dataframe):
         """
         Read portfolio from API
         """
-        if dataframe is not None:
-            self.dataframe = dataframe
-        else:
-            self.dataframe = bittrex_utils.dataframe()
+        self.dataframe = dataframe
 
-        if self.dataframe.empty:
-            self.dataframe = pd.DataFrame([], columns=['Balance', 'Available', 'Pending', 'CryptoAddress',
-                                                          'Requested', 'Uuid'])
-            self.dataframe.index.name = 'Currency'
+    @classmethod
+    def from_largets_markes(cls, N, base, value):
+        market = recreate_markets.Market.first_market()
+        state = cls.uniform_state(market, N, include_usd=False)
+        position = cls.start_portfolio(market, state, base, value)
+        return cls(position)
+
+        """
+        
+        :param state: dictionary linking
+        :return: 
+        """
+
+    @classmethod
+    def from_currencies(cls, currencies, base, value):
+        market = recreate_markets.Market.first_market()
+        state = cls.custom_state(currencies.split(','))
+        return cls.start_portfolio(market, state, base, value)
 
     def total_value(self, market, intermediate_currencies):
         """
