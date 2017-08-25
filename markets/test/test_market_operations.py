@@ -9,6 +9,12 @@ from markets import market_operations
 from markets import recreate_markets
 
 
+def currencies_df():
+    values = [None] * 6
+    names = ['USDT', 'AAA', 'BBB', 'CCC', 'XXX', 'YYY']
+    return pd.DataFrame(values, index=names)
+
+
 class TestRecreateMarkets(unittest.TestCase):
     def test1(self):
         hours = 1
@@ -98,11 +104,8 @@ class TestMarket(unittest.TestCase):
         self.assertEqual(computed, 300)
 
 
-    @mock.patch('bittrex_utils.currencies_df')
+    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
     def test__direct_volume_in_base(self, mocked_currencies):
-        values = [None] * 4
-        names = ['USDT', 'AAA', 'BBB', 'CCC']
-        mocked_currencies.return_value = pd.DataFrame(values, index=names)
 
         computed = self.market._direct_volume_in_base(base='USDT', currency='AAA')
         self.assertEqual(computed, 200)
@@ -115,32 +118,29 @@ class TestMarket(unittest.TestCase):
         computed = self.market._direct_volume_in_base(base='AAA', currency='CCC')
         self.assertEqual(computed, 30)
 
-    @mock.patch('bittrex_utils.currencies_df')
-    def test_currency_volume_in_base(self, mocked_currencies):
-        values = [None] * 4
-        names = ['USDT', 'AAA', 'BBB', 'CCC']
-        mocked_currencies.return_value = pd.DataFrame(values, index=names)
+    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
+    def test_currency_volume(self, mocked_currencies):
 
-        computed = self.market.currency_volume_in_base('USDT', [], 'USDT')
+        computed = self.market.currency_volume('USDT', [[]])
         self.assertEqual(computed, 201)
-        computed = self.market.currency_volume_in_base('USDT', [], 'AAA')
+        computed = self.market.currency_volume('USDT', [['AAA']])
         self.assertEqual(computed, 200)
-        computed = self.market.currency_volume_in_base('USDT', [], 'XXX')
+        computed = self.market.currency_volume('USDT', [['XXX']])
         self.assertEqual(computed, 1)
-        computed = self.market.currency_volume_in_base('USDT', ['AAA'], 'USDT')
+        computed = self.market.currency_volume('USDT', [['AAA'], ['USDT']])
         self.assertEqual(computed, 200)
-        computed = self.market.currency_volume_in_base('USDT', ['XXX'], 'USDT')
+        computed = self.market.currency_volume('USDT', [['XXX'], ['USDT']])
         self.assertEqual(computed, 1)
-        computed = self.market.currency_volume_in_base('USDT', ['BBB'], 'AAA')
-        self.assertEqual(computed, 200)
-        computed = self.market.currency_volume_in_base('USDT', ['AAA'], 'BBB')
+        computed = self.market.currency_volume('USDT', [['BBB'], ['AAA']])
+        self.assertEqual(computed, 0)
+        computed = self.market.currency_volume('USDT', [['AAA'], ['BBB']])
         self.assertEqual(computed, 4000)
-        computed = self.market.currency_volume_in_base('USDT', ['XXX'], 'BBB')
+        computed = self.market.currency_volume('USDT', [['XXX'], ['BBB']])
         self.assertEqual(computed, 20)
-        computed = self.market.currency_volume_in_base('USDT', ['AAA', 'XXX'], 'BBB')
+        computed = self.market.currency_volume('USDT', [['AAA', 'XXX'], ['BBB']])
         self.assertEqual(computed, 4020)
 
-    @mock.patch('bittrex_utils.currencies_df')
+    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
     def test_usd_volumes(self, mocked_currencies):
         values = [None] * 4
         names = ['USDT', 'AAA', 'BBB', 'CCC']
@@ -197,6 +197,7 @@ def fake_short_s3_key(names, last, volume):
     df.loc[:, 'BaseVolume'] = df.apply(lambda x: x.Last * x.Volume, axis=1)
 
     return df
+
 
 if __name__ == "__main__":
     unittest.main()

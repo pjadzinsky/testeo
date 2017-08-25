@@ -223,41 +223,38 @@ class Market(object):
 
         return self.currency_chain_value(currencies[:-1]) * volume
 
-    def usd_volumes(self, intermediates):
-        """ Return a dataframe with volumes for all currencies in USDT """
-        currencies = bittrex_utils.currencies_df().index.values
-
-        volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
-        for currency in currencies:
-            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume_in_base('USDT', intermediates, currency)
-
-        volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
-        return volumes_df
-
-    def currency_volume_in_base(self, base, list_of_intermediates):
+    def currency_volume(self, base, list_of_intermediates):
         """ Compute total volume of currency in base.
         
         list_of_intermediates is a list of lists
         a few examples
-        1. currency_volume_in_base('AAA', [['BBB'], ['CCC', 'DDD']])
+        1. currency_volume('AAA', [['BBB'], ['CCC', 'DDD']])
          would compute the volume in AAA of both 'CCC' and 'DDD' (going through 'BBB')
          
-        2. currency_volume_in_base('AAA', [['BBB', 'CCC'], ['DDD']])
+        2. currency_volume('AAA', [['BBB', 'CCC'], ['DDD']])
          would compute the volume in AAA of 'DDD' (going through both 'BBB' and 'CCC')
          
-        3. currency_volume_in_base('AAA', [['BBB']]
+        3. currency_volume('AAA', [['BBB']]
          would compute the volume in AAA of 'BBB'
         
-        4. currency_volume_in_base('AAA', [['BBB', 'CCC'], ['DDD', 'EEE']])
+        4. currency_volume('AAA', [['BBB', 'CCC'], ['DDD', 'EEE']])
          would compute the volume in AAA of both 'DDD' and 'EEE' (going through both 'BBB' and 'CCC')
+         
+        5. currency_volume('AAA', [[]])
+            special case, computes the volume (in 'AAA') of anything that traded directly with 'AAA'
          
         """
         volume = 0
 
-        chains = product(list_of_intermediates)
+        if len(list_of_intermediates[0]) == 0:
+            list_of_intermediates = [bittrex_utils.currencies_df().index.tolist()]
+
+        chains = product(*list_of_intermediates)
         for chain in chains:
             chain = (base,) + chain
-            print chain
+            volume += self.currency_chain_volume(chain)
+
+        return volume
         """
         for intermediate in intermediates:
             name1 = self._market_name(intermediate, currency)
@@ -283,30 +280,14 @@ class Market(object):
 
         return volume
         """
+    def usd_volumes(self, intermediates):
+        """ Return a dataframe with volumes for all currencies in USDT """
+        currencies = bittrex_utils.currencies_df().index.values
 
-    def chain_volume(self, chain):
-        """ Return the volume of chain[-1] in units of chain[0]
-        Chain is an iterable of cryptocurrencies
-        """
-        assert len(chain) >= 2
+        volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
+        for currency in currencies:
+            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume('USDT', intermediates, currency)
 
-        market_name = self._market_name(chain[-2], chain[-1])
-        base_volume = self.prices_df.loc[market_name, 'BaseVolume']
-        return self.chain_price(chain[:-1]) * base_volume
-
-    def _direct_volume_in_base(self, base, currency):
-        """ Return the volume from market of currency in base. If potential_market_name and/or
-        reversed_market_name don't show up in 'market', 0 is returned
-        In other words, return the volume of currency in base only if currency and base trade with each other directly,
-        ie: base-currency or currency-base is a valid market_name"""
-        potential_market_name = self._market_name(base, currency)
-        reversed_market_name = self._market_name(currency, base)
-        if potential_market_name in self.prices_df.index:
-            volume = self.prices_df.loc[potential_market_name, 'BaseVolume']
-        elif reversed_market_name in self.prices_df.index:
-            volume = self.prices_df.loc[reversed_market_name, 'Volume']
-        else:
-            volume = 0
-
-        return volume
+        volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
+        return volumes_df
 
