@@ -27,33 +27,20 @@ bucket = s3_client.Bucket('my-bittrex')
 
 
 class Markets(object):
-    def __init__(self, hours, offset, max_markets=10):
-        self.hours = hours
+    def __init__(self, seconds, offset, max_markets=10):
+        self.seconds = seconds
         self.offset = offset
         self.current_time = None
+        self.markets = {}
         times = []
-        markets = []
 
         for object in bucket.objects.all():
             if 'short' in object.key:
                 timestamp = int(object.key.split('_')[0])
-
-                # object points to a row that we don't have in df, add it
-                market = Market.from_s3_key(object.key)
-
                 times.append(timestamp)
-                markets.append(market)
 
-                if len(times) == max_markets:
-                    break
-
-        sorted_indexes = np.argsort(timestamp)
-        timestamp = [times[i] for i in sorted_indexes]
-        markets = [markets[i] for i in sorted_indexes]
-
-        self.markets = markets
+        times.sort()
         self.times = times
-
 
     def market_at_time(self, time):
         """
@@ -62,23 +49,24 @@ class Markets(object):
         :param time: 
         :return: 
         """
-        market = None
-        try:
-            index = self.times.index(time)
-            return self.markets[index]
-        except ValueError:
-            pass
+        # market will be None if not in self.markets dictionary
+        market = self.markets.get(time)
+        if not market:
+            if time in self.times:
+                market = Market.from_s3_key(short_s3_key_from_timestamp(time))
+
+        return market
 
     def first_market(self):
-        return self.markets[0]
+        return self.market_at_time(self.times[0])
 
     def last_market(self):
-        return self.markets[-1]
+        return self.market_at_time(self.times[-1])
 
     def closest_market(self, time):
         diff = np.array(self.times) - time
         closest_index = np.argmin(diff ** 2)
-        return self.markets[closest_index]
+        return self.market_at_time(self.times[closest_index])
 
     def __iter__(self):
         return self
@@ -87,12 +75,12 @@ class Markets(object):
         if not self.current_time:
             self.current_time = self.times[0] + self.offset
         else:
-            self.current_time += self.hours
+            self.current_time += self.seconds
 
         if self.current_time > self.times[-1]:
             raise StopIteration
         else:
-            return self.closest_market(self.current_time)
+            return self.current_time, self.closest_market(self.current_time)
 
     def variance(self):
         """
@@ -108,7 +96,6 @@ class Markets(object):
 
         variances_df.sort_values('Var', ascending=False, inplace=True)
         return variances_df
-
 
     def volume(self, ascending=False):
         """
@@ -267,3 +254,5 @@ class Market(object):
         volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
         return volumes_df
 
+def short_s3_key_from_timestamp(time):
+    return "{0}_short".format(time)

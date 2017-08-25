@@ -28,14 +28,22 @@ class TestMarketOperations(unittest.TestCase):
 
 
 class TestMarkets(unittest.TestCase):
-    def test1(self):
+    def setUp(self):
 
-        hours = 1
+        seconds = 3600
         offset = 0
-        markets = recreate_markets.Markets(hours, offset)
+        self.markets = recreate_markets.Markets(seconds, offset, max_markets=10)
 
-        first_market = markets.next()
+    def test_first_market(self):
+        time, first_market = self.markets.next()
         self.assertItemsEqual(first_market.prices_df.shape, (261, 3))
+
+    def test_next(self):
+        time1, first_market = self.markets.next()
+        time2, second_market = self.markets.next()
+        print time2, time1
+        #self.assertEqual(time2 - time1, 3600)
+
 
 
 class TestMarket(unittest.TestCase):
