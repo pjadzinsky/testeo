@@ -3,6 +3,7 @@
 Download keys from s3 and generate a dataframe with all
 the information in them
 """
+from itertools import product
 import os
 import json
 import tempfile
@@ -168,22 +169,25 @@ class Market(object):
                 prices_df.set_index('MarketName', inplace=True)
         return cls(timestamp, prices_df)
 
-    def currency_value(self, currencies):
+    def _market_name(self,  base, currency):
+        return base + "-" + currency
+
+    def currency_chain_value(self, currencies):
         """
         Travers currencies (from index 0 to index -1)
         
-        ie, if A trades with B and B trades with C and you want to know the price of A in C, then
+        ie, if A trades with B and B trades with C and you want to know the price of C in A, then
         currencies = [A, B, C]
         
-        currencies: list of str, ie ['BTC', 'USDT']
+        currencies: list of str, ie ['USDT', 'BTC']
         """
         if len(currencies) == 0:
             return 0
         elif len(currencies) == 1:
             return 1
 
-        currency = currencies[0]
-        base = currencies[1]
+        currency = currencies[-1]
+        base = currencies[-2]
 
         potential_market_name = self._market_name(base, currency)
         reversed_market_name = self._market_name(currency, base)
@@ -196,10 +200,28 @@ class Market(object):
         else:
             cost = 0
 
-        return cost * self.currency_value(currencies[1:])
+        return cost * self.currency_chain_value(currencies[:-1])
 
-    def _market_name(self,  base, currency):
-        return base + "-" + currency
+    def currency_chain_volume(self, currencies):
+        if len(currencies) <= 1:
+            return 0
+
+        currency = currencies[-1]
+        base = currencies[-2]
+
+        potential_market_name = self._market_name(base, currency)
+        reversed_market_name = self._market_name(currency, base)
+
+        if currency == base:
+            return 0
+        elif potential_market_name in self.prices_df.index:
+            volume = self.prices_df.loc[potential_market_name, 'BaseVolume']
+        elif reversed_market_name in self.prices_df.index:
+            volume = self.prices_df.loc[reversed_market_name, 'Volume']
+        else:
+            volume = 0
+
+        return self.currency_chain_value(currencies[:-1]) * volume
 
     def usd_volumes(self, intermediates):
         """ Return a dataframe with volumes for all currencies in USDT """
@@ -212,25 +234,31 @@ class Market(object):
         volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
         return volumes_df
 
-    def currency_volume_in_base(self, base, intermediates, currency):
+    def currency_volume_in_base(self, base, list_of_intermediates):
         """ Compute total volume of currency in base.
         
-        3 cases to consider
-        1. base and currency don't trade directly with each other but through one of the 'intermediates'
-            i.e.
-            base = 'AAA'
-            intermediates = ['BBB', 'CCC']
-            currency = 'DDD'
+        list_of_intermediates is a list of lists
+        a few examples
+        1. currency_volume_in_base('AAA', [['BBB'], ['CCC', 'DDD']])
+         would compute the volume in AAA of both 'CCC' and 'DDD' (going through 'BBB')
+         
+        2. currency_volume_in_base('AAA', [['BBB', 'CCC'], ['DDD']])
+         would compute the volume in AAA of 'DDD' (going through both 'BBB' and 'CCC')
+         
+        3. currency_volume_in_base('AAA', [['BBB']]
+         would compute the volume in AAA of 'BBB'
         
-            computes (BaseVolume of BBB-DDD) * (price AAA-BBB) + (BaseVolume of CCC-DDD) * price (AAA-CCC) + 
-                     (BaseVolume of AAA-DDD)
-                     
-        2. base and currency trade with each other directly
-        3. base and currency are the same, in which case is just the volume of any traded symbol that includes
-            'base'
+        4. currency_volume_in_base('AAA', [['BBB', 'CCC'], ['DDD', 'EEE']])
+         would compute the volume in AAA of both 'DDD' and 'EEE' (going through both 'BBB' and 'CCC')
+         
         """
-
         volume = 0
+
+        chains = product(list_of_intermediates)
+        for chain in chains:
+            chain = (base,) + chain
+            print chain
+        """
         for intermediate in intermediates:
             name1 = self._market_name(intermediate, currency)
             name2 = self._market_name(base, intermediate)
@@ -254,7 +282,17 @@ class Market(object):
 
 
         return volume
+        """
 
+    def chain_volume(self, chain):
+        """ Return the volume of chain[-1] in units of chain[0]
+        Chain is an iterable of cryptocurrencies
+        """
+        assert len(chain) >= 2
+
+        market_name = self._market_name(chain[-2], chain[-1])
+        base_volume = self.prices_df.loc[market_name, 'BaseVolume']
+        return self.chain_price(chain[:-1]) * base_volume
 
     def _direct_volume_in_base(self, base, currency):
         """ Return the volume from market of currency in base. If potential_market_name and/or

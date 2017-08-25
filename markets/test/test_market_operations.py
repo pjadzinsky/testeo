@@ -30,7 +30,7 @@ class TestMarketOperations(unittest.TestCase):
         self.market = pd.DataFrame({'last': last, 'BaseVolume': BaseVolume, 'Volume': Volume},
                                    index=['USDT-A', 'A-B', 'A-C'])
 
-    def test_currency_value(self):
+    def test_currency_chain_value(self):
         computed = market_operations.volume(self.market, ['A', 'USDT'])
         expected = 1 * 1 + 10 * 1 * 10 + 20 * 1 * 1
 
@@ -59,18 +59,44 @@ class TestMarket(unittest.TestCase):
         self.assertLess(t1 - t0, 1E-3)
         self.assertLess(t2 - t1, 1E-3)
 
-    def test_currency_value(self):
-        self.assertEqual(self.market.currency_value(['USDT']), 1)
-        self.assertEqual(self.market.currency_value(['AAA']), 1)
-        self.assertEqual(self.market.currency_value(['AAA', 'USDT']), 2)
-        self.assertEqual(self.market.currency_value(['BBB', 'AAA']), 10)
-        self.assertEqual(self.market.currency_value(['BBB', 'AAA', 'USDT']), 20)
-        self.assertEqual(self.market.currency_value(['CCC', 'AAA']), 0.1)
-        self.assertEqual(self.market.currency_value(['CCC', 'AAA', 'USDT']), 0.2)
+    def test_currency_chain_value(self):
+        self.assertEqual(self.market.currency_chain_value(['USDT']), 1)
+        self.assertEqual(self.market.currency_chain_value(['AAA']), 1)
+        self.assertEqual(self.market.currency_chain_value(['USDT', 'AAA']), 2)
+        self.assertEqual(self.market.currency_chain_value(['AAA', 'BBB']), 10)
+        self.assertEqual(self.market.currency_chain_value(['USDT', 'AAA', 'BBB']), 20)
+        self.assertEqual(self.market.currency_chain_value(['AAA', 'CCC']), 0.1)
+        self.assertEqual(self.market.currency_chain_value(['USDT', 'AAA', 'CCC']), 0.2)
+        self.assertEqual(self.market.currency_chain_value(['CCC', 'AAA', 'CCC']), 1)
+        self.assertEqual(self.market.currency_chain_value(['CCC', 'AAA', 'USDT', 'XXX', 'BBB', 'XXX', 'USDT', 'AAA', 'CCC']), 1)
 
     def test__market_name(self):
         computed = self.market._market_name('a', 'b')
         self.assertEqual(computed, 'a-b')
+
+    def test_currency_chain_volume(self):
+        self.assertEqual(self.market.currency_chain_volume([]), 0)
+        self.assertEqual(self.market.currency_chain_volume(['ABC']), 0)
+        self.assertEqual(self.market.currency_chain_volume(['USDT', 'ABC']), 0)
+        computed = self.market.currency_chain_volume([])
+        self.assertEqual(computed, 0)
+        computed = self.market.currency_chain_volume(['AAA'])
+        self.assertEqual(computed, 0)
+        computed = self.market.currency_chain_volume(['USDT', 'ABC'])
+        self.assertEqual(computed, 0)
+        computed = self.market.currency_chain_volume(['USDT', 'AAA'])
+        self.assertEqual(computed, 200)
+        computed = self.market.currency_chain_volume(['USDT', 'AAA', 'BBB'])
+        self.assertEqual(computed, 4000)
+        computed = self.market.currency_chain_volume(['BBB', 'AAA', 'USDT'])
+        self.assertEqual(computed, 10)
+        computed = self.market.currency_chain_volume(['BBB', 'AAA', 'BBB'])
+        self.assertEqual(computed, 200)
+        computed = self.market.currency_chain_volume(['CCC', 'AAA', 'CCC'])
+        self.assertEqual(computed, 300)
+        computed = self.market.currency_chain_volume(['CCC', 'AAA', 'USDT', 'XXX', 'BBB', 'XXX', 'USDT', 'AAA', 'CCC'])
+        self.assertEqual(computed, 300)
+
 
     @mock.patch('bittrex_utils.currencies_df')
     def test__direct_volume_in_base(self, mocked_currencies):
@@ -97,6 +123,14 @@ class TestMarket(unittest.TestCase):
 
         computed = self.market.currency_volume_in_base('USDT', [], 'USDT')
         self.assertEqual(computed, 201)
+        computed = self.market.currency_volume_in_base('USDT', [], 'AAA')
+        self.assertEqual(computed, 200)
+        computed = self.market.currency_volume_in_base('USDT', [], 'XXX')
+        self.assertEqual(computed, 1)
+        computed = self.market.currency_volume_in_base('USDT', ['AAA'], 'USDT')
+        self.assertEqual(computed, 200)
+        computed = self.market.currency_volume_in_base('USDT', ['XXX'], 'USDT')
+        self.assertEqual(computed, 1)
         computed = self.market.currency_volume_in_base('USDT', ['BBB'], 'AAA')
         self.assertEqual(computed, 200)
         computed = self.market.currency_volume_in_base('USDT', ['AAA'], 'BBB')
