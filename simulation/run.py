@@ -64,38 +64,23 @@ def baseline(hours, N, currencies):
     return df
 
 
-def simulation(hours, min_percentage_change, N, currencies):
+def simulation(markets, min_percentage_change, N, currencies):
     # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
     # to keep rations between different currencies matching those of 'state'
+    if currencies:
+        state, p = portfolio.Portfolio.from_currencies(markets.first_market(), currencies, base, value)
+    elif N:
+        state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), N, base, value)
 
-    market_times = market.times()
-    market_time = market_times[0]
-
-    state, position = first_position(N, currencies)
     total_values = []
     times = []
-    while True:
-        market = market.closest_market(market_time)
-        position.rebalance(market, state, to_usdt, min_percentage_change)
-        times.append(market_time)
-        total_values.append(position.total_value(market, to_usdt))
-        print market_time, position.total_value(market, to_usdt)
-        market_time += hours * 3600
-        if market_time > market_times[-1]:
-            break
+    for time, current_market in markets:
+        p.rebalance(current_market, state, ['BTC'], min_percentage_change)
+        times.append(time)
+        total_values.append(p.total_value(current_market, ['BTC']))
 
     df = pd.DataFrame({'time': times, 'value': total_values})
     return df
-
-
-def custom_state(currencies):
-    """
-    Define a custome state
-    :return: 
-    """
-    N = len(currencies)
-    state = pd.DataFrame({'Weight': [1.0/N] * N}, index=currencies)
-    return state
 
 
 if __name__ == "__main__":
@@ -105,4 +90,5 @@ if __name__ == "__main__":
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    compare_simulations(FLAGS.hours, FLAGS.min_percentage_change, FLAGS.N, FLAGS.currencies)
+    markets = market.Markets(3600 * 24, 0)
+    print simulation(markets, 0, FLAGS.N, FLAGS.currencies)
