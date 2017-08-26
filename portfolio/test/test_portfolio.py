@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import unittest
 
-import pandas as pd
+import numpy as np
 
 from portfolio import portfolio
 from market import market
@@ -82,6 +82,32 @@ class TestPortfolio(unittest.TestCase):
         for v in computed.values:
             self.assertAlmostEqual(v, value * (1.0 - portfolio.COMMISION) / 3)
         print computed
+
+    def test_ideal_rebalance(self):
+        market = self.markets.first_market()
+        currencies = "BTC,ETH,XRP"
+        base = 'USDT'
+        value = 10000
+        state, p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+
+        balance_XRP_0 = p.dataframe.loc['XRP', 'Balance']
+        balance_ETH_0 = p.dataframe.loc['ETH', 'Balance']
+
+        # now suppose ETH multiplies in value by 2 and XRP multiplies by 0 (total money is constant)
+        # after another round of ideal rebalancing Balance of ETH has to multiply by 0.5 and
+        # XRP goes to infinity. Changing the value of BTC is complex because it affects the price of
+        # ETH and XRP in USDT under current code
+        # THe test in XRP doesn't work as is designed because 0 * inf is NaN
+        market.prices_df.loc['BTC-ETH', 'Last'] *= 2
+        market.prices_df.loc['BTC-XRP', 'Last'] *= 0
+
+        p.rebalance(market, state, ['BTC'], 0)
+
+        balance_XRP_1 = p.dataframe.loc['XRP', 'Balance']
+        balance_ETH_1 = p.dataframe.loc['ETH', 'Balance']
+
+        self.assertAlmostEqual(balance_ETH_1, balance_ETH_0 * 0.5 * (1 - portfolio.COMMISION))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -35,7 +35,7 @@ class Portfolio(object):
     def from_largest_markes(cls, market, N, base, value):
         state = cls._uniform_state(market, N, include_usd=False)
         p = cls._start_portfolio(market, state, base, value)
-        return p
+        return state, p
 
     @classmethod
     def from_currencies(cls, market, currencies, base, value):
@@ -43,7 +43,7 @@ class Portfolio(object):
         weights = 1.0 / len(currencies)
         state = pd.DataFrame({'Weight': weights}, index=currencies)
         p = cls._start_portfolio(market, state, base, value)
-        return p
+        return state, p
 
     @staticmethod
     def _start_portfolio(market, state, base, value):
@@ -55,7 +55,7 @@ class Portfolio(object):
         :param value: 
         :return: 
         """
-        intermediate_currencies = ['BTC', 'ETH']
+        intermediate_currencies = ['BTC']
         dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
         portfolio = Portfolio(dataframe=dataframe)
         portfolio.rebalance(market, state, intermediate_currencies, 0)
@@ -121,10 +121,9 @@ class Portfolio(object):
         buy_df.fillna(0, inplace=True)
 
         buy_df.loc[:, 'target_usdt'] = buy_df['Weight'] * total_value
-        buy_df.loc[:, 'target_currency'] = buy_df.apply(
-            lambda x: x.target_usdt / market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]),
-            axis=1
-        )
+        buy_df.loc[:, 'currency_in_usdt'] = buy_df.apply(
+            lambda x: market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]), axis=1)
+        buy_df.loc[:, 'target_currency'] = buy_df['target_usdt'] / buy_df['currency_in_usdt']
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
         buy_df.loc[:, 'Buy (USDT)'] = buy_df.apply(
