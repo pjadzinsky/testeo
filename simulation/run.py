@@ -1,6 +1,8 @@
 #!/usr/bin/python
+import os
 import sys
 from collections import namedtuple
+from PIL import Image
 
 import gflags
 import pandas as pd
@@ -12,7 +14,7 @@ from portfolio import portfolio
 gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between market')
 gflags.DEFINE_multi_int('offsets', [0, 6, 12, 18], 'Hours to shift markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
-                    "Should be between 0 and 1")
+                    "1 is 100%")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
 gflags.DEFINE_string('currencies', None, "comma separated list of currencies")
 FLAGS = gflags.FLAGS
@@ -29,58 +31,11 @@ def _XOR(flags_dict):
         return False
     return True
 
-base = 'USDT'
-value = 10000
-to_usdt = ['BTC', 'USDT']
-
-def compare_simulations(hours, min_percentage_change, N, currencies):
-    fig, ax = plt.subplots()
-    dfs = [baseline(12, N, currencies)]
-    dfs[0].plot(x='time', y='value', ax=ax)
-
-    for hour in hours:
-        df = simulation(hour, min_percentage_change, N, currencies)
-        dfs.append(df)
-        df.plot(x='time', y='value', ax=ax)
-
-    plt.show()
-
-
-def first_position(N, currencies):
-    first_market = market.first_market()
-
-    if N:
-        state = portfolio.uniform_state(first_market, N, include_usd=False)
-    elif currencies:
-        state = custom_state(currencies.split(','))
-
-    position = portfolio.start_portfolio(first_market, state, base, value)
-
-    return state, position
-
-
-def baseline(hours, N, currencies):
-    first_market = market.first_market()
-    desired_state, position = first_position(N, currencies)
-    position.rebalance(first_market, desired_state, to_usdt, 0)
-
-    markets = market.Market
-    return df
-
-
-def simulation(markets, min_percentage_change, N, currencies):
-    # 'state' is the desired composition of our portfolio. When we 'rebalance' positions we do it
-    # to keep rations between different currencies matching those of 'state'
-
-    total_values = []
-    times = []
-    for time, current_market in markets:
-        p.rebalance(current_market, state, ['BTC'], min_percentage_change)
-        times.append(time)
-        total_values.append(p.total_value(current_market, ['BTC']))
-
-    df = pd.DataFrame({'time': times, 'value': total_values})
-    return df
+BASE = 'USDT'
+VALUE = 10000
+ONEDAY = 86400.0
+t0 = None
+OUTPUTDIR = os.path.expanduser('~/Testeo/results/')
 
 
 def simulate(hour, offset, markets, state, p, rebalance):
@@ -94,42 +49,76 @@ def simulate(hour, offset, markets, state, p, rebalance):
         values.append(p.total_value(current_market, ['USDT', 'BTC']))
 
     data = pd.DataFrame({'time': times, 'value': values})
+    data['time'] = (data['time'] - t0) / ONEDAY
     return Result(hour, offset, rebalance, data)
 
+
+def simulation_name(suffix=None):
+    """
+    Return a string with all parameters used in the simulation
+    
+    :return: 
+    """
+    name = "names_" + FLAGS.currencies.replace(',', '_') +\
+           "_hours_" + "_".join([str(h) for h in FLAGS.hours]) +\
+           "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) +\
+           "_%change_" + str(int(FLAGS.min_percentage_change * 100))
+
+    if suffix:
+        name += suffix
+
+    return name
+
+
 if __name__ == "__main__":
+    global t0
     try:
         argv = FLAGS(sys.argv)
     except gflags.FlagsError as e:
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    results = []
+    if not os.path.isdir(OUTPUTDIR):
+        os.makedirs(OUTPUTDIR)
+    png = os.path.join(OUTPUTDIR, simulation_name(suffix='.png'))
+    if os.path.isfile(png):
+        img = Image.open(png)
+        plt.imshow(img)
+        plt.show()
 
-    # do only one simulation without rebalancing as a baseline
-    hour = min(FLAGS.hours)
-    offset = 0
-    markets = market.Markets(3600 * hour, 0)
-    if FLAGS.currencies:
-        state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, base, value)
-    results.append(simulate(hour, offset, markets, state, p, False))
+    else:
+        results = []
 
-    for offset in FLAGS.offsets:
-        for hour in FLAGS.hours:
-            markets = market.Markets(3600 * hour, 3600 * offset)
+        # do only one simulation without rebalancing as a baseline
+        hour = min(FLAGS.hours)
+        offset = 0
+        markets = market.Markets(3600 * hour, 0)
+        t0 = markets.times[0]
 
-            if FLAGS.currencies:
-                state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, base, value)
-            elif FLAGS.N:
-                state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), FLAGS.N, base, value)
+        if FLAGS.currencies:
+            state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, BASE, VALUE)
+        elif FLAGS.N:
+            state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), FLAGS.N, BASE, VALUE)
+        results.append(simulate(hour, offset, markets, state, p, False))
 
+        for offset in FLAGS.offsets:
+            for hour in FLAGS.hours:
+                markets = market.Markets(3600 * hour, 3600 * offset)
 
-            rebalance = True
-            results.append(simulate(hour, offset, markets, state, p, rebalance))
+                if FLAGS.currencies:
+                    state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, BASE, VALUE)
+                elif FLAGS.N:
+                    state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), FLAGS.N, BASE, VALUE)
 
-    fig, ax = plt.subplots()
-    for r in results:
-        ax.plot(r.data['time'], r.data['value'], label="{}_{}_{}".format(r.hour, r.offset, r.rebalance))
+                rebalance = True
+                results.append(simulate(hour, offset, markets, state, p, rebalance))
 
-    ax.legend(loc=2)
-    plt.show()
+        fig, ax = plt.subplots()
+        for r in results:
+            ax.plot(r.data['time'], r.data['value'], label="{}_{}_{}".format(r.hour, r.offset, r.rebalance))
+
+        ax.legend(loc=2)
+        fig.savefig(png)
+        fig.suptitle(png)
+        plt.show()
 
