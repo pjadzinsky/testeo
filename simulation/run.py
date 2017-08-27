@@ -52,6 +52,13 @@ def simulate(hour, offset, markets, state, p, rebalance):
     data['time'] = (data['time'] - t0) / ONEDAY
     return Result(hour, offset, rebalance, data)
 
+def last_baseline_difference(results):
+    for r in results:
+        if r.rebalance == False:
+            last_baseline = r.data['value'].values[-1]
+
+    for r in results:
+        print r.hour, r.offset, (r.data['value'].values[-1] - last_baseline) / last_baseline
 
 def simulation_name(suffix=None):
     """
@@ -59,10 +66,18 @@ def simulation_name(suffix=None):
     
     :return: 
     """
-    name = "names_" + FLAGS.currencies.replace(',', '_') +\
-           "_hours_" + "_".join([str(h) for h in FLAGS.hours]) +\
-           "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) +\
-           "_%change_" + str(int(FLAGS.min_percentage_change * 100))
+    if FLAGS.currencies:
+        currencies_list = FLAGS.currencies.split(',')
+        currencies_list.sort()
+        name = "names_" + '_'.join(currencies_list) +\
+               "_hours_" + "_".join([str(h) for h in FLAGS.hours]) +\
+               "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) +\
+               "_%change_" + str(int(FLAGS.min_percentage_change * 100))
+    elif FLAGS.N:
+        name = "N_" + str(FLAGS.N) + \
+               "_hours_" + "_".join([str(h) for h in FLAGS.hours]) + \
+               "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) + \
+               "_%change_" + str(int(FLAGS.min_percentage_change * 100))
 
     if suffix:
         name += suffix
@@ -117,6 +132,8 @@ if __name__ == "__main__":
         for r in results:
             ax.plot(r.data['time'], r.data['value'], label="{}_{}_{}".format(r.hour, r.offset, r.rebalance))
 
+
+        last_baseline_difference(results)
         ax.legend(loc=2)
         fig.savefig(png)
         fig.suptitle(png)
