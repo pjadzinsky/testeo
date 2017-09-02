@@ -82,49 +82,29 @@ class Markets(object):
         else:
             return self.current_time, self.closest_market(self.current_time)
 
-    def variance(self):
+    def stats(self):
         """
         Compute some estimate of variance
         :param market: 
         :return: 
         """
-        market_names = self.markets.index.levels[1]
-        variances_df = pd.DataFrame([])
-        for name in market_names:
-            market = self.markets.loc[(slice(None), name), :]
-            variances_df.loc[name, 'Var'] = market['Last'].var()
+        variance_df = pd.DataFrame([])
+        volume_df = pd.DataFrame([])
+        import pudb
+        pudb.set_trace()
+        for t, market in self:
+            variance_df[t] = market.prices_df['Last']
+            volume_df[t] = market.usd_volumes(['BTC'])
 
-        variances_df.sort_values('Var', ascending=False, inplace=True)
-        return variances_df
+        variance_df = variance_df.var(axis=1)
+        volume_df = volume_df.mean(axis=1)
 
-    def volume(self, ascending=False):
-        """
-        Compute average market size
-        :param market: 
-        :return: 
-        """
-        market_names = self.markets.index.levels[1]
-        volumes_df = pd.DataFrame([])
-        for name in market_names:
-            market = self.markets.loc[(slice(None), name), :]
-            mean = market.mean()
-            mean.name = name
-            volumes_df = volumes_df.append(mean)
+        variance_df.columns = ['Variance']
+        volume_df.columns = ['Volume (USDT)']
+        variance_df.sort_values(ascending=False, inplace=True)
+        volume_df.sort_values(ascending=False, inplace=True)
+        return variance_df, volume_df
 
-        volumes_df.sort_values('BaseVolume', ascending=ascending, inplace=True)
-        return volumes_df
-
-"""
-Originally coded in my_bittrex.volume as a class.
-Now I'm logging market with log_markets/log_market.py and
-log_market/market.py loads a DataFrame with a multiindex
-(timestamp, MarketName)
-
-All 'market' dataframes below are indexed by just MarketName and are equivalent to
-doing
- market = recreate_markets.get_markets()
- market = recreate_markets(market, timestamp)
-"""
 
 class Market(object):
     def __init__(self, time, prices_df):
