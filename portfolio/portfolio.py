@@ -145,12 +145,15 @@ class Portfolio(object):
         # apply transaction costs
         buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
-        # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
+        # we only buy/sell is movement is above 'min_percentage_change'. However, this movement could be in the
+        # amount of cryptocurrency we own (by_currency=True) or in the USDT it represents (by_currency=False)
         by_currency = True
         for currency in buy_df.index:
             if by_currency:
+                # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
                 percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
             else:
+                # if 'buy_df['Buy (USDT)'] represents less than 'min_percentage_change' from 'position' don't do anything
                 percentage_change = np.abs(buy_df.loc[currency, 'Buy (USDT)']) / buy_df.loc[currency, 'target_usdt']
             buy_df.loc[currency, "change"] = percentage_change
             if percentage_change < min_percentage_change:
