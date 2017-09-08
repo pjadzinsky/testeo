@@ -16,20 +16,13 @@ gflags.DEFINE_multi_int('offsets', [0, 6, 12, 18], 'Hours to shift markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "1 is 100%")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
+gflags.DEFINE_boolean('random', None, "Whether to use 'N' random currencies from the given list")
 gflags.DEFINE_string('currencies', None, "comma separated list of currencies")
 FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >=0, 'Should be positive or 0')
 
 
 Result = namedtuple('Results', ['hour', 'offset', 'rebalance', 'data'])
-
-@gflags.multi_flags_validator(['N', 'currencies'], 'One has to be defined')
-def _XOR(flags_dict):
-    if not flags_dict['N'] and not flags_dict['currencies']:
-        return False
-    if flags_dict['N'] and flags_dict['currencies']:
-        return False
-    return True
 
 BASE = 'USDT'
 VALUE = 10000
@@ -96,10 +89,14 @@ if __name__ == "__main__":
     if not os.path.isdir(OUTPUTDIR):
         os.makedirs(OUTPUTDIR)
     png = os.path.join(OUTPUTDIR, simulation_name(suffix='.png'))
+    """
     if os.path.isfile(png):
         img = Image.open(png)
         plt.imshow(img)
         plt.show()
+    """
+    if False:
+        pass
 
     else:
         results = []
@@ -111,19 +108,23 @@ if __name__ == "__main__":
         t0 = markets.times[0]
 
         if FLAGS.currencies:
-            state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, BASE, VALUE)
+            currencies_list = FLAGS.currencies.split(',')
+
+        if FLAGS.N and FLAGS.random and FLAGS.currencies:
+            state = portfolio.random_state(currencies_list, FLAGS.N)
+        elif FLAGS.currencies:
+            state = portfolio.state_from_currencies(currencies_list)
         elif FLAGS.N:
-            state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), FLAGS.N, BASE, VALUE)
+            state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
+
+        p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
+        print p.dataframe
         results.append(simulate(hour, offset, markets, state, p, False))
 
         for offset in FLAGS.offsets:
             for hour in FLAGS.hours:
+                p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
                 markets = market.Markets(3600 * hour, 3600 * offset)
-
-                if FLAGS.currencies:
-                    state, p = portfolio.Portfolio.from_currencies(markets.first_market(), FLAGS.currencies, BASE, VALUE)
-                elif FLAGS.N:
-                    state, p = portfolio.Portfolio.from_largest_markes(markets.first_market(), FLAGS.N, BASE, VALUE)
 
                 rebalance = True
                 results.append(simulate(hour, offset, markets, state, p, rebalance))

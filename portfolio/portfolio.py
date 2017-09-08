@@ -32,18 +32,9 @@ class Portfolio(object):
         self.dataframe = dataframe
 
     @classmethod
-    def from_largest_markes(cls, market, N, base, value):
-        state = cls._uniform_state(market, N, include_usd=False)
+    def from_state(cls, market, state, base, value):
         p = cls._start_portfolio(market, state, base, value)
-        return state, p
-
-    @classmethod
-    def from_currencies(cls, market, currencies, base, value):
-        currencies = currencies.split(',')
-        weights = 1.0 / len(currencies)
-        state = pd.DataFrame({'Weight': weights}, index=currencies)
-        p = cls._start_portfolio(market, state, base, value)
-        return state, p
+        return p
 
     @staticmethod
     def _start_portfolio(market, state, base, value):
@@ -61,29 +52,6 @@ class Portfolio(object):
         portfolio.rebalance(market, state, intermediate_currencies, 0)
 
         return portfolio
-
-    @staticmethod
-    def _uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
-        """
-        
-        :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
-            state
-        :param N: number of cryptocurrencies to include
-        :param currencies: dict linking currencies to the values of the 'state'
-        :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
-        :return: Dataframe with the weight of each currency (1/N)
-        """
-        volumes_df = market.usd_volumes(intermediates)
-        volumes_df.drop('USDT', axis=0, inplace=True)
-
-        currencies = volumes_df.head(N).index.tolist()
-        assert 'USDT' not in volumes_df.index
-        if include_usd:
-            currencies[-1] = 'USDT'
-
-        state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
-
-        return state
 
     def total_value(self, market, intermediate_currencies):
         """
@@ -133,7 +101,7 @@ class Portfolio(object):
 
         return buy_df
 
-    def rebalance(self, market, state, intermediate_currencies, min_percentage_change):
+    def rebalance(self, market, state, intermediate_currencies, min_percentage_change, by_currency=False):
         """
         Given a state, buy/sell positions to approximate target_portfolio
         
@@ -147,7 +115,6 @@ class Portfolio(object):
 
         # we only buy/sell is movement is above 'min_percentage_change'. However, this movement could be in the
         # amount of cryptocurrency we own (by_currency=True) or in the USDT it represents (by_currency=False)
-        by_currency = True
         for currency in buy_df.index:
             if by_currency:
                 # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
@@ -197,6 +164,47 @@ class Portfolio(object):
         self.dataframe.loc['USDT', 'Balance'] -= self.dataframe['Buy (USDT)'].sum()
         self.dataframe.loc['USDT', 'Available'] -= self.dataframe['Buy (USDT)'].sum()
         self.dataframe.drop(['Buy', 'Buy (USDT)', 'change'], inplace=True, axis=1)
+
+
+def state_from_largest_markes(market, N, include_usd):
+    state = _uniform_state(market, N, include_usd=include_usd)
+    return state
+
+
+def state_from_currencies(currencies):
+    weights = 1.0 / len(currencies)
+    state = pd.DataFrame({'Weight': weights}, index=currencies)
+    return state
+
+
+def random_state(currencies, N):
+    """ Generate a random makret using 'N' currencies from 'currencies'
+    """
+    currencies_to_use = np.random.choice(currencies, size=N, replace=False)
+    return state_from_currencies(currencies_to_use)
+
+
+def _uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
+    """
+    
+    :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
+        state
+    :param N: number of cryptocurrencies to include
+    :param currencies: dict linking currencies to the values of the 'state'
+    :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
+    :return: Dataframe with the weight of each currency (1/N)
+    """
+    volumes_df = market.usd_volumes(intermediates)
+    volumes_df.drop('USDT', axis=0, inplace=True)
+
+    currencies = volumes_df.head(N).index.tolist()
+    assert 'USDT' not in volumes_df.index
+    if include_usd:
+        currencies[-1] = 'USDT'
+
+    state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
+
+    return state
 
 
 def apply_transaction_cost(buy):

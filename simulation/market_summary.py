@@ -2,6 +2,7 @@
 import sys
 
 import gflags
+import pandas as pd
 
 from market import market
 
@@ -10,14 +11,12 @@ FLAGS = gflags.FLAGS
 
 
 def main():
-    markets = market.Markets(3600, 0)
+    markets = market.Markets(3600*24, 0)
 
-    """
-    volumes_df = markets.stats_volume()
+    volumes = markets.stats_volume()
     print '*' * 80
     print 'market volumes'
-    print volumes_df.head(20)
-    """
+    print volumes.head(20)
 
     #first = markets.last_market()
     #print first.inconsistencies()
@@ -27,11 +26,21 @@ def main():
 
 
     variance_df = markets.stats_variance(12)
-    print variance_df.mean(axis=0)
+    mean_variance = variance_df.mean(axis=0)
 
-    print ''
+    mean_variance.sort_values(ascending=False, inplace=True)
+    print mean_variance.head(20)
+    print mean_variance.index.values[:30]
     print '*' * 80
-    #print variance_df.head(20)
+
+    print type(volumes), type(mean_variance)
+    df = pd.concat([volumes, mean_variance], axis=1)
+    df.columns = ['volume', 'variance']
+    df = df[df['volume'] > 1E6]
+    df = df.sort_values('variance', ascending=False)
+    print ','.join(df.index.values[:20])
+    df.to_csv('/tmp/mean_variance.csv')
+
 
 if __name__ == "__main__":
     FLAGS(sys.argv)

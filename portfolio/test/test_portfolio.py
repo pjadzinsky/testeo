@@ -146,7 +146,6 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(balance_XRP_1, balance_XRP_0 + balance_XRP_0 * 1 * (1 - portfolio.COMMISION))
 
 
-
 if __name__ == "__main__":
     try:
         argv = FLAGS(sys.argv)
