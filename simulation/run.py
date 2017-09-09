@@ -3,13 +3,17 @@ import os
 import sys
 from collections import namedtuple
 from PIL import Image
+import tempfile
 
+import cPickle as pickle
 import gflags
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from market import market
 from portfolio import portfolio
+from results import results_utils
 
 gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
@@ -25,115 +29,47 @@ Result = namedtuple('Results', ['currencies', 'hour', 'rebalance', 'data'])
 
 BASE = 'USDT'
 VALUE = 10000
-ONEDAY = 86400.0
-t0 = None
-OUTPUTDIR = os.path.expanduser('~/Testeo/results/')
-
-
-def simulate(currencies, hour, markets, rebalance):
-    times = []
-    values = []
-    state = portfolio.state_from_currencies(currencies)
-    p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
-    for current_time, current_market in markets:
-        times.append(current_time)
-        if rebalance:
-            p.rebalance(current_market, state, ['BTC'], FLAGS.min_percentage_change)
-
-        values.append(p.total_value(current_market, ['USDT', 'BTC']))
-
-    data = pd.DataFrame({'time': times, 'value': values})
-    data['time'] = (data['time'] - t0) / ONEDAY
-    return Result(currencies, hour, rebalance, data)
-
-def last_baseline_difference(results):
-    for r in results:
-        if r.rebalance == False:
-            last_baseline = r.data['value'].values[-1]
-
-    for r in results:
-        print r.hour, (r.data['value'].values[-1] - last_baseline) / last_baseline
-
-def simulation_name(suffix=None):
-    """
-    Return a string with all parameters used in the simulation
-    
-    :return: 
-    """
-    if FLAGS.currencies:
-        currencies_list = FLAGS.currencies.split(',')
-        currencies_list.sort()
-        name = "names_" + '_'.join(currencies_list) +\
-               "_hours_" + "_".join([str(h) for h in FLAGS.hours]) +\
-               "_%change_" + str(int(FLAGS.min_percentage_change * 100))
-    elif FLAGS.N:
-        name = "N_" + str(FLAGS.N) + \
-               "_hours_" + "_".join([str(h) for h in FLAGS.hours]) + \
-               "_%change_" + str(int(FLAGS.min_percentage_change * 100))
-
-    if suffix:
-        name += suffix
-
-    return name
+OUTPUTDIR = os.path.expanduser('/var/tmp/simulation/')
+try:
+    os.makedirs(OUTPUTDIR)
+except OSError:
+    # folder already exists
+    pass
 
 
 if __name__ == "__main__":
-    global t0
     try:
         argv = FLAGS(sys.argv)
     except gflags.FlagsError as e:
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-    if not os.path.isdir(OUTPUTDIR):
-        os.makedirs(OUTPUTDIR)
-    png = os.path.join(OUTPUTDIR, simulation_name(suffix='.png'))
-    """
-    if os.path.isfile(png):
-        img = Image.open(png)
-        plt.imshow(img)
-        plt.show()
-    """
-    if False:
-        pass
 
-    else:
-        results = []
+    # do only one simulation without rebalancing as a baseline
+    hour = min(FLAGS.hours)
+    markets = market.Markets(3600 * hour, 0)
 
-        # do only one simulation without rebalancing as a baseline
-        hour = min(FLAGS.hours)
-        markets = market.Markets(3600 * hour, 0)
-        t0 = markets.times[0]
+    if FLAGS.currencies:
+        currencies = FLAGS.currencies.split(',')
+        currencies.sort()
 
-        if FLAGS.currencies:
-            currencies_list = FLAGS.currencies.split(',')
+    if FLAGS.N and FLAGS.random and FLAGS.currencies:
+        state = portfolio.random_state(currencies, FLAGS.N)
+    elif FLAGS.currencies:
+        state = portfolio.state_from_currencies(currencies)
+    elif FLAGS.N:
+        state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-        if FLAGS.N and FLAGS.random and FLAGS.currencies:
-            state = portfolio.random_state(currencies_list, FLAGS.N)
-        elif FLAGS.currencies:
-            state = portfolio.state_from_currencies(currencies_list)
-        elif FLAGS.N:
-            state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
+    results = results_utils.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
+    fig, ax = plt.subplots()
+    for r in results:
+        ax.plot(r.data['time'], r.data['value'], label="{}_{}".format(r.hour, r.rebalance))
 
-        p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
-        print p.dataframe
-        results.append(simulate(currencies_list, hour, markets, False))
-
-        for hour in FLAGS.hours:
-            p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
-            markets = market.Markets(3600 * hour, 0)
-
-            rebalance = True
-            results.append(simulate(currencies_list, hour, markets, rebalance))
-
-        fig, ax = plt.subplots()
-        for r in results:
-            ax.plot(r.data['time'], r.data['value'], label="{}_{}".format(r.hour, r.rebalance))
-
-
-        last_baseline_difference(results)
-        ax.legend(loc=2)
-        fig.savefig(png)
-        fig.suptitle(png)
-        plt.show()
+    results_utils.last_baseline_difference(results)
+    png = os.path.join(OUTPUTDIR, results_utils.simulation_name(currencies, FLAGS.hours, FLAGS.min_percentage_change,
+                                                                suffix='.png'))
+    ax.legend(loc=2)
+    fig.savefig(png)
+    fig.suptitle(png)
+    plt.show()
 

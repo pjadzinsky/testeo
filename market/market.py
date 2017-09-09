@@ -88,15 +88,18 @@ class Markets(object):
         else:
             return self.current_time, self.closest_market(self.current_time)
 
-    def reset(self, time=None):
+    def reset(self, current_time=None, seconds=None):
         """
         Will cause iterator to start over
         :return: 
         """
         if time:
-            self.current_time = time
+            self.current_time = current_time
         else:
             self.current_time = None
+
+        if seconds:
+            self.seconds = seconds
 
     def stats_volume(self):
         """

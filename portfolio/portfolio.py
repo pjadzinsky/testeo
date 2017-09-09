@@ -207,6 +207,11 @@ def _uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
     return state
 
 
+def currencies_from_state(state):
+    currencies = state[state['Weight'] > 0].index.values
+    return currencies
+
+
 def apply_transaction_cost(buy):
     """ buy is a float, the amount of either currency or dollars to buy (if positive) or sell (if negative)
     """
