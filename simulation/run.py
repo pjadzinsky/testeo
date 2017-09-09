@@ -12,7 +12,6 @@ from market import market
 from portfolio import portfolio
 
 gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between market')
-gflags.DEFINE_multi_int('offsets', [0, 6, 12, 18], 'Hours to shift markets')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "1 is 100%")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
@@ -22,7 +21,7 @@ FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >=0, 'Should be positive or 0')
 
 
-Result = namedtuple('Results', ['hour', 'offset', 'rebalance', 'data'])
+Result = namedtuple('Results', ['currencies', 'hour', 'rebalance', 'data'])
 
 BASE = 'USDT'
 VALUE = 10000
@@ -31,9 +30,11 @@ t0 = None
 OUTPUTDIR = os.path.expanduser('~/Testeo/results/')
 
 
-def simulate(hour, offset, markets, state, p, rebalance):
+def simulate(currencies, hour, markets, rebalance):
     times = []
     values = []
+    state = portfolio.state_from_currencies(currencies)
+    p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
     for current_time, current_market in markets:
         times.append(current_time)
         if rebalance:
@@ -43,7 +44,7 @@ def simulate(hour, offset, markets, state, p, rebalance):
 
     data = pd.DataFrame({'time': times, 'value': values})
     data['time'] = (data['time'] - t0) / ONEDAY
-    return Result(hour, offset, rebalance, data)
+    return Result(currencies, hour, rebalance, data)
 
 def last_baseline_difference(results):
     for r in results:
@@ -51,7 +52,7 @@ def last_baseline_difference(results):
             last_baseline = r.data['value'].values[-1]
 
     for r in results:
-        print r.hour, r.offset, (r.data['value'].values[-1] - last_baseline) / last_baseline
+        print r.hour, (r.data['value'].values[-1] - last_baseline) / last_baseline
 
 def simulation_name(suffix=None):
     """
@@ -64,12 +65,10 @@ def simulation_name(suffix=None):
         currencies_list.sort()
         name = "names_" + '_'.join(currencies_list) +\
                "_hours_" + "_".join([str(h) for h in FLAGS.hours]) +\
-               "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) +\
                "_%change_" + str(int(FLAGS.min_percentage_change * 100))
     elif FLAGS.N:
         name = "N_" + str(FLAGS.N) + \
                "_hours_" + "_".join([str(h) for h in FLAGS.hours]) + \
-               "_offsets_" + "_".join([str(o) for o in FLAGS.offsets]) + \
                "_%change_" + str(int(FLAGS.min_percentage_change * 100))
 
     if suffix:
@@ -103,7 +102,6 @@ if __name__ == "__main__":
 
         # do only one simulation without rebalancing as a baseline
         hour = min(FLAGS.hours)
-        offset = 0
         markets = market.Markets(3600 * hour, 0)
         t0 = markets.times[0]
 
@@ -119,19 +117,18 @@ if __name__ == "__main__":
 
         p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
         print p.dataframe
-        results.append(simulate(hour, offset, markets, state, p, False))
+        results.append(simulate(currencies_list, hour, markets, False))
 
-        for offset in FLAGS.offsets:
-            for hour in FLAGS.hours:
-                p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
-                markets = market.Markets(3600 * hour, 3600 * offset)
+        for hour in FLAGS.hours:
+            p = portfolio.Portfolio.from_state(markets.first_market(), state, BASE, VALUE)
+            markets = market.Markets(3600 * hour, 0)
 
-                rebalance = True
-                results.append(simulate(hour, offset, markets, state, p, rebalance))
+            rebalance = True
+            results.append(simulate(currencies_list, hour, markets, rebalance))
 
         fig, ax = plt.subplots()
         for r in results:
-            ax.plot(r.data['time'], r.data['value'], label="{}_{}_{}".format(r.hour, r.offset, r.rebalance))
+            ax.plot(r.data['time'], r.data['value'], label="{}_{}".format(r.hour, r.rebalance))
 
 
         last_baseline_difference(results)
