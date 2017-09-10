@@ -60,7 +60,8 @@ if __name__ == "__main__":
     elif FLAGS.N:
         state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-    results = results_utils.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
+    results_utils.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
+    exit(0)
     fig, ax = plt.subplots()
     for r in results:
         ax.plot(r.data['time'], r.data['value'], label="{}_{}".format(r.hour, r.rebalance))
