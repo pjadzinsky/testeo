@@ -13,6 +13,9 @@ import bittrex_utils
 
 
 ONEDAY = 86400.0
+FOLDER = os.path.expanduser('~/Testeo/simulation/')
+FNAME = os.path.join(FOLDER, 'results.csv')
+
 Result = namedtuple('Results', ['currencies', 'hour', 'rebalance', 'times', 'values', 'percentage_to_baseline',
                                 'rate'])
 
@@ -55,12 +58,11 @@ def save_result(state, hour, rebalance, data, data_rate, percentage_to_baseline)
     # generate the DataFrame
     df = pd.DataFrame(datadict)
 
-    fname = '/var/tmp/temp.csv'
-    if not os.path.isfile(fname):
-        df.to_csv(fname)
+    if not os.path.isfile(FNAME):
+        df.to_csv(FNAME, index=False)
     else:
-        with open(fname, 'a') as fid:
-            df.to_csv(fid, header=False)
+        with open(FNAME, 'a') as fid:
+            df.to_csv(fid, index=False, header=False)
 
 
 def simulate(state, hour, markets, min_percentage_change, rebalance, base, value):
@@ -92,6 +94,8 @@ def compute_percentage_from_baseline(baseline, data):
 
 
 def compute_rate(data):
+    """ Compute interest rate yielded by data
+    """
     days = data['time'].iloc[-1] - 1
     last_value = data['value'].iloc[-1]
     first_value = data['value'].iloc[0]
@@ -120,3 +124,69 @@ def simulation_name(currencies, hours, min_percentage_change, suffix=None):
     return name
 
 
+def plot_result():
+    import holoviews as hv
+    hv.extension('bokeh')
+    renderer = hv.Store.renderers['bokeh'].instance(fig='html')
+
+    df = pd.read_csv(FNAME)
+
+    holoMap = hv.HoloMap({N:hv.Scatter(df[df['N']==N], kdims=['rate'], vdims=['percentage_to_baseline']) for N in
+                          [4, 8, 16]}, kdims=['N'])
+    holoview = holoMap.select(N={4, 8, 16}).layout()
+    renderer.save(holoview, os.path.join(FOLDER, 'layout_II'), sytle=dict(Image={'cmap':'jet'}))
+
+
+def evaluate_hour():
+    """
+    For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then compute
+    the mean and std of the ordering of a given hour. Is 1hour the best?
+    
+    :return: 
+    """
+    df = pd.read_csv(FNAME)
+
+    # to identify a simulation we can just look at rows with 'rebalanced' set to False
+
+    baselines = df[df['rebalance']==False]
+    baselines_index = baselines.index.tolist()
+
+    # add to 'baselines_index' the index corresponding to the next empty row so that extracting all data for a
+    # simulation is just extracting between baselines_index[i] and baselines_index[i+1]
+    baselines_index.append(df.shape[0])
+
+    output_df = pd.DataFrame([])
+
+    for start, end in zip(baselines_index[:-1], baselines_index[1:]):
+        temp = df.iloc[start:end]
+        sim_name = csv_row_to_name(temp.iloc[0])
+        sorted_order = np.argsort(temp['percentage_to_baseline'].values)
+        hours = temp['hour'].values
+        s = pd.Series(sorted_order, index=hours, name=sim_name)
+        output_df = pd.concat([output_df, s], axis=1)
+
+    mean = output_df.mean(axis=1)
+    std = output_df.std(axis=1)
+    return mean, std
+
+def csv_row_to_name(row):
+    """
+    return a friendly name from a csv row
+    """
+    # keep only boolean values
+    boolean_row = row.select(lambda i: type(row[i])==np.bool_ and row[i])
+    if 'rebalance' in boolean_row.index:
+        boolean_row.drop('rebalance', inplace=True)
+
+    return '_'.join([str(i) for i in boolean_row.index])
+"""
+Analysis for /var/tmp/temp.csv
+
+1) For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then make the mean
+and std of the ordering index. Is 1hour the best?
+
+2) For each simulation condition (N, hour) compute the mean and std. Color plot or similar where the two dimensions are
+N and hour?
+
+3) Just plot in a 2D plot as in 2 all the results
+"""

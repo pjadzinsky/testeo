@@ -15,7 +15,7 @@ from market import market
 from portfolio import portfolio
 from results import results_utils
 
-gflags.DEFINE_multi_int('hours', [6, 12, 24, 36, 48], 'Hours in between market')
+gflags.DEFINE_multi_int('hours', [1, 2, 3, 6, 12, 24], 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "1 is 100%")
 gflags.DEFINE_integer('N', None, "Number of currencies to use")
@@ -61,16 +61,5 @@ if __name__ == "__main__":
         state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
     results_utils.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
-    exit(0)
-    fig, ax = plt.subplots()
-    for r in results:
-        ax.plot(r.data['time'], r.data['value'], label="{}_{}".format(r.hour, r.rebalance))
-
-    results_utils.last_baseline_difference(results)
-    png = os.path.join(OUTPUTDIR, results_utils.simulation_name(currencies, FLAGS.hours, FLAGS.min_percentage_change,
-                                                                suffix='.png'))
-    ax.legend(loc=2)
-    fig.savefig(png)
-    fig.suptitle(png)
-    plt.show()
+    results_utils.plot_result()
 
