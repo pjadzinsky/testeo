@@ -124,27 +124,55 @@ def simulation_name(currencies, hours, min_percentage_change, suffix=None):
     return name
 
 
+def final_analysis():
+    plot_result()
+    # For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then compute
+    # the mean and std of the ordering of a given hour. Is 1hour the best?
+    evaluate_hour()
+
+
 def plot_result():
+    """
+    For each simulation condition (hour, all currencies) make a 2D plot with axis like 'percentage_to_baseline'
+    and 'rate'. We can make one plot per 'N' or one single plot using different markers.
+    
+    :return: None, generates FOLDER / layout_1.html
+    """
     import holoviews as hv
     hv.extension('bokeh')
     renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
     df = pd.read_csv(FNAME)
 
+    # Create a dictionary linking 'N' to the corresponding Scatter plot
     holoMap = hv.HoloMap({N:hv.Scatter(df[df['N']==N], kdims=['rate'], vdims=['percentage_to_baseline']) for N in
                           [4, 8, 16]}, kdims=['N'])
     holoview = holoMap.select(N={4, 8, 16}).layout()
-    renderer.save(holoview, os.path.join(FOLDER, 'layout_II'), sytle=dict(Image={'cmap':'jet'}))
+    renderer.save(holoview, os.path.join(FOLDER, 'layout_1'), sytle=dict(Image={'cmap':'jet'}))
 
 
-def evaluate_hour():
+def evaluate_hour(N=None, currencies=None):
     """
     For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then compute
     the mean and std of the ordering of a given hour. Is 1hour the best?
     
+    :N: int, limit analysis to simulations with the given number of currencies
+    :currencies: list of str, limit analysis to simulations that have those currencies. Len(currencies) can be less
+                 than or equal to N, ie: if currencies = ['LTC'] then all simulations involving 'LTC' will be reported
+                 
     :return: 
     """
+
     df = pd.read_csv(FNAME)
+
+    if N:
+        assert type(N) == int
+        df = df[df['N']==N]
+        df.reset_index(inplace=True, drop=True)
+
+    if currencies:
+        assert type(currencies) == list
+        df = df[df.apply(lambda x: np.alltrue([x[c] for c in currencies]), axis=1)]
 
     # to identify a simulation we can just look at rows with 'rebalanced' set to False
 
@@ -161,13 +189,20 @@ def evaluate_hour():
         temp = df.iloc[start:end]
         sim_name = csv_row_to_name(temp.iloc[0])
         sorted_order = np.argsort(temp['percentage_to_baseline'].values)
+        reversed_order = len(sorted_order) - 1 - sorted_order
         hours = temp['hour'].values
-        s = pd.Series(sorted_order, index=hours, name=sim_name)
+        s = pd.Series(reversed_order, index=hours, name=sim_name)
         output_df = pd.concat([output_df, s], axis=1)
 
     mean = output_df.mean(axis=1)
     std = output_df.std(axis=1)
-    return mean, std
+    hour_stats = pd.concat([mean, std], axis=1)
+    hour_stats.columns = ['mean', 'std']
+
+    hour_stats.to_csv(os.path.join(FOLDER, 'hour_stats.csv'))
+
+    return hour_stats
+
 
 def csv_row_to_name(row):
     """
@@ -179,14 +214,13 @@ def csv_row_to_name(row):
         boolean_row.drop('rebalance', inplace=True)
 
     return '_'.join([str(i) for i in boolean_row.index])
+
+
 """
 Analysis for /var/tmp/temp.csv
 
-1) For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then make the mean
-and std of the ordering index. Is 1hour the best?
 
-2) For each simulation condition (N, hour) compute the mean and std. Color plot or similar where the two dimensions are
-N and hour?
+
 
 3) Just plot in a 2D plot as in 2 all the results
 """
