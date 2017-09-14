@@ -2,18 +2,12 @@
 import os
 import sys
 from collections import namedtuple
-from PIL import Image
-import tempfile
 
-import cPickle as pickle
 import gflags
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 
 from market import market
 from portfolio import portfolio
-from results import results_utils
+from simulations_code import simulate
 
 gflags.DEFINE_multi_int('hours', [1, 2, 3, 6, 12, 24], 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
@@ -25,16 +19,8 @@ FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >=0, 'Should be positive or 0')
 
 
-Result = namedtuple('Results', ['currencies', 'hour', 'rebalance', 'data'])
-
 BASE = 'USDT'
 VALUE = 10000
-OUTPUTDIR = os.path.expanduser('/var/tmp/data/')
-try:
-    os.makedirs(OUTPUTDIR)
-except OSError:
-    # folder already exists
-    pass
 
 
 if __name__ == "__main__":
@@ -60,6 +46,5 @@ if __name__ == "__main__":
     elif FLAGS.N:
         state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-    results_utils.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
-    #results_utils.final_analysis()
+    simulate.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
 

@@ -153,7 +153,7 @@ class Markets(object):
 
     def mean_variance(self, start, end):
         """
-        Idea was to compute mean of output of stats_vaariance only taking into account results in between
+        Idea was to compute mean of output of stats_vaariance only taking into account simulations_code in between
         start and end.
         
         Need better time control in markets, so that iteration will stop if time > end

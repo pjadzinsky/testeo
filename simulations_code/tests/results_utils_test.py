@@ -4,12 +4,12 @@ import unittest
 import pandas as pd
 import numpy as np
 
-from results import results_utils
+from simulations_code import simulate
 
 class TestClass(unittest.TestCase):
     def test_compute_mean_percentage(self):
         data = pd.DataFrame({'value': [10, 20, 5], 'time': [0, 1, 2]})
-        results_utils.compute_mean_percentage(data)
+        simulate.compute_mean_percentage(data)
         computed = data['mean percentage']
         expected = [np.NaN, 100, -25]
         print computed
@@ -23,7 +23,7 @@ class TestClass(unittest.TestCase):
             rate = np.random.rand() + 0.5
             data = pd.DataFrame({'time': range(0, 10), 'value': [rate ** i for i in range(0, 10)]})
 
-            results_utils.compute_rate(data)
+            simulate.compute_rate(data)
             computed = data['rate'].values
             expected = rate
             self.assertTrue(np.isnan(computed[0]))

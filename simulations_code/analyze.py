@@ -1,103 +1,69 @@
-#!/usr/bin/python
-import os
-import json
-import time
-from itertools import product
+"""
+Module to load and work with simulations
 
-import numpy as np
+Simulation parameters are defined in simulations.csv and the simulations themselves in simulations/<index>.csv
+
+
+"""
+
+import os
+
 import pandas as pd
 
-from portfolio import portfolio
-import bittrex_utils
+from simulations_code import simulate
 
 
-ONEDAY = 86400.0
-FOLDER = os.path.expanduser('~/Testeo/simulations/test/')
-PARAMS = os.path.join(FOLDER, 'params.csv')
-DATAFOLDER = os.path.join(FOLDER, 'data')
-try:
-    os.makedirs(DATAFOLDER)
-except:
-    pass
+class SimulationSet(object):
+    """ 
+    A simulation is given by:
+        a set of currencies randomly chosen
+        a set of hours to perform rebalance every so often
+        then fetching the markets and rebalancing
+        All simulations_data for a given set of parameters are associated with a timestamp
+        Here we load all those simulations_data and do whatever we want to do with them
+     """
+    def __init__(self, timestamp):
+
+        self.timestamp = timestamp
+        print self.params.head()
 
 
-def simulate_set(state, hours, markets, min_percentage_change, base, value):
-    """ Just run 'simulate' for each hour in 'hours' and append the results
-    All other parameters are the same except that the 1st hour is simulated
-    twice, first with 'rebalance' set to False as the baseline
+class Simulation(object):
     """
-    timestamp = int(time.time())
-    # compute the baseline
-    baseline = simulate(state, min(hours), markets, min_percentage_change, False, base, value)
-    save_data(timestamp, min(hours), False, baseline)
-    save_simulaton_params(timestamp, state, min(hours), False)
-
-    for hour in hours:
-        data = simulate(state, hour, markets, min_percentage_change, True, base, value)
-        save_data(timestamp, hour, True, data)
-        save_simulaton_params(timestamp, state, hour, True)
-
-
-def save_simulaton_params(timestamp, state, hour, rebalance):
+    A simulation is part of a simulation set. It is just defined by a (Timestamp, hour and rebalance)
     """
-    :param state: 
-    :param hour: 
-    :param rebalance: 
-    :param data: 
-    :return: 
-    """
+    def __init__(self, timestamp, hour, rebalance, min_percentage_change, offset):
+        self.timestamp = timestamp
+        self.hour = hour
+        self.rebalance = rebalance
+        self.min_percentage_change = min_percentage_change
+        self.offset = offset
+        self._params_df = _load_all_params()
 
-    '''
-    N = len(currencies)
-    datadict = {'N':N,
-                'rebalance': rebalance,
-                'hour': hour,
-                }
-    '''
+    def _load_currencies(self):
+        return self._params_df.loc[(self.timestamp, self.hour, self.rebalance), :]
 
+    def simulate(self, state, hour, markets, min_percentage_change, rebalance, base, value):
+        times = []
+        values = []
+        markets.reset(seconds=3600 * hour)
+        p = portfolio.Portfolio.from_state(markets.first_market(), state, base, value)
+        for current_time, current_market in markets:
+            times.append(current_time)
+            if rebalance:
+                p.rebalance(current_market, state, ['BTC'], min_percentage_change)
 
-    # first add all currencies to the dict as key with associated value of 'False'
-    datadict = {currency: False for currency in bittrex_utils.currencies_df().index}
+            values.append(p.total_value(current_market, ['USDT', 'BTC']))
 
-    # Now change the value to True for those currencies used in the data
-    currencies = portfolio.currencies_from_state(state)
-    datadict.update({currency: True for currency in currencies})
-
-    mi = pd.MultiIndex.from_arrays([timestamp, hour, rebalance])
-    mi.names = ['timestamp', 'hour', 'rebalance']
-    df = pd.DataFrame(datadict, index=mi)
-
-    # load params.csv if it exists
-    if os.path.isfile(PARAMS):
-        params_df = pd.read_csv(PARAMS, index_col=[0, 1, 2])
-    else:
-        params_df = pd.DataFrame([])
-
-    params_df = params_df.append(df)
-    params_df.to_csv(PARAMS)
+        data = pd.DataFrame({'time': times, 'value': values})
+        data['time'] = (data['time'] - data['time'].min()) / ONEDAY
+        currencies = portfolio.currencies_from_state(state)
+        return data
 
 
-def save_data(timestamp, hour, rebalance, data):
-    data.to_csv(os.path.join(DATAFOLDER, '{0}_{1}_{2}.csv'.format(timestamp, hour, rebalance)))
-
-
-def simulate(state, hour, markets, min_percentage_change, rebalance, base, value):
-    times = []
-    values = []
-    markets.reset(seconds=3600 * hour)
-    p = portfolio.Portfolio.from_state(markets.first_market(), state, base, value)
-    for current_time, current_market in markets:
-        times.append(current_time)
-        if rebalance:
-            p.rebalance(current_market, state, ['BTC'], min_percentage_change)
-
-        values.append(p.total_value(current_market, ['USDT', 'BTC']))
-
-    data = pd.DataFrame({'time': times, 'value': values})
-    data['time'] = (data['time'] - data['time'].min()) / ONEDAY
-    currencies = portfolio.currencies_from_state(state)
-    return data
-
+def _load_all_params():
+    params_df = pd.read_csv(simulate.PARAMS, index_col=0)
+    return params_df
 
 def compute_mean_percentage(data):
     """ Compute percentage of increase last 'result' value has when compared to 'baseline' at the same time
@@ -140,7 +106,7 @@ def simulation_name(currencies, hours, min_percentage_change, suffix=None):
     return name
 
 
-def read_data():
+def read_simulation_set():
     params_df = pd.read_csv(PARAMS)
 
     #df[:, 'time'] = df['time'].apply(json.loads)
@@ -297,42 +263,3 @@ def csv_row_to_name(row):
 
 
 
-'''
-def fix_csv():
-    """
-    Load the csv and fix it, modify as needed
-    :return: 
-    """
-    df = pd.read_csv(PARAMS)
-
-    df.drop(['rate', 'percentage_to_baseline'], axis=1, inplace=True)
-
-    rates = []
-    means = []
-
-    for index, row in df.iterrows():
-        temp_df = pd.DataFrame({'time': json.loads(row.time), 'value': json.loads(row.value)})
-        compute_rate(temp_df)
-        compute_mean_percentage(temp_df)
-        rates.append([temp_df['rate'].tolist()])
-        means.append([temp_df['mean %'].tolist()])
-        #df.loc[index, 'rate'] = [temp_df['rate'].tolist()]
-        #df.loc[index, 'mean %'] = [temp_df['mean %'].tolist()]
-
-    df.loc[:, 'rate'] = rates
-    df.loc[:, 'percentage_to_baseline'] = means
-    columns = df.columns.tolist()
-
-    # last 5 columns are: rebalance, percentage_to_baseline, rate, time, value
-    # and I want them to be:
-    # mean %, rate, rebalance, time, value
-    # so the index order is: -4, -3, -5, -2, -1
-    index = columns.index('percentage_to_baseline')
-    columns[index] = 'mean %'
-    df.columns = columns
-    print columns[-5:]
-    columns = columns[:-4] + [columns[-4], columns[-3], columns[-5]] + columns[-2:]
-    print columns[-5:]
-    df = df[columns]
-    df.to_csv('test.csv', index=False)
-'''
