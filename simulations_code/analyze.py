@@ -9,9 +9,12 @@ Simulation parameters are defined in simulations.csv and the simulations themsel
 import os
 
 import pandas as pd
+import numpy as np
 
 from simulations_code import simulate
 
+
+PARAMS_DF = pd.read_csv(simulate.PARAMS, index_col=0)
 
 class SimulationSet(object):
     """ 
@@ -25,95 +28,169 @@ class SimulationSet(object):
     def __init__(self, timestamp):
 
         self.timestamp = timestamp
-        print self.params.head()
+        self.params_df = self.load_params()
+        self.N = self.get_N()
+        self.baseline_index = self.params_df.index[0]
+        self.rebalance_indexes = self.params_df.index[1:].tolist()
+
+        print self.N
+        print self.get_hours()
+        print self.get_rebalance()
+        print "baseline index", self.baseline_index
+        print "rebalanced indexes", self.rebalance_indexes
+
+    def load_params(self):
+        all_params = PARAMS_DF
+        sim_set_params = all_params[all_params['timestamp'] == self.timestamp]
+
+        return sim_set_params
+
+    def get_N(self):
+        """ 
+        :return: Return the number of currencies used in the simulation. All entries with the same 'timestamp'
+        should have the same 'N'
+        """
+        Ns = self.params_df['N']
+        Ns_set = set(Ns)
+        assert len(Ns_set) == 1
+        return Ns_set.pop()
+
+    def get_hours(self):
+        return self.params_df['hour']
+
+    def get_rebalance(self):
+        return self.params_df['rebalance']
+
+    def add_sorting(df):
+        """
+        For each data set (the only thing that changes is time). Sort hours by some type of return and add value
+        to df
+        
+        :param df: 
+        :return: 
+        """
+        # Simulation set starts always with a 'baseline' data. If we pull the indexes of these 'baselines' then
+        # have a handle onto the start of each data set.
+        # to identify a data we can just look at rows with 'rebalanced' set to False
+        baselines = df[df['rebalance']==False]
+        baselines_index = baselines.index.tolist()
+
+        # add to 'baselines_index' the index corresponding to the next empty row so that extracting all data for a
+        # data is just extracting between baselines_index[i] and baselines_index[i+1]
+        baselines_index.append(df.shape[0])
+
+        for start, end in zip(baselines_index[:-1], baselines_index[1:]):
+            temp = df.iloc[start:end]['rate']
+            # I multiply by -1 to have them in descending order and '0' be the best data
+            df.loc[start:end - 1, 'sorting'] = temp.rank(ascending=False)
+
+        return df
 
 
 class Simulation(object):
     """
-    A simulation is part of a simulation set. It is just defined by a (Timestamp, hour and rebalance)
+    A simulation is part of a simulation set. It is just defined by an index. The index is the row into 
+    the PARAMS datafolder and <index>.csv with the time, value data
     """
-    def __init__(self, timestamp, hour, rebalance, min_percentage_change, offset):
-        self.timestamp = timestamp
-        self.hour = hour
-        self.rebalance = rebalance
-        self.min_percentage_change = min_percentage_change
-        self.offset = offset
-        self._params_df = _load_all_params()
+    def __init__(self, index):
+        self.index = index
+        self.data = _load_data(index)
+        """
+        self.baseline_index = self._get_baseline_index()
+        self.baseline = None
+        # careful, baseline_index could be 0
+        if self.baseline_index is not None:
+            self.baseline = _load_data(self.baseline_index)
+        """
 
-    def _load_currencies(self):
-        return self._params_df.loc[(self.timestamp, self.hour, self.rebalance), :]
+    def is_baseline(self):
+        # 'rebalance' is set to False in 'baseline'
+        # PARAMS_DF reads False as 0.0
+        return not PARAMS_DF.loc[self.index, 'rebalance']
 
-    def simulate(self, state, hour, markets, min_percentage_change, rebalance, base, value):
-        times = []
-        values = []
-        markets.reset(seconds=3600 * hour)
-        p = portfolio.Portfolio.from_state(markets.first_market(), state, base, value)
-        for current_time, current_market in markets:
-            times.append(current_time)
-            if rebalance:
-                p.rebalance(current_market, state, ['BTC'], min_percentage_change)
+    def _get_baseline_index(self):
+        """ If this item is not a 'baseline' simultion, get the first row above 'self.index' that has 
+        'rebalance' set to True
+        """
+        if self.is_baseline():
+            index = None
+        else:
+            temp = self.index
+            while True:
+                temp -= 1
+                if PARAMS_DF.loc[temp, 'rebalance'] == False:
+                    # baseline found
+                    index = temp
+                    break
 
-            values.append(p.total_value(current_market, ['USDT', 'BTC']))
+                if temp < 0:
+                    raise RuntimeError
 
-        data = pd.DataFrame({'time': times, 'value': values})
-        data['time'] = (data['time'] - data['time'].min()) / ONEDAY
-        currencies = portfolio.currencies_from_state(state)
-        return data
+        return index
 
-
-def _load_all_params():
-    params_df = pd.read_csv(simulate.PARAMS, index_col=0)
-    return params_df
-
-def compute_mean_percentage(data):
-    """ Compute percentage of increase last 'result' value has when compared to 'baseline' at the same time
-    
-    :args: data (pd.DataFrame), with columns time and value
-    """
-    times = data.time.values
-    values = data.value.values
-    data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
-
-
-def compute_rate(data):
-    """ Compute interest rate yielded by data at each point in time
-    
-    :args: data (pd.DataFrame), with columns time and value
-    """
-    days = data['time'].values
-    values = data['value'].values
-
-    # rate ** days = last_value / first_value
-    # days * log(base) = log(last_value / first_value)
-    # base = 10**(log(last_value / first_value) / days)
-    rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
-    data.loc[:, 'rate'] = rate
+    def compute_mean_percentage(self):
+        """ Compute percentage of increase last 'result' value has when compared to 'baseline' at the same time
+        
+        :args: data (pd.DataFrame), with columns time and value
+        """
+        times = self.data.time.values
+        values = self.data.value.values
+        self.data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
 
 
-def simulation_name(currencies, hours, min_percentage_change, suffix=None):
-    """
-    Return a string with all parameters used in the data
-    
-    :return: 
-    """
-    if currencies:
-        name = "names_" + '_'.join(currencies) + \
-               "_hours_" + "_".join([str(h) for h in hours]) + \
-               "_%change_" + str(int(min_percentage_change * 100))
-    if suffix:
-        name += suffix
+    def compute_rate(self):
+        """ Compute interest rate yielded by data at each point in time
+        
+        :args: data (pd.DataFrame), with columns time and value
+        """
+        days = self.data['time'].values
+        values = self.data['value'].values
 
-    return name
+        # rate ** days = last_value / first_value
+        # days * log(base) = log(last_value / first_value)
+        # base = 10**(log(last_value / first_value) / days)
+        rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
+        self.data.loc[:, 'rate'] = rate
+
+    def simulation_name(currencies, hours, min_percentage_change, suffix=None):
+        """
+        Return a string with all parameters used in the data
+        
+        :return: 
+        """
+        if currencies:
+            name = "names_" + '_'.join(currencies) + \
+                   "_hours_" + "_".join([str(h) for h in hours]) + \
+                   "_%change_" + str(int(min_percentage_change * 100))
+        if suffix:
+            name += suffix
+
+        return name
+
+    def params(self):
+        return PARAMS_DF.loc[self.index]
+
+    def timestamp(self):
+        return self.params()['timestamp']
+
+    def hour(self):
+        return self.params()['hour']
+
+    def currencies(self):
+        """
+        return a list with the currencies used in the simulation
+        """
+        # keep only boolean values
+        row = self.params()
+        boolean_row = row.select(lambda i: row[i])
+        boolean_row.drop(['N', 'hour', 'timestamp', 'rebalance'], inplace=True)
+        if 'rebalance' in boolean_row.index:
+            boolean_row.drop('rebalance', inplace=True)
+
+        return boolean_row.index.tolist()
 
 
-def read_simulation_set():
-    params_df = pd.read_csv(PARAMS)
 
-    #df[:, 'time'] = df['time'].apply(json.loads)
-    #df[:, 'value'] = df['value'].apply(json.loads)
-
-
-    print params_df
 
 
 def final_analysis():
@@ -170,31 +247,6 @@ def plot_result():
     renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
 
 
-def add_sorting(df):
-    """
-    For each data set (the only thing that changes is time). Sort hours by some type of return and add value
-    to df
-    
-    :param df: 
-    :return: 
-    """
-    # Simulation set starts always with a 'baseline' data. If we pull the indexes of these 'baselines' then
-    # have a handle onto the start of each data set.
-    # to identify a data we can just look at rows with 'rebalanced' set to False
-    baselines = df[df['rebalance']==False]
-    baselines_index = baselines.index.tolist()
-
-    # add to 'baselines_index' the index corresponding to the next empty row so that extracting all data for a
-    # data is just extracting between baselines_index[i] and baselines_index[i+1]
-    baselines_index.append(df.shape[0])
-
-    for start, end in zip(baselines_index[:-1], baselines_index[1:]):
-        temp = df.iloc[start:end]['rate']
-        # I multiply by -1 to have them in descending order and '0' be the best data
-        df.loc[start:end - 1, 'sorting'] = temp.rank(ascending=False)
-
-    return df
-
 
 def evaluate_hour(N=None, currencies=None):
     """
@@ -249,17 +301,6 @@ def evaluate_hour(N=None, currencies=None):
 
     return hour_stats
 
-
-def csv_row_to_name(row):
-    """
-    return a friendly name from a csv row
-    """
-    # keep only boolean values
-    boolean_row = row.select(lambda i: type(row[i])==np.bool_ and row[i])
-    if 'rebalance' in boolean_row.index:
-        boolean_row.drop('rebalance', inplace=True)
-
-    return '_'.join([str(i) for i in boolean_row.index])
-
-
-
+def _load_data(index):
+    fname = os.path.join(simulate.DATAFOLDER, '{0}.csv'.format(index))
+    return pd.read_csv(fname)

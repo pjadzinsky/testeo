@@ -79,7 +79,7 @@ def save_simulaton_params(timestamp, state, hour, rebalance):
 
 
 def save_data(simulation_index, data):
-    data.to_csv(os.path.join(DATAFOLDER, '{0}.csv'.format(simulation_index)))
+    data.to_csv(os.path.join(DATAFOLDER, '{0}.csv'.format(simulation_index)), index=False)
 
 
 def simulate(state, hour, markets, min_percentage_change, rebalance, base, value):
