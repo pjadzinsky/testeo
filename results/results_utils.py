@@ -1,23 +1,24 @@
 #!/usr/bin/python
 import os
-import sys
-from collections import namedtuple
+import json
+import time
+from itertools import product
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
-from market import market
 from portfolio import portfolio
 import bittrex_utils
 
 
 ONEDAY = 86400.0
-FOLDER = os.path.expanduser('~/Testeo/simulation/')
-FNAME = os.path.join(FOLDER, 'results.csv')
-
-Result = namedtuple('Results', ['currencies', 'hour', 'rebalance', 'times', 'values', 'percentage_to_baseline',
-                                'rate'])
+FOLDER = os.path.expanduser('~/Testeo/simulations/test/')
+PARAMS = os.path.join(FOLDER, 'params.csv')
+DATAFOLDER = os.path.join(FOLDER, 'data')
+try:
+    os.makedirs(DATAFOLDER)
+except:
+    pass
 
 
 def simulate_set(state, hours, markets, min_percentage_change, base, value):
@@ -25,44 +26,65 @@ def simulate_set(state, hours, markets, min_percentage_change, base, value):
     All other parameters are the same except that the 1st hour is simulated
     twice, first with 'rebalance' set to False as the baseline
     """
+    timestamp = int(time.time())
     # compute the baseline
-    baseline = simulate(state, min(hours), markets, min_percentage_change, False, base, value)
-    baseline_rate = compute_rate(baseline)
-    save_result(state, min(hours), False, baseline, baseline_rate, 0)
+    #baseline = simulate(state, min(hours), markets, min_percentage_change, False, base, value)
+    save_simulaton_params(timestamp, state, min(hours), False)
 
     for hour in hours:
-        data = simulate(state, hour, markets, min_percentage_change, True, base, value)
-
-        percentage_to_baseline = compute_percentage_from_baseline(baseline, data)
-        data_rate = compute_rate(data)
-        save_result(state, hour, True, data, data_rate, percentage_to_baseline)
+        #data = simulate(state, hour, markets, min_percentage_change, True, base, value)
+        save_simulaton_params(timestamp, state, hour, True)
 
 
-def save_result(state, hour, rebalance, data, data_rate, percentage_to_baseline):
+def save_simulaton_params(timestamp, state, hour, rebalance):
+    """
+    :param state: 
+    :param hour: 
+    :param rebalance: 
+    :param data: 
+    :return: 
+    """
+
     currencies = portfolio.currencies_from_state(state)
     N = len(currencies)
     datadict = {'N':N,
                 'rebalance': rebalance,
                 'hour': hour,
-                'time': [data['time'].tolist()],
-                'value': [data['value'].tolist()],
-                'rate': data_rate,
-                'percentage_to_baseline': percentage_to_baseline}
+                }
 
     # first add all currencies to the dict as key with associated value of 'False'
     datadict.update({currency: False for currency in bittrex_utils.currencies_df().index})
 
-    # Now change the value to True for those currencies used in the simulation
+    # Now change the value to True for those currencies used in the data
     datadict.update({currency: True for currency in currencies})
 
     # generate the DataFrame
-    df = pd.DataFrame(datadict)
+    s = pd.Series(datadict)
+    s.name = timestamp
 
-    if not os.path.isfile(FNAME):
-        df.to_csv(FNAME, index=False)
+    # load params.csv if it exists
+    import pudb
+    pudb.set_trace()
+    if os.path.isfile(PARAMS):
+        df = pd.read_csv(PARAMS, index_col=0)
     else:
-        with open(FNAME, 'a') as fid:
+        df = pd.DataFrame([])
+
+    df = df.append(s)
+    df.to_csv(PARAMS)
+    """
+    if not os.path.isfile(PARAMS):
+        df.to_csv(PARAMS, index=False)
+    else:
+        with open(PARAMS, 'a') as fid:
             df.to_csv(fid, index=False, header=False)
+    """
+
+
+def save_data(timestamp, data):
+    s = pd.Series(data['value'], index=data['time'])
+    s.index.name = 'time'
+    s.to_csv(os.path.join(DATAFOLDER, '{0}.csv'.format(timestamp)))
 
 
 def simulate(state, hour, markets, min_percentage_change, rebalance, base, value):
@@ -83,34 +105,34 @@ def simulate(state, hour, markets, min_percentage_change, rebalance, base, value
     return data
 
 
-def compute_percentage_from_baseline(baseline, data):
+def compute_mean_percentage(data):
     """ Compute percentage of increase last 'result' value has when compared to 'baseline' at the same time
+    
+    :args: data (pd.DataFrame), with columns time and value
     """
-    last_result_time = data.time.values[-1]
-    last_result_value = data.value.values[-1]
-    baseline_at_time = baseline.value[baseline.time.values.searchsorted(last_result_time)]
-
-    return (last_result_value - baseline_at_time) / baseline_at_time
+    times = data.time.values
+    values = data.value.values
+    data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
 
 
 def compute_rate(data):
-    """ Compute interest rate yielded by data
+    """ Compute interest rate yielded by data at each point in time
+    
+    :args: data (pd.DataFrame), with columns time and value
     """
-    days = data['time'].iloc[-1] - 1
-    last_value = data['value'].iloc[-1]
-    first_value = data['value'].iloc[0]
+    days = data['time'].values
+    values = data['value'].values
 
     # rate ** days = last_value / first_value
     # days * log(base) = log(last_value / first_value)
     # base = 10**(log(last_value / first_value) / days)
-    rate = 10 ** (np.log10(last_value/first_value) / days)
-
-    return rate
+    rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
+    data.loc[:, 'rate'] = rate
 
 
 def simulation_name(currencies, hours, min_percentage_change, suffix=None):
     """
-    Return a string with all parameters used in the simulation
+    Return a string with all parameters used in the data
     
     :return: 
     """
@@ -124,16 +146,39 @@ def simulation_name(currencies, hours, min_percentage_change, suffix=None):
     return name
 
 
+def read_data():
+    params_df = pd.read_csv(PARAMS)
+
+    #df[:, 'time'] = df['time'].apply(json.loads)
+    #df[:, 'value'] = df['value'].apply(json.loads)
+
+
+    print params_df
+
+
 def final_analysis():
+    df = read_data()
+    #compute_mean_percentage(df)
+    #compute_rate(df)
+
     plot_result()
-    # For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then compute
+
+    # For each data set (the only thing that changes is time). Sort hours by some type of return. Then compute
     # the mean and std of the ordering of a given hour. Is 1hour the best?
+    add_sorting(df)
     evaluate_hour()
+
+    """
+    Compute something like 'rate' in between start and "n" days into the data and then from "n" days until the end
+    Then scatter 1st result vs last. Can we trust past behaviour as a predictar of immediate future one?
+    """
+    print df.head()
+    print 1
 
 
 def plot_result():
     """
-    For each simulation condition (hour, all currencies) make a 2D plot with axis like 'percentage_to_baseline'
+    For each data condition (hour, all currencies) make a 2D plot with axis like 'mean %'
     and 'rate'. We can make one plot per 'N' or one single plot using different markers.
     
     :return: None, generates FOLDER / layout_1.html
@@ -142,28 +187,68 @@ def plot_result():
     hv.extension('bokeh')
     renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
-    df = pd.read_csv(FNAME)
+    df = pd.read_csv(PARAMS)
+
+    # we only plot 'rebalance' data
+    df = df[df['rebalance']==True]
 
     # Create a dictionary linking 'N' to the corresponding Scatter plot
-    holoMap = hv.HoloMap({N:hv.Scatter(df[df['N']==N], kdims=['rate'], vdims=['percentage_to_baseline']) for N in
+    holoMap = hv.HoloMap({N:hv.Scatter(df[df['N']==N], kdims=['rate'], vdims=['mean %']) for N in
                           [4, 8, 16]}, kdims=['N'])
     holoview = holoMap.select(N={4, 8, 16}).layout()
     renderer.save(holoview, os.path.join(FOLDER, 'layout_1'), sytle=dict(Image={'cmap':'jet'}))
 
 
+    N_hour = product((4, 8, 16), (1, 2, 6, 12, 24))
+    holoMap = hv.HoloMap({(N, h):hv.Scatter(df[(df['N']==N) & (df['hour']==h)], kdims=['rate'],
+                                            vdims=['mean %']) for N, h in N_hour}
+                         , kdims=['N', 'hour'])
+    holoview_4 = holoMap.select(N={4}).overlay()
+    holoview_8 = holoMap.select(N={8}).overlay()
+    holoview_16 = holoMap.select(N={16}).overlay()
+    holoview = holoview_4 + holoview_8 + holoview_16
+    renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
+
+
+def add_sorting(df):
+    """
+    For each data set (the only thing that changes is time). Sort hours by some type of return and add value
+    to df
+    
+    :param df: 
+    :return: 
+    """
+    # Simulation set starts always with a 'baseline' data. If we pull the indexes of these 'baselines' then
+    # have a handle onto the start of each data set.
+    # to identify a data we can just look at rows with 'rebalanced' set to False
+    baselines = df[df['rebalance']==False]
+    baselines_index = baselines.index.tolist()
+
+    # add to 'baselines_index' the index corresponding to the next empty row so that extracting all data for a
+    # data is just extracting between baselines_index[i] and baselines_index[i+1]
+    baselines_index.append(df.shape[0])
+
+    for start, end in zip(baselines_index[:-1], baselines_index[1:]):
+        temp = df.iloc[start:end]['rate']
+        # I multiply by -1 to have them in descending order and '0' be the best data
+        df.loc[start:end - 1, 'sorting'] = temp.rank(ascending=False)
+
+    return df
+
+
 def evaluate_hour(N=None, currencies=None):
     """
-    For each simulation set (the only thing that changes is time). Sort hours by some type of return. Then compute
+    For each data set (the only thing that changes is time). Sort hours by some type of return. Then compute
     the mean and std of the ordering of a given hour. Is 1hour the best?
     
-    :N: int, limit analysis to simulations with the given number of currencies
-    :currencies: list of str, limit analysis to simulations that have those currencies. Len(currencies) can be less
-                 than or equal to N, ie: if currencies = ['LTC'] then all simulations involving 'LTC' will be reported
+    :N: int, limit analysis to data with the given number of currencies
+    :currencies: list of str, limit analysis to data that have those currencies. Len(currencies) can be less
+                 than or equal to N, ie: if currencies = ['LTC'] then all data involving 'LTC' will be reported
                  
     :return: 
     """
 
-    df = pd.read_csv(FNAME)
+    df = pd.read_csv(PARAMS)
 
     if N:
         assert type(N) == int
@@ -173,14 +258,15 @@ def evaluate_hour(N=None, currencies=None):
     if currencies:
         assert type(currencies) == list
         df = df[df.apply(lambda x: np.alltrue([x[c] for c in currencies]), axis=1)]
+        df.reset_index(inplace=True, drop=True)
 
-    # to identify a simulation we can just look at rows with 'rebalanced' set to False
+    # to identify a data we can just look at rows with 'rebalanced' set to False
 
     baselines = df[df['rebalance']==False]
     baselines_index = baselines.index.tolist()
 
     # add to 'baselines_index' the index corresponding to the next empty row so that extracting all data for a
-    # simulation is just extracting between baselines_index[i] and baselines_index[i+1]
+    # data is just extracting between baselines_index[i] and baselines_index[i+1]
     baselines_index.append(df.shape[0])
 
     output_df = pd.DataFrame([])
@@ -188,7 +274,7 @@ def evaluate_hour(N=None, currencies=None):
     for start, end in zip(baselines_index[:-1], baselines_index[1:]):
         temp = df.iloc[start:end]
         sim_name = csv_row_to_name(temp.iloc[0])
-        sorted_order = np.argsort(temp['percentage_to_baseline'].values)
+        sorted_order = np.argsort(temp['mean %'].values)
         reversed_order = len(sorted_order) - 1 - sorted_order
         hours = temp['hour'].values
         s = pd.Series(reversed_order, index=hours, name=sim_name)
@@ -216,11 +302,43 @@ def csv_row_to_name(row):
     return '_'.join([str(i) for i in boolean_row.index])
 
 
-"""
-Analysis for /var/tmp/temp.csv
 
+'''
+def fix_csv():
+    """
+    Load the csv and fix it, modify as needed
+    :return: 
+    """
+    df = pd.read_csv(PARAMS)
 
+    df.drop(['rate', 'percentage_to_baseline'], axis=1, inplace=True)
 
+    rates = []
+    means = []
 
-3) Just plot in a 2D plot as in 2 all the results
-"""
+    for index, row in df.iterrows():
+        temp_df = pd.DataFrame({'time': json.loads(row.time), 'value': json.loads(row.value)})
+        compute_rate(temp_df)
+        compute_mean_percentage(temp_df)
+        rates.append([temp_df['rate'].tolist()])
+        means.append([temp_df['mean %'].tolist()])
+        #df.loc[index, 'rate'] = [temp_df['rate'].tolist()]
+        #df.loc[index, 'mean %'] = [temp_df['mean %'].tolist()]
+
+    df.loc[:, 'rate'] = rates
+    df.loc[:, 'percentage_to_baseline'] = means
+    columns = df.columns.tolist()
+
+    # last 5 columns are: rebalance, percentage_to_baseline, rate, time, value
+    # and I want them to be:
+    # mean %, rate, rebalance, time, value
+    # so the index order is: -4, -3, -5, -2, -1
+    index = columns.index('percentage_to_baseline')
+    columns[index] = 'mean %'
+    df.columns = columns
+    print columns[-5:]
+    columns = columns[:-4] + [columns[-4], columns[-3], columns[-5]] + columns[-2:]
+    print columns[-5:]
+    df = df[columns]
+    df.to_csv('test.csv', index=False)
+'''
