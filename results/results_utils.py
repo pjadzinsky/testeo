@@ -28,11 +28,13 @@ def simulate_set(state, hours, markets, min_percentage_change, base, value):
     """
     timestamp = int(time.time())
     # compute the baseline
-    #baseline = simulate(state, min(hours), markets, min_percentage_change, False, base, value)
+    baseline = simulate(state, min(hours), markets, min_percentage_change, False, base, value)
+    save_data(timestamp, min(hours), False, baseline)
     save_simulaton_params(timestamp, state, min(hours), False)
 
     for hour in hours:
-        #data = simulate(state, hour, markets, min_percentage_change, True, base, value)
+        data = simulate(state, hour, markets, min_percentage_change, True, base, value)
+        save_data(timestamp, hour, True, data)
         save_simulaton_params(timestamp, state, hour, True)
 
 
@@ -45,46 +47,38 @@ def save_simulaton_params(timestamp, state, hour, rebalance):
     :return: 
     """
 
-    currencies = portfolio.currencies_from_state(state)
+    '''
     N = len(currencies)
     datadict = {'N':N,
                 'rebalance': rebalance,
                 'hour': hour,
                 }
+    '''
+
 
     # first add all currencies to the dict as key with associated value of 'False'
-    datadict.update({currency: False for currency in bittrex_utils.currencies_df().index})
+    datadict = {currency: False for currency in bittrex_utils.currencies_df().index}
 
     # Now change the value to True for those currencies used in the data
+    currencies = portfolio.currencies_from_state(state)
     datadict.update({currency: True for currency in currencies})
 
-    # generate the DataFrame
-    s = pd.Series(datadict)
-    s.name = timestamp
+    mi = pd.MultiIndex.from_arrays([timestamp, hour, rebalance])
+    mi.names = ['timestamp', 'hour', 'rebalance']
+    df = pd.DataFrame(datadict, index=mi)
 
     # load params.csv if it exists
-    import pudb
-    pudb.set_trace()
     if os.path.isfile(PARAMS):
-        df = pd.read_csv(PARAMS, index_col=0)
+        params_df = pd.read_csv(PARAMS, index_col=[0, 1, 2])
     else:
-        df = pd.DataFrame([])
+        params_df = pd.DataFrame([])
 
-    df = df.append(s)
-    df.to_csv(PARAMS)
-    """
-    if not os.path.isfile(PARAMS):
-        df.to_csv(PARAMS, index=False)
-    else:
-        with open(PARAMS, 'a') as fid:
-            df.to_csv(fid, index=False, header=False)
-    """
+    params_df = params_df.append(df)
+    params_df.to_csv(PARAMS)
 
 
-def save_data(timestamp, data):
-    s = pd.Series(data['value'], index=data['time'])
-    s.index.name = 'time'
-    s.to_csv(os.path.join(DATAFOLDER, '{0}.csv'.format(timestamp)))
+def save_data(timestamp, hour, rebalance, data):
+    data.to_csv(os.path.join(DATAFOLDER, '{0}_{1}_{2}.csv'.format(timestamp, hour, rebalance)))
 
 
 def simulate(state, hour, markets, min_percentage_change, rebalance, base, value):
