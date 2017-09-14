@@ -9,12 +9,15 @@ Simulation parameters are defined in simulations.csv and the simulations themsel
 import os
 
 import pandas as pd
+import holoviews as hv
 import numpy as np
 
 from simulations_code import simulate
 
 
 PARAMS_DF = pd.read_csv(simulate.PARAMS, index_col=0)
+hv.extension('bokeh')
+renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
 class SimulationSet(object):
     """ 
@@ -28,38 +31,58 @@ class SimulationSet(object):
     def __init__(self, timestamp):
 
         self.timestamp = timestamp
-        self.params_df = self.load_params()
-        self.N = self.get_N()
-        self.baseline_index = self.params_df.index[0]
-        self.rebalance_indexes = self.params_df.index[1:].tolist()
+        self.load_data()    # adds self.data_dict dictionary
 
-        print self.N
-        print self.get_hours()
-        print self.get_rebalance()
-        print "baseline index", self.baseline_index
-        print "rebalanced indexes", self.rebalance_indexes
+    def _indexes(self):
+        return PARAMS_DF[PARAMS_DF['timestamp'] == self.timestamp].index.tolist()
+
+    def load_data(self):
+        """ Load and apply mean_percentage and rate to each Simulation object in the set.
+        At some point we might need to take the computation out of here"""
+
+        self.data_dict = {}
+        for index in self._indexes():
+            sim = Simulation(index)
+            sim.compute_mean_percentage()
+            sim.compute_rate()
+
+            if sim.is_baseline():
+                self.data_dict['baseline'] = sim
+            else:
+                self.data_dict[sim.hour()] = sim
+
+    def plot_in_time(self, which, normalized=False):
+        """ TO start with, we jut plot 'baseline' and each 'hour' simulation
+        """
+        # Create a dictionary linking 'N' to the corresponding Scatter plot
+        if normalized:
+            holoMap = hv.HoloMap({k: hv.Scatter(self.data_dict[k].data/self.data_dict['baseline'].data,
+                                                kdims=['time'], vdims=[which]) for k in self.data_dict.keys()},
+                                 kdims=['hour'])
+        else:
+            holoMap = hv.HoloMap({k:hv.Scatter(self.data_dict[k].data, kdims=['time'], vdims=[which]) for k in
+                                  self.data_dict.keys()}, kdims=['hour'])
+
+        holoview = holoMap.overlay()
+        renderer.save(holoview, os.path.expanduser('~/layout_1'), sytle=dict(Image={'cmap': 'jet'}))
+
+        """
+        N_hour = product((4, 8, 16), (1, 2, 6, 12, 24))
+        holoMap = hv.HoloMap({(N, h):hv.Scatter(df[(df['N']==N) & (df['hour']==h)], kdims=['rate'],
+                                                vdims=['mean %']) for N, h in N_hour}
+                             , kdims=['N', 'hour'])
+        holoview_4 = holoMap.select(N={4}).overlay()
+        holoview_8 = holoMap.select(N={8}).overlay()
+        holoview_16 = holoMap.select(N={16}).overlay()
+        holoview = holoview_4 + holoview_8 + holoview_16
+        renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
+        """
 
     def load_params(self):
         all_params = PARAMS_DF
         sim_set_params = all_params[all_params['timestamp'] == self.timestamp]
 
         return sim_set_params
-
-    def get_N(self):
-        """ 
-        :return: Return the number of currencies used in the simulation. All entries with the same 'timestamp'
-        should have the same 'N'
-        """
-        Ns = self.params_df['N']
-        Ns_set = set(Ns)
-        assert len(Ns_set) == 1
-        return Ns_set.pop()
-
-    def get_hours(self):
-        return self.params_df['hour']
-
-    def get_rebalance(self):
-        return self.params_df['rebalance']
 
     def add_sorting(df):
         """
