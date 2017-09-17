@@ -15,18 +15,99 @@ import numpy as np
 from simulations_code import simulate
 
 
-PARAMS_DF = pd.read_csv(simulate.PARAMS, index_col=0)
 hv.extension('bokeh')
 renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
+
+class Simulations(object):
+    def __init__(self):
+        self.params_df = pd.read_csv(simulate.PARAMS, index_col=0)
+        self.data = {}
+
+        for index in self.params_df.index:
+            self.data[index] = _load_data(index)
+            _compute_mean_percentage(self.data[index])
+            _compute_rate(self.data[index])
+
+def _load_data(index):
+    """ load the csv associated with the row.name as a dataframe
+    csv to load is named "<row.name>.csv" and is store in simulate.DATAFOLDER
+    """
+    fname = os.path.join(simulate.DATAFOLDER, '{0}.csv'.format(index))
+    return pd.read_csv(fname)
+
+
+def _compute_mean_percentage(data):
+    """ Compute percentage of increase at every point in time
+     
+     row.data as a DataFrame with columns 'time' and 'value' we just compute the 'percentage' that value['time']
+     represents with respect to value[0]
+    
+    :args: data (pd.DataFrame), with columns 'time' and 'value'
+    """
+    times = data.time.values
+    values = data.value.values
+    data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
+
+
+def _compute_rate(data):
+    """ Compute interest rate yielded by data at each point in time
+    
+    :args: data (pd.DataFrame), with columns 'time' and 'value'
+    """
+    days = data['time'].values
+    values = data['value'].values
+
+    # rate ** days = last_value / first_value
+    # days * log(base) = log(last_value / first_value)
+    # base = 10**(log(last_value / first_value) / days)
+    rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
+    data.loc[:, 'rate'] = rate
+
+
+def currencies(row):
+    """
+    return a list with the currencies used in the simulation
+    """
+    # keep only boolean values
+    boolean_row = row.select(lambda i: row[i])
+    boolean_row.drop(['N', 'hour', 'timestamp', 'baseline'], inplace=True)
+    if 'baseline' in boolean_row.index:
+        boolean_row.drop('baseline', inplace=True)
+
+    return boolean_row.index.tolist()
+
+
+class Simulation(object):
+    """
+    A simulation is part of a simulation set. It is just defined by an index. The index is the row into 
+    the PARAMS datafolder and <index>.csv with the time, value data
+    """
+    def __init__(self, index):
+        self.index = index
+        df = _load_data(index)
+        #df.apply(_compute_rate, axis=1)
+        #df.apply(_compute_mean_percentage, axis=1)
+        self.df = df
+
+
+#params_df.loc[:, 'data'] = params_df.apply(lambda x: Simulation(x.name), axis=1)
+
+#params_df.apply(_compute_rate)               # work in place, adding column 'rate' to params_df.data
+#params_df.apply(_compute_mean_percentage)    # work in place, adding column 'mean %' to params_df.data
+
+'''
 class SimulationSet(object):
     """ 
-    A simulation is given by:
+    A simulation is done choosing:
         a set of currencies randomly chosen
         a set of hours to perform rebalance every so often
         then fetching the markets and rebalancing
         All simulations_data for a given set of parameters are associated with a timestamp
         Here we load all those simulations_data and do whatever we want to do with them
+        
+    To define a SimulationSet we only need to define the 'timestamp' since that leads to all the raws in params_df
+    and the indexes in params_df is what is needed to define Simulation
      """
     def __init__(self, timestamp):
 
@@ -34,7 +115,7 @@ class SimulationSet(object):
         self.load_data()    # adds self.data_dict dictionary
 
     def _indexes(self):
-        return PARAMS_DF[PARAMS_DF['timestamp'] == self.timestamp].index.tolist()
+        return params_df[params_df['timestamp'] == self.timestamp].index.tolist()
 
     def load_data(self):
         """ Load and apply mean_percentage and rate to each Simulation object in the set.
@@ -43,8 +124,8 @@ class SimulationSet(object):
         self.data_dict = {}
         for index in self._indexes():
             sim = Simulation(index)
-            sim.compute_mean_percentage()
-            sim.compute_rate()
+            sim._compute_mean_percentage()
+            sim._compute_rate()
 
             if sim.is_baseline():
                 self.data_dict['baseline'] = sim
@@ -54,17 +135,19 @@ class SimulationSet(object):
     def plot_in_time(self, which, normalized=False):
         """ TO start with, we jut plot 'baseline' and each 'hour' simulation
         """
+        dict_spec = {'Curve': {'width': 600, 'height':600}}
         # Create a dictionary linking 'N' to the corresponding Scatter plot
         if normalized:
-            holoMap = hv.HoloMap({k: hv.Scatter(self.data_dict[k].data/self.data_dict['baseline'].data,
+            holoMap = hv.HoloMap({k: hv.Curve(self.data_dict[k].data/self.data_dict['baseline'].data,
                                                 kdims=['time'], vdims=[which]) for k in self.data_dict.keys()},
                                  kdims=['hour'])
         else:
-            holoMap = hv.HoloMap({k:hv.Scatter(self.data_dict[k].data, kdims=['time'], vdims=[which]) for k in
+            holoMap = hv.HoloMap({k:hv.Curve(self.data_dict[k].data, kdims=['time'], vdims=[which]) for k in
                                   self.data_dict.keys()}, kdims=['hour'])
 
         holoview = holoMap.overlay()
-        renderer.save(holoview, os.path.expanduser('~/layout_1'), sytle=dict(Image={'cmap': 'jet'}))
+        return holoview
+        #renderer.save(holoview, os.path.expanduser('~/layout_1'), sytle=dict(Image={'cmap': 'jet'}))
 
         """
         N_hour = product((4, 8, 16), (1, 2, 6, 12, 24))
@@ -79,7 +162,7 @@ class SimulationSet(object):
         """
 
     def load_params(self):
-        all_params = PARAMS_DF
+        all_params = params_df
         sim_set_params = all_params[all_params['timestamp'] == self.timestamp]
 
         return sim_set_params
@@ -110,107 +193,6 @@ class SimulationSet(object):
         return df
 
 
-class Simulation(object):
-    """
-    A simulation is part of a simulation set. It is just defined by an index. The index is the row into 
-    the PARAMS datafolder and <index>.csv with the time, value data
-    """
-    def __init__(self, index):
-        self.index = index
-        self.data = _load_data(index)
-        """
-        self.baseline_index = self._get_baseline_index()
-        self.baseline = None
-        # careful, baseline_index could be 0
-        if self.baseline_index is not None:
-            self.baseline = _load_data(self.baseline_index)
-        """
-
-    def is_baseline(self):
-        # 'rebalance' is set to False in 'baseline'
-        # PARAMS_DF reads False as 0.0
-        return not PARAMS_DF.loc[self.index, 'rebalance']
-
-    def _get_baseline_index(self):
-        """ If this item is not a 'baseline' simultion, get the first row above 'self.index' that has 
-        'rebalance' set to True
-        """
-        if self.is_baseline():
-            index = None
-        else:
-            temp = self.index
-            while True:
-                temp -= 1
-                if PARAMS_DF.loc[temp, 'rebalance'] == False:
-                    # baseline found
-                    index = temp
-                    break
-
-                if temp < 0:
-                    raise RuntimeError
-
-        return index
-
-    def compute_mean_percentage(self):
-        """ Compute percentage of increase last 'result' value has when compared to 'baseline' at the same time
-        
-        :args: data (pd.DataFrame), with columns time and value
-        """
-        times = self.data.time.values
-        values = self.data.value.values
-        self.data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
-
-
-    def compute_rate(self):
-        """ Compute interest rate yielded by data at each point in time
-        
-        :args: data (pd.DataFrame), with columns time and value
-        """
-        days = self.data['time'].values
-        values = self.data['value'].values
-
-        # rate ** days = last_value / first_value
-        # days * log(base) = log(last_value / first_value)
-        # base = 10**(log(last_value / first_value) / days)
-        rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
-        self.data.loc[:, 'rate'] = rate
-
-    def simulation_name(currencies, hours, min_percentage_change, suffix=None):
-        """
-        Return a string with all parameters used in the data
-        
-        :return: 
-        """
-        if currencies:
-            name = "names_" + '_'.join(currencies) + \
-                   "_hours_" + "_".join([str(h) for h in hours]) + \
-                   "_%change_" + str(int(min_percentage_change * 100))
-        if suffix:
-            name += suffix
-
-        return name
-
-    def params(self):
-        return PARAMS_DF.loc[self.index]
-
-    def timestamp(self):
-        return self.params()['timestamp']
-
-    def hour(self):
-        return self.params()['hour']
-
-    def currencies(self):
-        """
-        return a list with the currencies used in the simulation
-        """
-        # keep only boolean values
-        row = self.params()
-        boolean_row = row.select(lambda i: row[i])
-        boolean_row.drop(['N', 'hour', 'timestamp', 'rebalance'], inplace=True)
-        if 'rebalance' in boolean_row.index:
-            boolean_row.drop('rebalance', inplace=True)
-
-        return boolean_row.index.tolist()
 
 
 
@@ -218,8 +200,8 @@ class Simulation(object):
 
 def final_analysis():
     df = read_data()
-    #compute_mean_percentage(df)
-    #compute_rate(df)
+    #_compute_mean_percentage(df)
+    #_compute_rate(df)
 
     plot_result()
 
@@ -324,6 +306,6 @@ def evaluate_hour(N=None, currencies=None):
 
     return hour_stats
 
-def _load_data(index):
-    fname = os.path.join(simulate.DATAFOLDER, '{0}.csv'.format(index))
-    return pd.read_csv(fname)
+
+params_df.loc[:, 'data'] = params_df.apply(lambda x: Simulation(x.name), axis=1)
+'''
