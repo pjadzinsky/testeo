@@ -29,12 +29,45 @@ class Simulations(object):
             _compute_mean_percentage(self.data[index])
             _compute_rate(self.data[index])
 
+
+def load_all_results():
+    """ Load all simulations into a big DataFrame indexed by 'time'. The name of each column is the 
+    index into "params_df" where we can get the parameters from
+    
+    Index is 'time' and the name of """
+    df = pd.DataFrame([])
+    for index in simulate.params_df.index:
+        new_df = _load_data(index)
+
+        if new_df is not None:
+            # make time relative
+            print index
+            new_df.loc[:, 'time'] = new_df['time'] - new_df['time'].iloc[0]
+
+            # index by 'time'
+            new_df.set_index('time', drop=True, inplace=True)
+
+            # extract just the 'value' column but as DF rather than just a series
+            new_df = new_df[['value']]
+
+            # change the name of the column for nice concatenation
+            new_df.columns = [index]
+            df = pd.concat([df, new_df], axis=1)
+
+    return df
+
+
 def _load_data(index):
     """ load the csv associated with the row.name as a dataframe
     csv to load is named "<row.name>.csv" and is store in simulate.DATAFOLDER
     """
     fname = os.path.join(simulate.DATAFOLDER, '{0}.csv'.format(index))
-    return pd.read_csv(fname)
+    if os.path.isfile(fname):
+        data = pd.read_csv(fname)
+    else:
+        data = None
+
+    return data
 
 
 def _compute_mean_percentage(data):
