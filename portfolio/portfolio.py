@@ -36,6 +36,11 @@ class Portfolio(object):
         p = cls._start_portfolio(market, state, base, value)
         return p
 
+    def copy(self):
+        cls = self.__class__
+        new_df = self.dataframe.copy()
+        return cls(new_df)
+
     @staticmethod
     def _start_portfolio(market, state, base, value):
         """

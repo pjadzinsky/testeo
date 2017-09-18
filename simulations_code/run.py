@@ -4,6 +4,7 @@ import sys
 from collections import namedtuple
 
 import gflags
+import pandas as pd
 
 from market import market
 from portfolio import portfolio
@@ -40,11 +41,11 @@ if __name__ == "__main__":
         currencies.sort()
 
     if FLAGS.N and FLAGS.random and FLAGS.currencies:
-        state = portfolio.random_state(currencies, FLAGS.N)
+        desired_state = portfolio.random_state(currencies, FLAGS.N)
     elif FLAGS.currencies:
-        state = portfolio.state_from_currencies(currencies)
+        desired_state = portfolio.state_from_currencies(currencies)
     elif FLAGS.N:
-        state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
+        desired_state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-    simulate.simulate_set(state, FLAGS.hours, markets, FLAGS.min_percentage_change, BASE, VALUE)
-
+    initial_portfolio = portfolio.Portfolio.from_state(markets.first_market(), desired_state, BASE, VALUE)
+    simulate.simulate_set(initial_portfolio, desired_state, FLAGS.hours, markets, FLAGS.min_percentage_change)

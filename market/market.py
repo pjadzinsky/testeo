@@ -26,6 +26,12 @@ boto3.setup_default_session(profile_name='user2')
 s3_client = boto3.resource('s3')
 
 bucket = s3_client.Bucket('my-bittrex')
+CACHED_DIR = '/var/tmp/markets/'
+try:
+    os.makedirs(CACHED_DIR)
+except:
+    print ('Folder {folder} already exists'.format(folder=CACHED_DIR))
+
 
 
 class Markets(object):
@@ -54,7 +60,7 @@ class Markets(object):
         :param time: 
         :return: 
         """
-        # market will be None if not in self.market dictionary
+        # market will be None if not in self.markets dictionary
         market = self.markets.get(time)
         if not market:
             if time in self.times:
@@ -86,17 +92,18 @@ class Markets(object):
         if self.current_time > self.times[-1]:
             raise StopIteration
         else:
-            return self.current_time, self.closest_market(self.current_time)
+            market = self.closest_market(self.current_time)
+            self.current_time = market.time
+
+            return market
 
     def reset(self, current_time=None, seconds=None):
         """
         Will cause iterator to start over
         :return: 
         """
-        if time:
-            self.current_time = current_time
-        else:
-            self.current_time = None
+        # if current_time is None, this is fine. ON first iteration it is set to the first time available
+        self.current_time = current_time
 
         if seconds:
             self.seconds = seconds
@@ -172,20 +179,28 @@ class Market(object):
         self.prices_df = prices_df
 
     @classmethod
-    @memoize.memoized
+    def from_local_file(cls, filename, timestamp):
+        assert os.path.isfile(filename)
+        with open(filename, 'r') as fid:
+            prices_df = pd.DataFrame(json.loads(fid.readline()))
+            prices_df.set_index('MarketName', inplace=True)
+
+        return cls(timestamp, prices_df)
+
+    @classmethod
     def from_s3_key(cls, s3_key):
         _, filename = tempfile.mkstemp(suffix='.csv')
-        prices_df = None
-        if 'short' in s3_key:
-            timestamp = int(s3_key.split('_')[0])
+        filename = os.path.join(CACHED_DIR, s3_key)
 
+        timestamp = int(s3_key.split('_')[0])
+        if os.path.isfile(filename):
+            return cls.from_local_file(filename, timestamp)
+
+        print 'Looking and downloading file from s3:', filename
+        if 'short' in s3_key:
             # object points to a row that we don't have in df, add it
             bucket.download_file(s3_key, filename)
-            with open(filename, 'r') as fid:
-                prices_df = pd.DataFrame(json.loads(fid.readline()))
-                prices_df.set_index('MarketName', inplace=True)
-
-            return cls(timestamp, prices_df)
+            return cls.from_local_file(filename, timestamp)
 
     def _market_name(self,  base, currency):
         return base + "-" + currency

@@ -20,8 +20,8 @@ class Portfolio(object):
     desired target 'state'. We'll rebalance them periodically.
     To avoid spending too much in commissions when rebalancing we have a 'threshold' and we only 'rebalance
     cryptocurrencies that increased (or decreased) more than 'threshold' (as a percentage) from desired 'state'.
-    For example is the desired state is 100 and the threshold is 0.1 we'll sell only if the current total_value is at or above
-    110 (and buy if the current total_value is at or below 90)
+    For example if the desired state is 100 and the threshold is 0.1 we'll sell only if the current total_value is at
+    or above 110 (and buy if the current total_value is at or below 90)
     To prevent from buying too much of a sinking currency we are going to put bounds on either the price and/or the
     quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
     per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
