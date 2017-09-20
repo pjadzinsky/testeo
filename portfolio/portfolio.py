@@ -17,8 +17,7 @@ per currency and then say that no currency can have a ratio that is N times bigg
 import numpy as np
 import pandas as pd
 
-import bittrex_utils
-from market import market
+import config
 
 COMMISION = 0.25/100
 
@@ -36,6 +35,24 @@ class Portfolio(object):
         p = cls._start_portfolio(market, state, base, value)
         return p
 
+    @classmethod
+    def from_params_df(cls, market, sim_index):
+        params_df = pd.read_csv(config.PARAMS, index_col=0)
+        params_series = params_df.loc[sim_index]
+        currencies = []
+        base = params_series['base']
+        value = params_series['value']
+
+        for k, v in params_series.iteritems():
+            if k in config.PARAMS_INDEX_THAT_ARE_NOT_CURRENCIES:
+                continue
+            currencies.append(k)
+
+        state = state_from_currencies(currencies)
+        p = cls._start_portfolio(market, state, base, value)
+        return p
+
+
     def copy(self):
         cls = self.__class__
         new_df = self.dataframe.copy()
@@ -51,6 +68,8 @@ class Portfolio(object):
         :param value: 
         :return: 
         """
+        import pudb
+        pudb.set_trace()
         intermediate_currencies = ['BTC']
         dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
         portfolio = Portfolio(dataframe=dataframe)

@@ -30,11 +30,14 @@ class Simulations(object):
             _compute_rate(self.data[index])
 
 
-def load_all_results():
-    """ Load all simulations into a big DataFrame indexed by 'time'. The name of each column is the 
-    index into "params_df" where we can get the parameters from
+def load_all_values():
+    """ Load all 'value' columns from all simulations into a big DataFrame indexed by 'time'.
+    The name of each column is the index into "params_df" where we can get the simulation parameters from
     
-    Index is 'time' and the name of """
+    Each column has one simulation, there are potentially many NaNs per column since the 'index' in this DataFrame
+    is the same for all simulations
+    
+    """
     df = pd.DataFrame([])
     for index in simulate.params_df.index:
         new_df = _load_data(index)

@@ -47,5 +47,6 @@ if __name__ == "__main__":
     elif FLAGS.N:
         desired_state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-    initial_portfolio = portfolio.Portfolio.from_state(markets.first_market(), desired_state, BASE, VALUE)
-    simulate.simulate_set(initial_portfolio, desired_state, FLAGS.hours, markets, FLAGS.min_percentage_change)
+    print "Deisred State is:"
+    print desired_state
+    simulate.simulate_set(desired_state, BASE, VALUE, FLAGS.hours, markets, FLAGS.min_percentage_change)

@@ -26,7 +26,7 @@ boto3.setup_default_session(profile_name='user2')
 s3_client = boto3.resource('s3')
 
 bucket = s3_client.Bucket('my-bittrex')
-CACHED_DIR = '/var/tmp/markets/'
+CACHED_DIR = os.path.expanduser('~/Testeo/simulations_data/markets/')
 try:
     os.makedirs(CACHED_DIR)
 except:
