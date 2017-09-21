@@ -36,22 +36,24 @@ class Portfolio(object):
         return p
 
     @classmethod
-    def from_params_df(cls, market, sim_index):
+    def from_simulation_index(cls, market, sim_index):
         params_df = pd.read_csv(config.PARAMS, index_col=0)
-        params_series = params_df.loc[sim_index]
-        currencies = []
-        base = params_series['base']
-        value = params_series['value']
-
-        for k, v in params_series.iteritems():
-            if k in config.PARAMS_INDEX_THAT_ARE_NOT_CURRENCIES:
-                continue
-            currencies.append(k)
-
-        state = state_from_currencies(currencies)
-        p = cls._start_portfolio(market, state, base, value)
+        sim_params = params_df.loc[sim_index]
+        p = cls.from_simulation_params(sim_params)
         return p
 
+    @classmethod
+    def from_simulation_params(cls, market, sim_params):
+        base = sim_params['base']
+        value = sim_params['value']
+
+        state = sim_params.to_frame()
+        for key in config.PARAMS_INDEX_THAT_ARE_NOT_CURRENCIES:
+            if key in state.index:
+                state.drop(key, inplace=True, axis=0)
+        state.columns = ['Weight']
+        p = cls._start_portfolio(market, state, base, value)
+        return p
 
     def copy(self):
         cls = self.__class__
@@ -68,8 +70,6 @@ class Portfolio(object):
         :param value: 
         :return: 
         """
-        import pudb
-        pudb.set_trace()
         intermediate_currencies = ['BTC']
         dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
         portfolio = Portfolio(dataframe=dataframe)

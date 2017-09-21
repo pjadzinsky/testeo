@@ -13,6 +13,7 @@ import holoviews as hv
 import numpy as np
 
 from simulations_code import simulate
+import config
 
 
 hv.extension('bokeh')
@@ -21,7 +22,7 @@ renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
 class Simulations(object):
     def __init__(self):
-        self.params_df = pd.read_csv(simulate.PARAMS, index_col=0)
+        self.params_df = pd.read_csv(config.PARAMS, index_col=0)
         self.data = {}
 
         for index in self.params_df.index:
@@ -44,7 +45,6 @@ def load_all_values():
 
         if new_df is not None:
             # make time relative
-            print index
             new_df.loc[:, 'time'] = new_df['time'] - new_df['time'].iloc[0]
 
             # index by 'time'
@@ -62,9 +62,9 @@ def load_all_values():
 
 def _load_data(index):
     """ load the csv associated with the row.name as a dataframe
-    csv to load is named "<row.name>.csv" and is store in simulate.DATAFOLDER
+    csv to load is named "<row.name>.csv" and is store in config.DATAFOLDER
     """
-    fname = os.path.join(simulate.DATAFOLDER, '{0}.csv'.format(index))
+    fname = os.path.join(config.DATAFOLDER, '{0}.csv'.format(index))
     if os.path.isfile(fname):
         data = pd.read_csv(fname)
     else:
@@ -73,7 +73,15 @@ def _load_data(index):
     return data
 
 
-def _compute_mean_percentage(data):
+def compute_mean_percentage(data_df):
+    return data_df.apply(_compute_mean_percentage, axis=0)
+
+
+def compute_mean_rate(data_df):
+    return data_df.apply(_compute_rate, axis=0)
+
+
+def _compute_mean_percentage(data_series):
     """ Compute percentage of increase at every point in time
      
      row.data as a DataFrame with columns 'time' and 'value' we just compute the 'percentage' that value['time']
@@ -81,24 +89,34 @@ def _compute_mean_percentage(data):
     
     :args: data (pd.DataFrame), with columns 'time' and 'value'
     """
-    times = data.time.values
-    values = data.value.values
-    data.loc[:, 'mean %'] = (values - values[0]) * 100.0 / values[0] / (times - times[0])
+    assert type(data_series) == pd.Series
+
+    values = data_series.values
+    first_value = values[0]
+    times = data_series.index
+    first_time = times[0]
+    return (values - first_value) * 100.0 / first_value / (times - first_time)
 
 
-def _compute_rate(data):
+def _compute_rate(data_series):
     """ Compute interest rate yielded by data at each point in time
     
     :args: data (pd.DataFrame), with columns 'time' and 'value'
     """
-    days = data['time'].values
-    values = data['value'].values
+    assert type(data_series) == pd.Series
 
+    values = data_series.values
+    first_value = values[0]
+    times = data_series.index
+    first_time = times[0]
+
+    days = (times - first_time) / config.ONEDAY
     # rate ** days = last_value / first_value
-    # days * log(base) = log(last_value / first_value)
-    # base = 10**(log(last_value / first_value) / days)
-    rate = 10 ** (np.log10(values/values[0]) / (days - days[0]))
-    data.loc[:, 'rate'] = rate
+    # days * log(rate) = log(last_value / first_value)
+    # rate = 10**(log(last_value / first_value) / days)
+
+    rate = 10 ** (np.log10(values/first_value) / days)
+    return rate
 
 
 def currencies(row):
@@ -168,34 +186,6 @@ class SimulationSet(object):
             else:
                 self.data_dict[sim.hour()] = sim
 
-    def plot_in_time(self, which, normalized=False):
-        """ TO start with, we jut plot 'baseline' and each 'hour' simulation
-        """
-        dict_spec = {'Curve': {'width': 600, 'height':600}}
-        # Create a dictionary linking 'N' to the corresponding Scatter plot
-        if normalized:
-            holoMap = hv.HoloMap({k: hv.Curve(self.data_dict[k].data/self.data_dict['baseline'].data,
-                                                kdims=['time'], vdims=[which]) for k in self.data_dict.keys()},
-                                 kdims=['hour'])
-        else:
-            holoMap = hv.HoloMap({k:hv.Curve(self.data_dict[k].data, kdims=['time'], vdims=[which]) for k in
-                                  self.data_dict.keys()}, kdims=['hour'])
-
-        holoview = holoMap.overlay()
-        return holoview
-        #renderer.save(holoview, os.path.expanduser('~/layout_1'), sytle=dict(Image={'cmap': 'jet'}))
-
-        """
-        N_hour = product((4, 8, 16), (1, 2, 6, 12, 24))
-        holoMap = hv.HoloMap({(N, h):hv.Scatter(df[(df['N']==N) & (df['hour']==h)], kdims=['rate'],
-                                                vdims=['mean %']) for N, h in N_hour}
-                             , kdims=['N', 'hour'])
-        holoview_4 = holoMap.select(N={4}).overlay()
-        holoview_8 = holoMap.select(N={8}).overlay()
-        holoview_16 = holoMap.select(N={16}).overlay()
-        holoview = holoview_4 + holoview_8 + holoview_16
-        renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
-        """
 
     def load_params(self):
         all_params = params_df
@@ -345,3 +335,17 @@ def evaluate_hour(N=None, currencies=None):
 
 params_df.loc[:, 'data'] = params_df.apply(lambda x: Simulation(x.name), axis=1)
 '''
+def plot_in_time(data):
+    """ TO start with, we jut plot 'baseline' and each 'hour' simulation
+    """
+    dict_spec = {'Curve': {'width': 600, 'height':600}}
+    # Create a dictionary linking 'N' to the corresponding Scatter plot
+    return hv.Curve(data)
+
+    holoMap = hv.HoloMap({column:hv.Scatter(data[column]), kdims=['name'], vdims=['time']) for N in data.columns})
+    holoview_4 = holoMap.select(N={4}).overlay()
+    holoview_8 = holoMap.select(N={8}).overlay()
+    holoview_16 = holoMap.select(N={16}).overlay()
+    holoview = holoview_4 + holoview_8 + holoview_16
+    renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
+    """

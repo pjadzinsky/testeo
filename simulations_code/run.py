@@ -5,6 +5,7 @@ from collections import namedtuple
 
 import gflags
 import pandas as pd
+import numpy as np
 
 from market import market
 from portfolio import portfolio
@@ -32,6 +33,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
 
+    np.random.seed(1)
     # do only one data without rebalancing as a baseline
     hour = min(FLAGS.hours)
     markets = market.Markets(3600 * hour, 0)
