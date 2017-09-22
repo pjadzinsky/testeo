@@ -33,8 +33,10 @@ def simulate_set(desired_state, base, value, hours, markets, min_percentage_chan
     All other parameters are the same except that the 1st hour is simulated
     twice, first with 'is_baseline' set to True as the baseline
     """
+    timestamp = int(time.time())
     is_baseline = True
-    sim_params = series_from_params(desired_state, base, value, min(hours), min_percentage_change, is_baseline)
+    sim_params = series_from_params(timestamp, desired_state, base, value, min(hours), min_percentage_change,
+                                    is_baseline)
     simulation_index = save_simulaton_params(sim_params)
 
     print 'Simulation Index: ', simulation_index
@@ -42,10 +44,8 @@ def simulate_set(desired_state, base, value, hours, markets, min_percentage_chan
 
     is_baseline = False
     for hour in hours:
-        import pudb
-        pudb.set_trace()
         markets.reset(seconds=config.ONEHOUR * hour)
-        sim_params = series_from_params(desired_state, base, value, hour, min_percentage_change, is_baseline)
+        sim_params = series_from_params(timestamp, desired_state, base, value, hour, min_percentage_change, is_baseline)
         simulation_index = save_simulaton_params(sim_params)
         print 'Simulation Index: ', simulation_index
         simulate(markets, sim_params)
@@ -57,7 +57,7 @@ def index_from_params(sim_params):
     """
     temp_params = sim_params.copy()
     if 'timestamp' in temp_params:
-        temp_params.drop('timestamp')
+        temp_params.drop('timestamp', inplace=True)
 
     for index, row in params_df.iterrows():
         if np.all(row.drop('timestamp') == temp_params):
@@ -80,14 +80,9 @@ def save_simulaton_params(sim_params):
     """
     global params_df
 
-    timestamp = int(time.time())
-
     index = index_from_params(sim_params)
     if index is None:
         # add data to config.PARAMS csv
-
-        sim_params['timestamp'] = timestamp
-
 
         params_df = params_df.append(sim_params, ignore_index=True)
         params_df.to_csv(config.PARAMS)
@@ -105,15 +100,11 @@ def simulate(markets, sim_params):
     If <sim_index>.csv exists, it extends by appending more rows to it
     
     
-    :param sim_index: 
-    :param desired_state: 
     :param markets: 
-    :param base: 
-    :param value: 
+    :param sim_params: pd.Series 
     :return: 
     """
     csv_filename = os.path.join(config.DATAFOLDER, '{0}.csv'.format(sim_params.name))
-    sim_params = params_df.loc[sim_params.name]
 
     if os.path.isfile(csv_filename):
         print 'csv found:', csv_filename
@@ -161,7 +152,8 @@ def portfolio_from_simulation(sim_index, time):
     dataframe.loc[:, 'Available'] = dataframe['Balance']
     dataframe.loc[:, 'Pending'] = 0
 
-    return dataframe
+    p = portfolio.Portfolio(dataframe)
+    return p
 
 
 def simulate_step(current_portfolio, market, data, sim_params):
@@ -254,12 +246,13 @@ def fix_csv():
     df.to_csv('test.csv', index=False)
 '''
 
-def series_from_params(desired_state, base, value, hour, min_percentage_change, is_baseline):
+def series_from_params(timestamp, desired_state, base, value, hour, min_percentage_change, is_baseline):
 
     # start sim_params with all currencies set to 0
     currencies = bittrex_utils.currencies_df().index.tolist()
     data_dict = {c:0 for c in currencies}
-    data_dict.update({'hour': hour,
+    data_dict.update({'timestamp': timestamp,
+                      'hour': hour,
                       'is_baseline': is_baseline,
                       'min_percentage_change': min_percentage_change,
                       'base': base,
@@ -268,3 +261,4 @@ def series_from_params(desired_state, base, value, hour, min_percentage_change, 
     sim_params.update(desired_state['Weight'])
 
     return sim_params
+

@@ -15,6 +15,8 @@ import numpy as np
 from simulations_code import simulate
 import config
 
+PARAMS_DF = simulate.params_df
+
 
 hv.extension('bokeh')
 renderer = hv.Store.renderers['bokeh'].instance(fig='html')
@@ -22,25 +24,72 @@ renderer = hv.Store.renderers['bokeh'].instance(fig='html')
 
 class Simulations(object):
     def __init__(self):
-        self.params_df = pd.read_csv(config.PARAMS, index_col=0)
-        self.data = {}
+        self.timestamps = PARAMS_DF['timestamp'].unique()
 
-        for index in self.params_df.index:
-            self.data[index] = _load_data(index)
-            _compute_mean_percentage(self.data[index])
-            _compute_rate(self.data[index])
+        self.simulations_sets = [SimulationSet(t) for t in self.timestamps]
 
 
-def load_all_values():
-    """ Load all 'value' columns from all simulations into a big DataFrame indexed by 'time'.
+
+class SimulationSet(object):
+    def __init__(self, timestamp):
+        self.timestamp = timestamp
+        self.indexes = PARAMS_DF[PARAMS_DF['timestamp']==self.timestamp].index
+        self.baseline_index = self.get_baseline_index()
+        self.usd = None
+
+    def get_baseline_index(self):
+        temp_df = PARAMS_DF.loc[self.indexes]
+        index_as_list = temp_df[temp_df['is_baseline']==True].index.tolist()
+        assert len(index_as_list) == 1
+        return index_as_list[0]
+
+    def load_set(self):
+        self.usd = load_simulation_usds(self.indexes)
+        #self.usd.dropna(inplace=True, how='any')
+
+    def get_rate(self):
+        if self.usd is None:
+            self.load_set()
+        self.rate = self.usd.apply(_compute_rate, axis=0)
+
+    def get_percentage(self):
+        if self.usd is None:
+            self.load_set()
+        self.percentage = self.usd.apply(_compute_mean_percentage, axis=0)
+
+    def plot(self):
+        self.load_set()
+        self.get_rate()
+        self.get_percentage()
+        value = hv.Dimension(('Value', 'usd'), unit='U$D')
+        time = hv.Dimension(('Time', 'Time'), unit='s')
+        days = (self.usd.index - self.usd.index[0]) / config.ONEDAY
+
+        all_usd = [hv.Scatter((days, self.usd[col]), kdims=[time], vdims=[value]) for col in self.usd.columns]
+        all_usd_ratios = [hv.Scatter((days, self.usd[col]/self.usd[self.baseline_index]), kdims=[time], vdims=['ratios']) for col in
+                          self.usd.columns]
+        all_usd_diff = [hv.Scatter((days, self.usd[col] - self.usd[self.baseline_index]), kdims=[time], vdims=['difference']) for col in
+                        self.usd.columns]
+        return (hv.Overlay(all_usd) + hv.Overlay(all_usd_diff) + hv.Overlay(all_usd_ratios))
+
+
+def get_timestamps():
+    return np.unique(PARAMS_DF['timestamp'])
+
+def load_simulation_usds(sim_indexes=None):
+    """ Load all 'usd' columns from all simulations into a big DataFrame indexed by 'time'.
     The name of each column is the index into "params_df" where we can get the simulation parameters from
     
     Each column has one simulation, there are potentially many NaNs per column since the 'index' in this DataFrame
     is the same for all simulations
     
     """
+
+    if sim_indexes is None:
+        sim_indexes = PARAMS_DF.index
+
     df = pd.DataFrame([])
-    for index in simulate.params_df.index:
+    for index in sim_indexes:
         new_df = _load_data(index)
 
         if new_df is not None:
@@ -73,29 +122,21 @@ def _load_data(index):
     return data
 
 
-def compute_mean_percentage(data_df):
-    return data_df.apply(_compute_mean_percentage, axis=0)
-
-
-def compute_mean_rate(data_df):
-    return data_df.apply(_compute_rate, axis=0)
-
-
 def _compute_mean_percentage(data_series):
     """ Compute percentage of increase at every point in time
      
-     row.data as a DataFrame with columns 'time' and 'value' we just compute the 'percentage' that value['time']
-     represents with respect to value[0]
+     row.data as a DataFrame with columns 'time' and 'usd' we just compute the 'percentage' that value['time']
+     represents with respect to usd[0]
     
     :args: data (pd.DataFrame), with columns 'time' and 'value'
     """
     assert type(data_series) == pd.Series
 
-    values = data_series.values
-    first_value = values[0]
+    usds = data_series.values
+    first_usd = usds[0]
     times = data_series.index
     first_time = times[0]
-    return (values - first_value) * 100.0 / first_value / (times - first_time)
+    return (usds - first_usd) * 100.0 / first_usd / (times - first_time)
 
 
 def _compute_rate(data_series):
@@ -105,17 +146,17 @@ def _compute_rate(data_series):
     """
     assert type(data_series) == pd.Series
 
-    values = data_series.values
-    first_value = values[0]
+    usds = data_series.values
+    first_usd = usds[0]
     times = data_series.index
     first_time = times[0]
 
     days = (times - first_time) / config.ONEDAY
-    # rate ** days = last_value / first_value
-    # days * log(rate) = log(last_value / first_value)
-    # rate = 10**(log(last_value / first_value) / days)
+    # rate ** days = last_usd / first_usd
+    # days * log(rate) = log(last_usd / first_usd)
+    # rate = 10**(log(last_usd / first_usd) / days)
 
-    rate = 10 ** (np.log10(values/first_value) / days)
+    rate = 10 ** (np.log10(usds/first_usd) / days)
     return rate
 
 
@@ -335,17 +376,3 @@ def evaluate_hour(N=None, currencies=None):
 
 params_df.loc[:, 'data'] = params_df.apply(lambda x: Simulation(x.name), axis=1)
 '''
-def plot_in_time(data):
-    """ TO start with, we jut plot 'baseline' and each 'hour' simulation
-    """
-    dict_spec = {'Curve': {'width': 600, 'height':600}}
-    # Create a dictionary linking 'N' to the corresponding Scatter plot
-    return hv.Curve(data)
-
-    holoMap = hv.HoloMap({column:hv.Scatter(data[column]), kdims=['name'], vdims=['time']) for N in data.columns})
-    holoview_4 = holoMap.select(N={4}).overlay()
-    holoview_8 = holoMap.select(N={8}).overlay()
-    holoview_16 = holoMap.select(N={16}).overlay()
-    holoview = holoview_4 + holoview_8 + holoview_16
-    renderer.save(holoview, os.path.join(FOLDER, 'layout_2'), sytle=dict(Image={'cmap':'jet'}))
-    """
