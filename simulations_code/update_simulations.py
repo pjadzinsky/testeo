@@ -14,10 +14,9 @@ def main():
     params_df = simulate.params_df
 
     markets = market.Markets(3600, 0)
-    import pudb
-    pudb.set_trace()
     for index, row in params_df.iterrows():
-        markets.reset()
+        hour = row['hour']
+        markets.reset(seconds=3600 * hour)
         simulate.simulate(markets, row)
 
 if __name__ == "__main__":

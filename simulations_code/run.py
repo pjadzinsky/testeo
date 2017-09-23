@@ -32,8 +32,7 @@ if __name__ == "__main__":
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
-
-    np.random.seed(1)
+    #np.random.seed(1)
     # do only one data without rebalancing as a baseline
     hour = min(FLAGS.hours)
     markets = market.Markets(3600 * hour, 0)
