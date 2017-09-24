@@ -8,11 +8,13 @@ import os
 import json
 import tempfile
 import time
+import psutil
 
 import boto3
 import gflags
 import numpy as np
 import pandas as pd
+import pprint
 
 import bittrex_utils
 import memoize
@@ -92,6 +94,7 @@ class Markets(object):
         if self.current_time > self.times[-1]:
             raise StopIteration
         else:
+            # TODO Make it lazy. Looping should not open the csv until the market needs to be used
             market = self.closest_market(self.current_time)
             self.current_time = market.time
 

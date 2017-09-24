@@ -236,6 +236,10 @@ def currencies_from_state(state):
     return currencies
 
 
+def n_from_state(state):
+    return len(currencies_from_state(state))
+
+
 def apply_transaction_cost(buy):
     """ buy is a float, the amount of either currency or dollars to buy (if positive) or sell (if negative)
     """

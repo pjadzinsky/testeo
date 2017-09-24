@@ -28,14 +28,35 @@ class Simulations(object):
 
         self.simulations_sets = [SimulationSet(t) for t in self.timestamps]
 
+    def evaluate(self, func, relative_time):
+        """ Return the value of func(simulation[p], baseline[p]) for every SimulationSet
+        
+        relative_time:  float in 0-1 range;
+                        0 means the first time when all simulations in the set are available
+                        1 means the last time when all simulations are available
+                        any other number is linearly mapped and the closest index is returned (where all simulations
+                        are available)
+        """
+        return [sim_set.evaluate(func, relative_time) for sim_set in self.simulations_sets]
+
+    def plot(self, func, rel_time1, rel_time2):
+        """
+        Make a scatter plot of func(sim[rel_time1], baseline[rel_time1]) vs func(sim[rel_time2], baseline[rel_time2])
+        
+        :param func: 
+        :param rel_time1: float, 0-1 range
+        :param rel_time2: float, 0-1 range
+        :return: 
+        """
 
 
 class SimulationSet(object):
     def __init__(self, timestamp):
+        print timestamp
         self.timestamp = timestamp
         self.indexes = PARAMS_DF[PARAMS_DF['timestamp']==self.timestamp].index
         self.baseline_index = self.get_baseline_index()
-        self.usd = None
+        self.usd = self._load_set()
 
     def get_baseline_index(self):
         temp_df = PARAMS_DF.loc[self.indexes]
@@ -43,22 +64,17 @@ class SimulationSet(object):
         assert len(index_as_list) == 1
         return index_as_list[0]
 
-    def load_set(self):
-        self.usd = load_simulation_usds(self.indexes)
+    def _load_set(self):
+        return load_simulation_usds(self.indexes)
         #self.usd.dropna(inplace=True, how='any')
 
     def get_rate(self):
-        if self.usd is None:
-            self.load_set()
         self.rate = self.usd.apply(_compute_rate, axis=0)
 
     def get_percentage(self):
-        if self.usd is None:
-            self.load_set()
         self.percentage = self.usd.apply(_compute_mean_percentage, axis=0)
 
     def plot(self):
-        self.load_set()
         self.get_rate()
         self.get_percentage()
         value = hv.Dimension(('Value', 'usd'), unit='U$D')
@@ -71,6 +87,58 @@ class SimulationSet(object):
         all_usd_diff = [hv.Scatter((days, self.usd[col] - self.usd[self.baseline_index]), kdims=[time], vdims=['difference']) for col in
                         self.usd.columns]
         return (hv.Overlay(all_usd) + hv.Overlay(all_usd_diff) + hv.Overlay(all_usd_ratios))
+
+    def evaluate(self, func, relative_time):
+        """ Return the value of func(simulation[p], baseline[p]) for every simulation in the set.
+        The idea is to abstract all the possible computations/normalizations and be able to speak in 'relative_time'
+        terms
+        
+        relative_time:  float in 0-1 range;
+                        0 means the first time when all simulations in the set are available
+                        1 means the last time when all simulations are available
+                        any other number is linearly mapped and the closest index is returned (where all simulations
+                        are available)
+        """
+        time = self._find_time(relative_time)
+        print self.timestamp, time, relative_time
+        return self._function_at_time(func, time)
+
+    def _function_at_time(self, func, time):
+        """ Return the value of func(simulation[time], baseline[time]) for every simulation in the set.
+        The idea is to abstract all the possible computations/normalizations
+        """
+        results = []
+        for index in self.indexes:
+            sim_value = self.usd.loc[time, index]
+            base_value = self.usd.loc[time, self.baseline_index]
+            results.append(func(sim_value, base_value))
+
+        return results
+
+    def _find_time(self, p):
+        """
+        Return a time in self.usd.index where all simulations have values.
+        Chosen time is mapped with p linearly from p=0 (self.usd.index[0]) to p=1 (self.usd.index[-1])
+        
+        :param p: 
+        :return: 
+        """
+        assert p >= 0
+        assert p <= 1
+
+        nonans_df = self.usd.dropna()
+        index = nonans_df.index.values
+        if p == 1:
+            return index[-1]
+        if p == 0:
+            return index[0]
+        else:
+            ideal_time = index[0] + p * (index[-1] - index[0])
+            sorted_index = np.searchsorted(index, ideal_time)
+            if ideal_time - index[sorted_index - 1] < index[sorted_index] - ideal_time:
+                return index[sorted_index - 1]
+            else:
+                return index[sorted_index]
 
 
 def get_timestamps():

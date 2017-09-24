@@ -34,19 +34,24 @@ def simulate_set(desired_state, base, value, hours, markets, min_percentage_chan
     twice, first with 'is_baseline' set to True as the baseline
     """
     timestamp = int(time.time())
+
+    # First generate all simulation parameters and add them to params_csv
     is_baseline = True
     sim_params = series_from_params(timestamp, desired_state, base, value, min(hours), min_percentage_change,
                                     is_baseline)
     simulation_index = save_simulaton_params(sim_params)
-
-    print 'Simulation Index: ', simulation_index
-    simulate(markets, sim_params)
+    all_params_to_simulate = [(simulation_index,sim_params)]
 
     is_baseline = False
     for hour in hours:
-        markets.reset(seconds=config.ONEHOUR * hour)
         sim_params = series_from_params(timestamp, desired_state, base, value, hour, min_percentage_change, is_baseline)
         simulation_index = save_simulaton_params(sim_params)
+        all_params_to_simulate.append((simulation_index, sim_params))
+
+    # now just loop through those parameters and compute a simulation for each
+    for simulation_index, sim_params in all_params_to_simulate:
+        hour = sim_params['hour']
+        markets.reset(seconds=config.ONEHOUR * hour)
         print 'Simulation Index: ', simulation_index
         simulate(markets, sim_params)
 
@@ -112,9 +117,7 @@ def simulate(markets, sim_params):
 
         # advance market iterator until 'time' exceeds the last time in 'data'
         last_time = data['time'].iloc[-1]
-        for market in markets:
-            if market.time > last_time:
-                break
+        markets.reset(current_time=last_time, seconds=sim_params['hour'] * config.ONEHOUR)
 
         # update original_portfolio to be the last step in the simulation. This is the portfolio we have to modify in
         # the next step
@@ -180,7 +183,7 @@ def simulate_step(current_portfolio, market, data, sim_params):
     if is_baseline:
         pass
     else:
-        desired_state = state_from_params(sim_params)
+        desired_state = desired_state_from_params(sim_params)
         current_portfolio.rebalance(market, desired_state, ['BTC'], min_percentage_change)
 
     value = current_portfolio.total_value(market, ['USDT', 'BTC'])
@@ -192,13 +195,14 @@ def simulate_step(current_portfolio, market, data, sim_params):
     return data
 
 
-def state_from_params(sim_params):
+def desired_state_from_params(sim_params):
     """ Generate a 'state' from all the currencies in the simulation
     
     We are getting the currencies from the params_df, where currencies happen in the index (there are other things in
     the index as well). To get the currencies in the simulation we first remove everything in the index that is not
     a currency and then keep only those currencies that are set (have value equal to True)
     """
+    assert type(sim_params) == pd.Series
 
     currencies = [p for p in sim_params.index if sim_params[p] and p not in config.PARAMS_INDEX_THAT_ARE_NOT_CURRENCIES]
 
@@ -256,7 +260,8 @@ def series_from_params(timestamp, desired_state, base, value, hour, min_percenta
                       'is_baseline': is_baseline,
                       'min_percentage_change': min_percentage_change,
                       'base': base,
-                      'value': value})
+                      'value': value,
+                      'N': portfolio.n_from_state(desired_state)})
     sim_params = pd.Series(data_dict)
     sim_params.update(desired_state['Weight'])
 
