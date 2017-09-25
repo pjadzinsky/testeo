@@ -28,7 +28,7 @@ class Simulations(object):
 
         self.simulations_sets = [SimulationSet(t) for t in self.timestamps]
 
-    def evaluate(self, func, relative_time):
+    def evaluate(self, func, relative_time, flatten=True):
         """ Return the value of func(simulation[p], baseline[p]) for every SimulationSet
         
         relative_time:  float in 0-1 range;
@@ -37,26 +37,43 @@ class Simulations(object):
                         any other number is linearly mapped and the closest index is returned (where all simulations
                         are available)
         """
-        return [sim_set.evaluate(func, relative_time) for sim_set in self.simulations_sets]
+        evaluation = [sim_set.evaluate(func, relative_time) for sim_set in self.simulations_sets]
 
-    def plot(self, func, rel_time1, rel_time2):
-        """
-        Make a scatter plot of func(sim[rel_time1], baseline[rel_time1]) vs func(sim[rel_time2], baseline[rel_time2])
-        
-        :param func: 
-        :param rel_time1: float, 0-1 range
-        :param rel_time2: float, 0-1 range
-        :return: 
-        """
+        if flatten:
+            evaluation = sum(evaluation, [])
+        return evaluation
+
+    def get_param(self, parameter):
+        """ For every simulation run sim.get_param(parameter), append all lists together and flatten"""
+        result = [sim_set.get_param(parameter) for sim_set in self.simulations_sets]
+        result = sum(result, [])
+        return result
+
+    def get_df(self):
+        Ns = self.get_param('N')
+        hours = self.get_param('hour')
+        last_value_diff = self.evaluate(lambda x, y: x - y, 1)
+        last_value_ratio = self.evaluate(lambda x, y: x / y, 1)
+        last_value = self.evaluate(lambda x, y: x, 1)
+
+        df = pd.DataFrame({'N':Ns, 'hour': hours, 'last_value_diff': last_value_diff,
+                           'last_value_ratio': last_value_ratio, 'last_value': last_value})
+
+        return df
+
+        return hv.Points((x, y, Ns))#sel['petal_length', 'petal_width'], groupby='species').overlay()
 
 
 class SimulationSet(object):
     def __init__(self, timestamp):
-        print timestamp
         self.timestamp = timestamp
         self.indexes = PARAMS_DF[PARAMS_DF['timestamp']==self.timestamp].index
         self.baseline_index = self.get_baseline_index()
         self.usd = self._load_set()
+
+    def get_param(self, parameter):
+        assert isinstance(parameter, basestring)
+        return PARAMS_DF.loc[self.indexes, parameter].tolist()
 
     def get_baseline_index(self):
         temp_df = PARAMS_DF.loc[self.indexes]
@@ -100,7 +117,6 @@ class SimulationSet(object):
                         are available)
         """
         time = self._find_time(relative_time)
-        print self.timestamp, time, relative_time
         return self._function_at_time(func, time)
 
     def _function_at_time(self, func, time):
