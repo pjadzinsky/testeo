@@ -29,12 +29,10 @@ if __name__ == "__main__":
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     desired_state = portfolio.state_from_currencies(['XRP', 'ETH'])
 
-    import pudb
-    pudb.set_trace()
-    #current_market = market.Market.from_bittrex()
-    timestamp = 10
-    filename = os.path.expanduser('~/Testeo/simulations_data/markets/1502981286_short')
-    current_market = market.Market.from_local_file(filename, timestamp)
+    current_market = market.Market.from_bittrex()
+    #timestamp = 10
+    #filename = os.path.expanduser('~/Testeo/simulations_data/markets/1502981286_short')
+    #current_market = market.Market.from_local_file(filename, timestamp)
     p = portfolio.Portfolio.from_bittrex()
     print p.dataframe
     p.rebalance(current_market, desired_state, ['ETH'], 0, by_currency=False)

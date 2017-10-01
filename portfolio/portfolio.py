@@ -16,12 +16,15 @@ per currency and then say that no currency can have a ratio that is N times bigg
 """
 import numpy as np
 import pandas as pd
-from bittrex import bittrex
-import credentials
+import gflags
+
 import bittrex_utils
+import log
 
 import config
 
+gflags.DEFINE_boolean('simulating', True, "if set, 'mock_buy' is used instead of the real 'buy'")
+FLAGS = gflags.FLAGS
 COMMISION = 0.25/100
 
 class Portfolio(object):
@@ -179,7 +182,10 @@ class Portfolio(object):
             buy_df.loc[base, 'Buy'] = 0
             buy_df.loc[base, 'Buy ({})'.format(base)] = 0
 
-        self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
+        if FLAGS.simulating:
+            self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
+        else:
+            self.buy(buy_df, base)
 
     def mock_buy(self, buy_df):
         """
@@ -216,7 +222,7 @@ class Portfolio(object):
         self.dataframe.loc[base, 'Available'] -= self.dataframe[column].sum()
         self.dataframe.drop(['Buy', column, 'change'], inplace=True, axis=1)
 
-    def buy(self, buy_df, base_currency, market):
+    def buy(self, buy_df, base_currency):
         """
         Send buy/sell requests for all rows in buy_df
         
@@ -225,13 +231,37 @@ class Portfolio(object):
         :return: 
         """
         currencies = buy_df.index.tolist()
-        market_names = ['{base}-{currency}'.format(base=base_currency, currency=currency) for currency in currencies]
-        amount_to_buy = [market.currency_chain_value([currency, base_currency]) for curreny in currencies]
+        market_names = [_market_name(base_currency, currency) for currency in currencies]
+        amount_to_buy = buy_df['Buy ({})'.format(base_currency)]
 
-        import pprint
-        pprint.pprint(zip(currencies, market_names, amount_to_buy))
+        for currency, market_name, amount in zip(currencies, market_names, amount_to_buy):
+            if not market_name:
+                continue
+
+            if amount > 0:
+                msg = 'Would send BUY order'
+                trade = bittrex_utils.client.buy_market
+            else:
+                msg = 'Would send SELL order'
+                trade = bittrex_utils.client.sell_market
+                amount *= -1
+            print msg
+            print 'Market_name: {}, amount: {}'.format(market_name, amount)
+
+            import pudb
+            pudb.set_trace()
+            response = trade(market_name, amount)
+            log.info(response)
 
 
+
+
+def _market_name(base, currency):
+    name = base + '-' + currency
+    if name in bittrex_utils.market_names():
+        return name
+
+    return None
 
 
 def state_from_largest_markes(market, N, include_usd):
