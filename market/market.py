@@ -7,17 +7,14 @@ from itertools import product
 import os
 import json
 import tempfile
-import time
-import psutil
 
 import boto3
 import gflags
 import numpy as np
 import pandas as pd
-import pprint
 
-import bittrex_utils
 import memoize
+import bittrex_utils
 
 
 gflags.DEFINE_integer('max_markets', None, 'if set, that is the max number of markets to use')
@@ -204,6 +201,11 @@ class Market(object):
             # object points to a row that we don't have in df, add it
             bucket.download_file(s3_key, filename)
             return cls.from_local_file(filename, timestamp)
+
+    @classmethod
+    def from_bittrex(cls):
+        timestamp, prices_df = bittrex_utils.get_current_market()
+        return cls(timestamp, prices_df)
 
     def _market_name(self,  base, currency):
         return base + "-" + currency

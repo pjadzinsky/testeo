@@ -26,7 +26,7 @@ class Simulations(object):
     def __init__(self):
         self.timestamps = PARAMS_DF['timestamp'].unique()
 
-        self.simulations_sets = [SimulationSet(t) for t in self.timestamps]
+        self.simulations_sets = {t:SimulationSet(t) for t in self.timestamps}
 
     def evaluate(self, func, relative_time, flatten=True):
         """ Return the value of func(simulation[p], baseline[p]) for every SimulationSet
@@ -37,7 +37,7 @@ class Simulations(object):
                         any other number is linearly mapped and the closest index is returned (where all simulations
                         are available)
         """
-        evaluation = [sim_set.evaluate(func, relative_time) for sim_set in self.simulations_sets]
+        evaluation = [sim_set.evaluate(func, relative_time) for sim_set in self.simulations_sets.values()]
 
         if flatten:
             evaluation = sum(evaluation, [])
@@ -45,16 +45,22 @@ class Simulations(object):
 
     def get_param(self, parameter):
         """ For every simulation run sim.get_param(parameter), append all lists together and flatten"""
-        result = [sim_set.get_param(parameter) for sim_set in self.simulations_sets]
+        result = [sim_set.get_param(parameter) for sim_set in self.simulations_sets.values()]
         result = sum(result, [])
         return result
 
     def get_df(self):
+        """
+        Return a dataframe with Columns N, hour, last_Value_diff, last_value_ratio and last_value
+        The values that depend on the simulation (everything but 'N' and 'hour' are taken at 'rel_time'
+        :return: 
+        """
+        rel_time = 1
         Ns = self.get_param('N')
         hours = self.get_param('hour')
-        last_value_diff = self.evaluate(lambda x, y: x - y, 1)
-        last_value_ratio = self.evaluate(lambda x, y: x / y, 1)
-        last_value = self.evaluate(lambda x, y: x, 1)
+        last_value_diff = self.evaluate(lambda x, y: x - y, rel_time)
+        last_value_ratio = self.evaluate(lambda x, y: x / y, rel_time)
+        last_value = self.evaluate(lambda x, y: x, rel_time)
 
         df = pd.DataFrame({'N':Ns, 'hour': hours, 'last_value_diff': last_value_diff,
                            'last_value_ratio': last_value_ratio, 'last_value': last_value})
@@ -90,6 +96,10 @@ class SimulationSet(object):
 
     def get_percentage(self):
         self.percentage = self.usd.apply(_compute_mean_percentage, axis=0)
+
+    def get_difference(self):
+        baseline = self.usd[self.get_baseline_index()]
+        self.difference = self.usd.apply(lambda x: x - baseline, axis=1)
 
     def plot(self):
         self.get_rate()
@@ -159,6 +169,39 @@ class SimulationSet(object):
 
 def get_timestamps():
     return np.unique(PARAMS_DF['timestamp'])
+
+def get_holomap(df):
+    """ Produce a dictionary linking tuples of the form (timestamp, N, hour, is_baseline) to their corresponding data
+    """
+    holomap = hv.HoloMap({mi_tuple:points(df, *mi_tuple) for mi_tuple in df.columns},
+                         kdims=['timestamp', 'N', 'hour', 'is_baseline'])
+    return holomap
+
+def points(df, timestamp, N, hour, is_baseline):
+    return hv.Points((df.index, df[timestamp, N, hour, is_baseline]))
+
+def load_all():
+    """
+    Load all simulations
+    The index is time in hours
+    The columns is a multi-index with 'timestamp', 'N', 'hour', 'is_baseline'
+    :param timestamp: 
+    :return: 
+    """
+    df = load_simulation_usds()
+    indexes = df.columns.tolist()
+    Ns = PARAMS_DF.loc[indexes, 'N']
+    hours = PARAMS_DF.loc[indexes, 'hour']
+    is_baselines = PARAMS_DF.loc[indexes, 'is_baseline']
+    timestamps = PARAMS_DF.loc[indexes, 'timestamp']
+
+    mi = pd.MultiIndex.from_arrays((timestamps, Ns, hours, is_baselines),
+                                   names=('timestamp', 'N', 'hour', 'is_baseline'))
+    df.columns = mi
+    _, new_order = df.columns.sortlevel()
+    return df[new_order]
+    #self.usd.dropna(inplace=True, how='any')
+
 
 def load_simulation_usds(sim_indexes=None):
     """ Load all 'usd' columns from all simulations into a big DataFrame indexed by 'time'.

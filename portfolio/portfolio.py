@@ -16,6 +16,9 @@ per currency and then say that no currency can have a ratio that is N times bigg
 """
 import numpy as np
 import pandas as pd
+from bittrex import bittrex
+import credentials
+import bittrex_utils
 
 import config
 
@@ -36,7 +39,7 @@ class Portfolio(object):
         return p
 
     @classmethod
-    def from_simulation_index(cls, market, sim_index):
+    def from_simulation_index(cls, sim_index):
         params_df = pd.read_csv(config.PARAMS, index_col=0)
         sim_params = params_df.loc[sim_index]
         p = cls.from_simulation_params(sim_params)
@@ -55,10 +58,16 @@ class Portfolio(object):
         p = cls._start_portfolio(market, state, base, value)
         return p
 
+    @classmethod
+    def from_bittrex(cls):
+        return cls(bittrex_utils.get_balances())
+
+
     def copy(self):
         cls = self.__class__
         new_df = self.dataframe.copy()
         return cls(new_df)
+
 
     @staticmethod
     def _start_portfolio(market, state, base, value):
@@ -92,7 +101,7 @@ class Portfolio(object):
 
         return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Balance'],
                                axis=1)
-    def ideal_rebalance(self, market, state, intermediate_currencies = ['BTC']):
+    def ideal_rebalance(self, market, state, intermediate_currencies):
         """
         Given market, state and intermediate_currencies return the amount to buy (+) or sell (-) for each currency
         to achieve perfect balance.
@@ -100,26 +109,37 @@ class Portfolio(object):
         At this point we don't look at trading costs, sinking currencies, etc
         
         returned dataframe has columns:
-        target_usdt:    the value in USD we should have in each currency after rebalancing
+        target_base:    the value in 'base' we should have in each currency after rebalancing
         target_currency:    the ideal amount of each currency that achieves this ideal rebalancing
         Buy:            the amount of currency that we have to buy (if > 0) or sell (if < 0) to obtain
                         target_currency
-        Buy (USDT):     Amount of USDT needed for the transaction (not taking transactions costs into accoun)
-        intermediate_currencies: ?
+        Buy (base):     Amount of base needed for the transaction (not taking transactions costs into account)
+        intermediate_currencies:    each currency in 'state' will be converted to values in 'base' where base is
+                                    intermediate_currencies[0] and the conversion is done by traversing
+                                    from currency in state to intermediate_currencies[-1], then to
+                                    intermediate_currencies[-2], ..., ending in intermediate_currencies[0]
+                                    
+                                    most likely this is going to be either:
+                                        ['USDT', 'BTC']
+                                        ['USDT', 'ETH']
+                                        ['BTC']
+                                        ['ETH']
         """
-        total_value = self.total_value(market, ['USDT', 'BTC'])
+        total_value = self.total_value(market, intermediate_currencies)
 
         buy_df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
         buy_df.fillna(0, inplace=True)
 
-        buy_df.loc[:, 'target_usdt'] = buy_df['Weight'] * total_value
-        buy_df.loc[:, 'currency_in_usdt'] = buy_df.apply(
-            lambda x: market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]), axis=1)
-        buy_df.loc[:, 'target_currency'] = buy_df['target_usdt'] / buy_df['currency_in_usdt']
+        base = intermediate_currencies[0]
+
+        buy_df.loc[:, 'target_base'] = buy_df['Weight'] * total_value
+        buy_df.loc[:, 'currency_in_base'] = buy_df.apply(
+            lambda x: market.currency_chain_value([base] + intermediate_currencies + [x.name]), axis=1)
+        buy_df.loc[:, 'target_currency'] = buy_df['target_base'] / buy_df['currency_in_base']
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
-        buy_df.loc[:, 'Buy (USDT)'] = buy_df.apply(
-            lambda x: x.Buy * market.currency_chain_value(['USDT'] + intermediate_currencies + [x.name]),
+        buy_df.loc[:, 'Buy ({base})'.format(base=intermediate_currencies[0])] = buy_df.apply(
+            lambda x: x.Buy * market.currency_chain_value([base] + intermediate_currencies + [x.name]),
             axis=1
         )
 
@@ -137,26 +157,29 @@ class Portfolio(object):
         # apply transaction costs
         buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
-        # we only buy/sell is movement is above 'min_percentage_change'. However, this movement could be in the
-        # amount of cryptocurrency we own (by_currency=True) or in the USDT it represents (by_currency=False)
+        base = intermediate_currencies[0]
+
+        # we only buy/sell if movement is above 'min_percentage_change'. However, this movement could be in the
+        # amount of cryptocurrency we own (by_currency=True) or in the amount of 'base' it represents (by_currency=False)
         for currency in buy_df.index:
             if by_currency:
                 # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
                 percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
             else:
-                # if 'buy_df['Buy (USDT)'] represents less than 'min_percentage_change' from 'position' don't do anything
-                percentage_change = np.abs(buy_df.loc[currency, 'Buy (USDT)']) / buy_df.loc[currency, 'target_usdt']
+                # if 'buy_df['Buy (base)'] represents less than 'min_percentage_change' from 'position' don't do anything
+                percentage_change = np.abs(buy_df.loc[currency, 'Buy ({})'.format(base)]) / \
+                                    buy_df.loc[currency, 'target_base']
             buy_df.loc[currency, "change"] = percentage_change
             if percentage_change < min_percentage_change:
                 buy_df.loc[currency, 'Buy'] = 0
 
-        # if 'USDT' is in self.dataframe, remove it. Each transaction is simulated against 'USDT' but we don't
-        # buy/sell 'USDT' directly. Not doing this will lead to problems and double counting
-        if 'USDT' in buy_df.index:
-            buy_df.loc['USDT', 'Buy'] = 0
-            buy_df.loc['USDT', 'Buy (USDT)'] = 0
+        # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
+        # buy/sell 'base' directly. Not doing this will lead to problems and double counting
+        if base in buy_df.index:
+            buy_df.loc[base, 'Buy'] = 0
+            buy_df.loc[base, 'Buy ({})'.format(base)] = 0
 
-        self.mock_buy(buy_df[['Buy', 'Buy (USDT)', 'change']])
+        self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
 
     def mock_buy(self, buy_df):
         """
@@ -177,6 +200,10 @@ class Portfolio(object):
         # when we want to sell X, we end up with x * (1 - cost) base. I'm modeling this as we actuall sold
         # x * (1 + cost)
 
+        # get 'base' name from the column named 'Buy (base)'
+        column = [c for c in buy_df.columns if c.startswith("Buy (")][0]
+        base = column[5:-1]
+
         # the 'index' in buy_df might not be the same as in self.dataframe. That's why we start merging based on
         # index and we use 'outer'.
         self.dataframe = pd.merge(self.dataframe, buy_df, left_index=True, right_index=True, how='outer')
@@ -185,9 +212,26 @@ class Portfolio(object):
         self.dataframe['Balance'] += self.dataframe['Buy']
         self.dataframe['Available'] += self.dataframe['Buy']
 
-        self.dataframe.loc['USDT', 'Balance'] -= self.dataframe['Buy (USDT)'].sum()
-        self.dataframe.loc['USDT', 'Available'] -= self.dataframe['Buy (USDT)'].sum()
-        self.dataframe.drop(['Buy', 'Buy (USDT)', 'change'], inplace=True, axis=1)
+        self.dataframe.loc[base, 'Balance'] -= self.dataframe[column].sum()
+        self.dataframe.loc[base, 'Available'] -= self.dataframe[column].sum()
+        self.dataframe.drop(['Buy', column, 'change'], inplace=True, axis=1)
+
+    def buy(self, buy_df, base_currency, market):
+        """
+        Send buy/sell requests for all rows in buy_df
+        
+        :param buy_df: 
+        :param base_currency: 
+        :return: 
+        """
+        currencies = buy_df.index.tolist()
+        market_names = ['{base}-{currency}'.format(base=base_currency, currency=currency) for currency in currencies]
+        amount_to_buy = [market.currency_chain_value([currency, base_currency]) for curreny in currencies]
+
+        import pprint
+        pprint.pprint(zip(currencies, market_names, amount_to_buy))
+
+
 
 
 def state_from_largest_markes(market, N, include_usd):
