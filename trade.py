@@ -26,6 +26,7 @@ if __name__ == "__main__":
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
+    print 'FLAGS.simulating:', FLAGS.simulating
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     desired_state = portfolio.state_from_currencies(['XRP', 'ETH'])
 

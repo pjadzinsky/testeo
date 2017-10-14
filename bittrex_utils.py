@@ -21,6 +21,7 @@ class Bittrex(bittrex.Bittrex):
 
         return response
 
+
 client = Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
 
 

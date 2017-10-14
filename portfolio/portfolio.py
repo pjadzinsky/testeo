@@ -26,6 +26,8 @@ import config
 gflags.DEFINE_boolean('simulating', True, "if set, 'mock_buy' is used instead of the real 'buy'")
 FLAGS = gflags.FLAGS
 COMMISION = 0.25/100
+SATOSHI = 10**-8  # in BTC
+MINIMUM_TRADE = 50000 * SATOSHI
 
 class Portfolio(object):
     """
@@ -179,8 +181,9 @@ class Portfolio(object):
         # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
         if base in buy_df.index:
-            buy_df.loc[base, 'Buy'] = 0
-            buy_df.loc[base, 'Buy ({})'.format(base)] = 0
+            remove_transaction(buy_df, base)
+
+        apply_min_transaction_size(market, buy_df, base)
 
         if FLAGS.simulating:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
@@ -230,30 +233,48 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
-        currencies = buy_df.index.tolist()
-        market_names = [_market_name(base_currency, currency) for currency in currencies]
-        amount_to_buy = buy_df['Buy ({})'.format(base_currency)]
-
-        for currency, market_name, amount in zip(currencies, market_names, amount_to_buy):
-            if not market_name:
+        for currency, row in buy_df.iterrows():
+            market_name = _market_name(base_currency, currency)
+            amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
+            amount_to_buy_in_currency = row['Buy']
+            if amount_to_buy_in_currency == 0:
                 continue
+            rate = amount_to_buy_in_base / amount_to_buy_in_currency
+            satoshis = row['SAT']
 
-            if amount > 0:
+            if amount_to_buy_in_base > 0:
                 msg = 'Would send BUY order'
-                trade = bittrex_utils.client.buy_market
+                trade = bittrex_utils.client.buy_limit
             else:
                 msg = 'Would send SELL order'
-                trade = bittrex_utils.client.sell_market
-                amount *= -1
+                trade = bittrex_utils.client.sell_limit
+                amount_to_buy_in_currency *= -1
+            print '*'*80
             print msg
-            print 'Market_name: {}, amount: {}'.format(market_name, amount)
+            print 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
+                                                                          rate, satoshis)
 
-            import pudb
-            pudb.set_trace()
-            response = trade(market_name, amount)
+            response = trade(market_name, amount_to_buy_in_currency, rate)
+            print response
             log.info(response)
 
 
+def remove_transaction(buy_df, currency):
+    columns = [c for c in buy_df.columns if c.startswith('Buy')]
+    buy_df.loc[currency, columns] = 0
+
+
+def apply_min_transaction_size(market, buy_df, base):
+    """ Minimum transaction size is 50K Satoshis or 0.0005 BTC"""
+    # add a column to buy_df that is the amount of the transaction in SATOSHI
+    column = 'Buy ({base})'.format(base=base)
+    buy_df.loc[:, 'SAT'] = buy_df[column] * market.currency_chain_value(['BTC', base]) / SATOSHI
+
+    below_min_transaction = np.abs(buy_df['SAT']) < MINIMUM_TRADE
+
+    for currency, remove_flag in below_min_transaction.iteritems():
+        if remove_flag:
+            remove_transaction(buy_df, currency)
 
 
 def _market_name(base, currency):
