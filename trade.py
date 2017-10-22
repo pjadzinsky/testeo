@@ -26,16 +26,30 @@ if __name__ == "__main__":
         print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
         sys.exit(1)
 
+    print '*' * 80
     print 'FLAGS.simulating:', FLAGS.simulating
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
-    desired_state = portfolio.state_from_currencies(['XRP', 'ETH'])
+    desired_state = portfolio.state_from_currencies(['ADA', 'TRIG', 'OK', 'RISE', 'IOP', 'NAV', 'MONA', 'EMC2',
+                                                     'ADX', 'VTC', 'MCO', 'XVG', 'SYS', 'XLM', 'KMD', 'TKN'])
 
     current_market = market.Market.from_bittrex()
     #timestamp = 10
     #filename = os.path.expanduser('~/Testeo/simulations_data/markets/1502981286_short')
     #current_market = market.Market.from_local_file(filename, timestamp)
     p = portfolio.Portfolio.from_bittrex()
+
+    # The first time, I run with this series, limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': 0.165})
+    # but after the original portfolio was created I changed it to the next line, not spending more bitcoins but
+    # just trading between selected cryptocurrencies
+    limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': 0})
+    p.limit_to(limit)
+    # log the current state
+    s3_key = '{time}_portfolio.csv'.format(time=current_market.time)
+    if FLAGS.for_real:
+        portfolio.log_state(s3_key, p.dataframe)
     print p.dataframe
-    p.rebalance(current_market, desired_state, ['ETH'], 0, by_currency=False)
+    import pudb
+    pudb.set_trace()
+    p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print p.dataframe
 

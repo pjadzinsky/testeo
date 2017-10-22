@@ -116,7 +116,8 @@ class Markets(object):
         """
         self.reset()
         volume_df = pd.DataFrame([])
-        for t, market in self:
+        for market in self:
+            t = market.time
             volume_df[t] = market.usd_volumes(['BTC'])['Volume (USDT)']
 
         volume_df = volume_df.mean(axis=1)
@@ -133,7 +134,8 @@ class Markets(object):
         """
         # first concatenate all the 'Last' prices in last_df. Index is market_name and columns are 'time_sec'
         last_df = pd.DataFrame([])
-        for t, market in self:
+        for market in self:
+            t = market.time
             last_df[t] = market.prices_df['Last']
 
 
@@ -145,7 +147,8 @@ class Markets(object):
         """
         self.reset()
         variance_df = pd.DataFrame([])
-        for t, market in self:
+        for market in self:
+            t = market.time
             variance_df[t] = market.last_in_usdt(['BTC'])
 
         t = variance_df.T

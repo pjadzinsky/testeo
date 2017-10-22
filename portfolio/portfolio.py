@@ -14,9 +14,12 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+import tempfile
+
+import boto3
+import gflags
 import numpy as np
 import pandas as pd
-import gflags
 
 import bittrex_utils
 import log
@@ -24,14 +27,17 @@ import log
 import config
 
 gflags.DEFINE_boolean('simulating', True, "if set, 'mock_buy' is used instead of the real 'buy'")
+gflags.DEFINE_boolean('for_real', True, "if set, trade operations are sent to bittrex. Otherwise just prints to screen")
 FLAGS = gflags.FLAGS
+
+boto3.setup_default_session(profile_name='user2')
+s3_client = boto3.resource('s3')
+
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
-MINIMUM_TRADE = 50000 * SATOSHI
+MINIMUM_TRADE = 50000   # in SAT (satohis)
 
 class Portfolio(object):
-    """
-    """
     def __init__(self, dataframe):
         """
         Read portfolio from API
@@ -159,8 +165,9 @@ class Portfolio(object):
                     as a percentage)
         """
         buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
-        # apply transaction costs
-        buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
+        if FLAGS.simulating:
+            # apply transaction costs
+            buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
         base = intermediate_currencies[0]
 
@@ -188,6 +195,10 @@ class Portfolio(object):
         if FLAGS.simulating:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
+            # log the requested portfolio
+            if FLAGS.for_real:
+                s3_key = '{time}_buy_df.csv'.format(time=market.time)
+                log_state(s3_key, buy_df)
             self.buy(buy_df, base)
 
     def mock_buy(self, buy_df):
@@ -254,9 +265,56 @@ class Portfolio(object):
             print 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
                                                                           rate, satoshis)
 
-            response = trade(market_name, amount_to_buy_in_currency, rate)
-            print response
-            log.info(response)
+            if FLAGS.for_real:
+                response = trade(market_name, amount_to_buy_in_currency, rate)
+                print response
+                log.info(response)
+
+    def limit_to(self, limit_df):
+        """
+        limit self.dataframe to the given limit_df
+        If a currency is in both self.dataframe and limit_df, the 'Available' and 'Balance' fields
+        of self.dataframe are updated to the minimum between self.dataframe['Available'] and limit_df['Limit']
+        
+        for example if self.dataframe looks like:
+                Available   Balance Pending CryptoAddress
+        BTC       2.3            2.3     0       xxx
+        ETH      53.1           53.1     0       yyy
+        XRP    1200.0         1200.0     0       zzz
+        
+        and limit_df is:
+                Limit
+        BTC      1.2
+        XRP     600
+        
+        Then self.dataframe becomes
+                Available   Balance Pending CryptoAddress
+        BTC        1.2           1.2     0       xxx
+        ETH      53.1           53.1     0       yyy
+        XRP     600.0          600.0     0       zzz
+        
+        
+        :param currencies_df: 
+        :return:    None, operates in self.dataframe in place 
+        """
+        for currency, limit in limit_df.iteritems():
+            if currency in self.dataframe.index:
+                new_value = min(self.dataframe.loc[currency, 'Available'], limit)
+                if new_value == 0:
+                    print 'Removing {} from portfolio'.format(currency, new_value)
+                    self.dataframe.drop(currency, inplace=True)
+                else:
+                    print 'new limit for {} is {}'.format(currency, new_value)
+                    self.dataframe.loc[currency, 'Available'] = new_value
+                    self.dataframe.loc[currency, 'Balance'] = new_value
+
+
+
+def log_state(s3_key, some_df):
+    bucket = s3_client.Bucket('log-portfolio')
+    _, filename = tempfile.mkstemp()
+    some_df.to_csv(filename)
+    bucket.upload_file(filename, s3_key)
 
 
 def remove_transaction(buy_df, currency):
@@ -274,6 +332,8 @@ def apply_min_transaction_size(market, buy_df, base):
 
     for currency, remove_flag in below_min_transaction.iteritems():
         if remove_flag:
+            satoshis = buy_df.loc[currency, 'SAT']
+            print "Removing {} from transactions. Amount in satoshis is {}".format(currency, satoshis)
             remove_transaction(buy_df, currency)
 
 

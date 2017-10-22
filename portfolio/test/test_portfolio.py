@@ -145,6 +145,18 @@ class TestPortfolio(unittest.TestCase):
         self.assertAlmostEqual(balance_BTC_1, balance_BTC_0 + balance_BTC_0 * 1 * (1 - portfolio.COMMISION))
         self.assertAlmostEqual(balance_XRP_1, balance_XRP_0 + balance_XRP_0 * 1 * (1 - portfolio.COMMISION))
 
+    def test_limit(self):
+        market = self.markets.first_market()
+        currencies = "BTC,ETH,XRP"
+        base = 'USDT'
+        value = 10000
+        state, p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
+        limit = pd.Series({'BTC': 0.005, 'ETH': 0})
+        p.limit_to(limit)
+
+        self.assertEqual(p.dataframe.loc['BTC', 'Available'], 0.005)
+        self.assertEqual(p.dataframe.loc['ETH', 'Available'], 0)
+
 
 if __name__ == "__main__":
     try:
