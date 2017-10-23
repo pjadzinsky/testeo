@@ -254,12 +254,13 @@ class Portfolio(object):
             satoshis = row['SAT']
 
             if amount_to_buy_in_base > 0:
-                msg = 'Would send BUY order'
+                msg = 'send BUY order'
                 trade = bittrex_utils.client.buy_limit
             else:
-                msg = 'Would send SELL order'
+                msg = 'send SELL order'
                 trade = bittrex_utils.client.sell_limit
                 amount_to_buy_in_currency *= -1
+
             print '*'*80
             print msg
             print 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
@@ -269,6 +270,8 @@ class Portfolio(object):
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
                 log.info(response)
+            else:
+                print 'NOT FOR REAL, no order sent to bittrex'
 
     def limit_to(self, limit_df):
         """

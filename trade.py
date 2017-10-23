@@ -47,9 +47,8 @@ if __name__ == "__main__":
     s3_key = '{time}_portfolio.csv'.format(time=current_market.time)
     if FLAGS.for_real:
         portfolio.log_state(s3_key, p.dataframe)
-    print p.dataframe
-    import pudb
-    pudb.set_trace()
     p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print p.dataframe
+
+    print 'Current value is: {}(USD)'.format(p.total_value(current_market, ['USDT', 'BTC']))
 
