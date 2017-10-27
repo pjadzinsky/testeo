@@ -14,6 +14,7 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+import os
 import tempfile
 
 import boto3
@@ -72,6 +73,11 @@ class Portfolio(object):
     @classmethod
     def from_bittrex(cls):
         return cls(bittrex_utils.get_balances())
+
+    @classmethod
+    def from_csv(cls, csv):
+        dataframe = pd.read_csv(csv, index_col=0)
+        return cls(dataframe)
 
 
     def copy(self):
@@ -311,6 +317,20 @@ class Portfolio(object):
                     self.dataframe.loc[currency, 'Available'] = new_value
                     self.dataframe.loc[currency, 'Balance'] = new_value
 
+
+    def report_value(self, market, csv):
+        """ Add a line to the given csv 
+        csv is of the form time, value
+        """
+        if os.path.isfile(csv):
+            df = pd.read_csv(csv)
+        else:
+            df = pd.DataFrame([])
+
+        new_row = pd.Series({'time': market.time, 'value': self.total_value(market, ['USDT', 'BTC'])})
+
+        df = df.append(new_row, ignore_index=True)
+        df.to_csv(csv, index=False)
 
 
 def log_state(s3_key, some_df):

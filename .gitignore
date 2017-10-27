@@ -4,5 +4,6 @@ Testeo.egg-info*
 build/*
 dist/*
 .idea/*
-*.csv
-*/*.csv
+my_bittrex/data/*.csv
+simulations_data/*/*.csv
+simulations_code/*/*.csv
