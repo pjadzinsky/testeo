@@ -30,7 +30,17 @@ if __name__ == "__main__":
     limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': btc_balance_to_trade})
     p.limit_to(limit)
 
-    print 'Current value trading is: {}(USD)'.format(p.total_value(current_market, ['USDT', 'BTC']))
     p2 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_portfolio.csv')))
-    print 'Current value holding is: {}(USD)'.format(p2.total_value(current_market, ['USDT', 'BTC']))
 
+    # compare portfolios
+    merged = p.dataframe.merge(p2.dataframe, left_index=True, right_index=True, suffixes=['_trade', '_hold'])[['Balance_hold', 'Balance_trade']]
+    merged.loc[:, 'diff'] = merged['Balance_trade'] - merged['Balance_hold']
+    merged.loc[:, '% diff'] = merged['diff'] * 100 / merged['Balance_hold']
+    print merged
+
+    trading_value = p.total_value(current_market, ['USDT', 'BTC'])
+    holding_value = p2.total_value(current_market, ['USDT', 'BTC'])
+    print 'Current value trading is: {}(USD)'.format(trading_value)
+    print 'Current value holding is: {}(USD)'.format(holding_value)
+
+    print 'ratio is: ', trading_value / holding_value
