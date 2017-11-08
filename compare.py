@@ -1,24 +1,37 @@
 #!/usr/bin/python
 import os
+import sys
 
-import pandas as pd
+import gflags
 import holoviews as hv
+import pandas as pd
 
 from market import market
 from portfolio import portfolio
-from simulations_code import simulate
 
 
+FLAGS = gflags.FLAGS
 hv.extension('bokeh', 'matplotlib')
 
 def plot():
     holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
     trading_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
-    my_object = hv.Curve(holding_df) * hv.Curve(trading_df)
+
+    days_dim = hv.Dimension('Days')
+    # convert to days
+    t0 = holding_df.loc[0, 'time']
+    holding_df.loc[:, 'time'] = (holding_df['time'] - t0) / 86400
+    trading_df.loc[:, 'time'] = (trading_df['time'] - t0) / 86400
+    my_object = hv.Curve(holding_df, label='holding') * hv.Curve(trading_df, label='trading')
     renderer = hv.renderer('bokeh').instance()#fig='svg', holomap='gif')
     renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
 if __name__ == "__main__":
+    try:
+        argv = FLAGS(sys.argv)
+    except gflags.FlagsError as e:
+        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
+        sys.exit(1)
 
     print '*' * 80
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'

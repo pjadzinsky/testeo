@@ -1,12 +1,54 @@
+import os
 import time
 
+from base64 import b64decode
+from bittrex import bittrex
+import boto3
+import gflags
 import pandas as pd
 
-from bittrex import bittrex
-import credentials
 import log
 import memoize
 
+gflags.DEFINE_enum('account', None, ['pablo', 'gaby'], 'Either to log into Pablo or Gaby account')
+gflags.MarkFlagAsRequired('account')
+
+FLAGS = gflags.FLAGS
+
+def get_key(account):
+    if account == 'pablo':
+        if os.environ['LOGNAME'] == 'mousidev':
+            key = os.environ['BITTREX_KEY_PABLO']
+        else:
+            encrypted_key = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
+            key = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_key))['Plaintext']
+    elif account == 'gaby':
+        if os.environ['LOGNAME'] == 'mousidev':
+            key = os.environ['BITTREX_KEY_GABY']
+        else:
+            encrypted_key = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
+            key = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_key))['Plaintext']
+    return key
+
+
+def get_secret(account):
+    if account == 'pablo':
+        if os.environ['LOGNAME'] == 'mousidev':
+            secret = os.environ['BITTREX_SECRET_PABLO']
+        else:
+            encrypted_secret = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
+            secret = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_secret))['Plaintext']
+    elif account == 'gaby':
+        if os.environ['LOGNAME'] == 'mousidev':
+            secret = os.environ['BITTREX_SECRET_GABY']
+        else:
+            encrypted_secret = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
+            secret = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_secret))['Plaintext']
+    return secret
+
+
+# Decrypt code should run once and variables stored outside of the function
+# handler so that these are decrypted once per container
 
 currencies_timestamp = float('-inf')
 currencies_df = None
@@ -22,7 +64,7 @@ class Bittrex(bittrex.Bittrex):
         return response
 
 
-client = Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
+client = Bittrex(BITTREX_KEY, BITTREX_SECRET)
 
 
 @memoize.memoized

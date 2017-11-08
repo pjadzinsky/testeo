@@ -17,12 +17,13 @@ per currency and then say that no currency can have a ratio that is N times bigg
 import os
 import tempfile
 
+
 import boto3
 import gflags
 import numpy as np
 import pandas as pd
-
 import bittrex_utils
+
 import log
 
 import config

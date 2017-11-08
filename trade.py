@@ -3,8 +3,8 @@ import os
 import sys
 
 import gflags
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from market import market
 from portfolio import portfolio
@@ -14,8 +14,10 @@ gflags.DEFINE_multi_int('hour', 24, 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "1 is 100%")
 gflags.DEFINE_string('state_csv', None, "path to csv containing a 'state'")
+
 FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be positive or 0')
+
 #gflags.RegisterValidator('state_csv', os.path.isfile)
 
 
