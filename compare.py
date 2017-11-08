@@ -2,11 +2,21 @@
 import os
 
 import pandas as pd
+import holoviews as hv
 
 from market import market
 from portfolio import portfolio
 from simulations_code import simulate
 
+
+hv.extension('bokeh', 'matplotlib')
+
+def plot():
+    holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
+    trading_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
+    my_object = hv.Curve(holding_df) * hv.Curve(trading_df)
+    renderer = hv.renderer('bokeh').instance()#fig='svg', holomap='gif')
+    renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
 if __name__ == "__main__":
 
@@ -44,3 +54,6 @@ if __name__ == "__main__":
     print 'Current value holding is: {}(USD)'.format(holding_value)
 
     print 'ratio is: ', trading_value / holding_value
+    plot()
+
+
