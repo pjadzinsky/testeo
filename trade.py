@@ -58,6 +58,9 @@ if __name__ == "__main__":
     p.report_value(current_market, os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
 
     print 'Current value is: {}(USD)'.format(p.total_value(current_market, ['USDT', 'BTC']))
-    p2 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_portfolio.csv')))
+    p2 = portfolio.Portfolio.from_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/original_portfolio.csv'))
     p2.report_value(current_market, os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
+
+    p3 = portfolio.Portfolio.from_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/original_bitcoins.csv'))
+    p3.report_value(current_market, os.path.expanduser('~/Testeo/results/Portfolio_1/bitcoins.csv'))
 
