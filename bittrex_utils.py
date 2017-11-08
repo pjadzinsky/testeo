@@ -10,41 +10,12 @@ import pandas as pd
 import log
 import memoize
 
-gflags.DEFINE_enum('account', None, ['pablo', 'gaby'], 'Either to log into Pablo or Gaby account')
-gflags.MarkFlagAsRequired('account')
-
 FLAGS = gflags.FLAGS
 
-def get_key(account):
-    if account == 'pablo':
-        if os.environ['LOGNAME'] == 'mousidev':
-            key = os.environ['BITTREX_KEY_PABLO']
-        else:
-            encrypted_key = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
-            key = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_key))['Plaintext']
-    elif account == 'gaby':
-        if os.environ['LOGNAME'] == 'mousidev':
-            key = os.environ['BITTREX_KEY_GABY']
-        else:
-            encrypted_key = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
-            key = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_key))['Plaintext']
-    return key
-
-
-def get_secret(account):
-    if account == 'pablo':
-        if os.environ['LOGNAME'] == 'mousidev':
-            secret = os.environ['BITTREX_SECRET_PABLO']
-        else:
-            encrypted_secret = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
-            secret = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_secret))['Plaintext']
-    elif account == 'gaby':
-        if os.environ['LOGNAME'] == 'mousidev':
-            secret = os.environ['BITTREX_SECRET_GABY']
-        else:
-            encrypted_secret = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
-            secret = boto3.client('kms').decrypt(CiphertextBlob=b64decode(encrypted_secret))['Plaintext']
-    return secret
+ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
+BITTREX_KEY = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
+BITTREX_SECRET = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 
 # Decrypt code should run once and variables stored outside of the function
