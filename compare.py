@@ -14,7 +14,9 @@ hv.extension('bokeh', 'matplotlib')
 def plot():
     holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
     trading_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
-    my_object = hv.Curve(holding_df) * hv.Curve(trading_df)
+    bitcoin_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/bitcoins.csv'))
+
+    my_object = hv.Curve(holding_df) * hv.Curve(trading_df) * hv.Curve(bitcoin_df)
     renderer = hv.renderer('bokeh').instance()#fig='svg', holomap='gif')
     renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
@@ -41,6 +43,7 @@ if __name__ == "__main__":
     p.limit_to(limit)
 
     p2 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_portfolio.csv')))
+    p3 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_bitcoins.csv')))
 
     # compare portfolios
     merged = p.dataframe.merge(p2.dataframe, left_index=True, right_index=True, suffixes=['_trade', '_hold'])[['Balance_hold', 'Balance_trade']]
@@ -50,8 +53,11 @@ if __name__ == "__main__":
 
     trading_value = p.total_value(current_market, ['USDT', 'BTC'])
     holding_value = p2.total_value(current_market, ['USDT', 'BTC'])
+    bitcoin_value = p3.total_value(current_market, ['USDT'])
+
     print 'Current value trading is: {}(USD)'.format(trading_value)
     print 'Current value holding is: {}(USD)'.format(holding_value)
+    print 'Current value bitcoin is: {}(USD)'.format(bitcoin_value)
 
     print 'ratio is: ', trading_value / holding_value
     plot()
