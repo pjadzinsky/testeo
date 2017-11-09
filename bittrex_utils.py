@@ -16,11 +16,16 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
+import pudb
+pudb.set_trace()
+session = boto3.Session(profile_name='user2')
+kms_client = session.client('kms', 'us-west-2')
+
 ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
-BITTREX_KEY = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+BITTREX_KEY = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
 
 ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
-BITTREX_SECRET = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
+BITTREX_SECRET = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 currencies_timestamp = float('-inf')
 currencies_df = None

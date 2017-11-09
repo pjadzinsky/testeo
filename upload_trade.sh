@@ -48,6 +48,6 @@ aws kms encrypt --key-id arn:aws:kms:us-west-2:703012228455:key/0e0e46cf-89e3-4d
     --plaintext \
     --profile user2 \
     --region us-west-2 \
-    123456
+    14c66e5b99684569b91de281d238953b
 
 
