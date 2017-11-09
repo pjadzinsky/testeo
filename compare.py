@@ -56,7 +56,9 @@ if __name__ == "__main__":
     # When I started Portfolio_1, I originaly had 0.66038387 BTC
     # From those, I traded 0.165 BTC leaving a balance of 0.49538387 BTC
     # Therefore I have to trade anythhing over the balance 0.49538387 BTC
-    btc_balance_to_trade = p.dataframe.loc['BTC', 'Available'] - 0.49538387
+    # On 11/09/2017 I transferred 0.165 BTC to Gaby's account, new balance is 0.32983071
+    btc_balance_to_trade = p.dataframe.loc['BTC', 'Available'] - 0.32983071
+
     limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': btc_balance_to_trade})
     p.limit_to(limit)
 
@@ -77,7 +79,8 @@ if __name__ == "__main__":
     print 'Current value holding is: {}(USD)'.format(holding_value)
     print 'Current value bitcoin is: {}(USD)'.format(bitcoin_value)
 
-    print 'ratio is: ', trading_value / holding_value
+    print 'trading/holding ratio is: ', trading_value / holding_value
+    print 'trading/bitcoin ratio is: ', trading_value / bitcoin_value
     plot()
 
 
