@@ -25,6 +25,10 @@ BITTREX_KEY = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plain
 ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
 BITTREX_SECRET = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
+print BITTREX_KEY
+print BITTREX_SECRET
+print BITTREX_KEY == BITTREX_SECRET
+
 currencies_timestamp = float('-inf')
 currencies_df = None
 
@@ -67,8 +71,6 @@ def get_balances():
     :return:  pd.Dataframe that can be used with portfolio.Portfolio(df)
               It is indexed by "Currency" and has columns Available, Balance, CryptoAddress, Pending, Requested, Uuid
     """
-    import pudb
-    pudb.set_trace()
     response = client.get_balances()
     result = _to_df(response['result'], 'Currency')
     return result
