@@ -14,6 +14,7 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+import json
 import os
 import tempfile
 
@@ -33,7 +34,7 @@ gflags.DEFINE_boolean('for_real', True, "if set, trade operations are sent to bi
 FLAGS = gflags.FLAGS
 
 boto3.setup_default_session(profile_name='user2')
-s3_client = boto3.resource('s3')
+s3_client = boto3.resource('s3', 'us-west-2')
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
@@ -79,7 +80,6 @@ class Portfolio(object):
     def from_csv(cls, csv):
         dataframe = pd.read_csv(csv, index_col=0)
         return cls(dataframe)
-
 
     def copy(self):
         cls = self.__class__

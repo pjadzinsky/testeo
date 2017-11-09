@@ -16,8 +16,6 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
-import pudb
-pudb.set_trace()
 session = boto3.Session(profile_name='user2')
 kms_client = session.client('kms', 'us-west-2')
 
