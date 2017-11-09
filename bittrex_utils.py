@@ -67,6 +67,8 @@ def get_balances():
     :return:  pd.Dataframe that can be used with portfolio.Portfolio(df)
               It is indexed by "Currency" and has columns Available, Balance, CryptoAddress, Pending, Requested, Uuid
     """
+    import pudb
+    pudb.set_trace()
     response = client.get_balances()
     result = _to_df(response['result'], 'Currency')
     return result
