@@ -12,14 +12,15 @@ import memoize
 
 FLAGS = gflags.FLAGS
 
-ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
-BITTREX_KEY = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
-ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
-BITTREX_SECRET = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
-
 
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
+
+ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
+BITTREX_KEY = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+
+ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
+BITTREX_SECRET = boto3.client('kms').decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 currencies_timestamp = float('-inf')
 currencies_df = None
