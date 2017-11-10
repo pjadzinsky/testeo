@@ -27,8 +27,10 @@ import bittrex_utils
 
 import config
 
-#boto3.setup_default_session(profile_name='user2')
-boto3.setup_default_session()
+if os.environ['LOGNAME'] == 'mousidev':
+    boto3.setup_default_session(profile_name='user2')
+else:
+    boto3.setup_default_session()
 s3_client = boto3.resource('s3', 'us-west-2')
 
 COMMISION = 0.25/100
@@ -75,6 +77,14 @@ class Portfolio(object):
     def from_csv(cls, csv):
         dataframe = pd.read_csv(csv, index_col=0)
         return cls(dataframe)
+
+    @classmethod
+    def from_s3_key(cls, s3_key):
+        _, temp = tempfile.mkstemp()
+        s3_client.Bucket('trading-portfolios').download_file(s3_key, temp)
+        dataframe = pd.read_csv(temp, index_col=0, comment='#')
+        return cls(dataframe)
+
 
     def copy(self):
         cls = self.__class__
@@ -175,7 +185,9 @@ class Portfolio(object):
 
         # we only buy/sell if movement is above 'min_percentage_change'. However, this movement could be in the
         # amount of cryptocurrency we own (by_currency=True) or in the amount of 'base' it represents (by_currency=False)
+        print 0
         for currency in buy_df.index:
+            """
             if by_currency:
                 # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
                 percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
@@ -186,18 +198,24 @@ class Portfolio(object):
             buy_df.loc[currency, "change"] = percentage_change
             if percentage_change < min_percentage_change:
                 buy_df.loc[currency, 'Buy'] = 0
+            """
+            pass
 
+        print 1
         # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
         if base in buy_df.index:
             remove_transaction(buy_df, base)
 
+        print 2
         apply_min_transaction_size(market, buy_df, base)
 
+        print 3
         msg = ''
         if os.environ['PORTFOLIO_SIMULATING']:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
+            print 4
             msg = self.buy(buy_df, base)
 
         return msg
@@ -245,6 +263,7 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
+        print 'inside "buy" method'
         msg = ''
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
@@ -268,10 +287,12 @@ class Portfolio(object):
             msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
+            print 'Right before if PORTFOLIO_FOR_REAL'
             if os.environ['PORTFOLIO_FOR_REAL']:
+                print 'inside "if"'
                 # log the requested portfolio
-                s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                log_state(s3_key, buy_df)
+                #s3_key = '{time}_buy_df.csv'.format(time=market.time)
+                #log_state(s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
         return msg
@@ -320,19 +341,28 @@ class Portfolio(object):
         csv is of the form time, value
         """
         print 'portfolio.report_value needs to be implemented'
-        """
-        response = s3_client.get_object(Bucket='bittrex-results', Key=s3_key)
-
-        if os.path.isfile(csv):
-            df = pd.read_csv(csv)
-        else:
+        _, temp = tempfile.mkstemp()
+        bucket = s3_client.Bucket('bittrex-results')
+        try:
+            bucket.download_file(s3_key, temp)
+            df = pd.read_csv(temp, comment='#')
+        except:
             df = pd.DataFrame([])
 
         new_row = pd.Series({'time': market.time, 'value': self.total_value(market, ['USDT', 'BTC'])})
 
         df = df.append(new_row, ignore_index=True)
-        df.to_csv(csv, index=False)
+        df.to_csv(temp, index=False)
+
+        bucket.upload_file(temp, s3_key)
+
+    def to_s3(self, s3_key):
+        """ Store self.dataframe in the given key
         """
+        bucket = s3_client.Bucket('trading-portfolios')
+        _, temp = tempfile.mkstemp()
+        self.dataframe.to_csv(temp, index=False)
+        bucket.upload_file(temp, s3_key)
 
 
 def log_state(s3_key, some_df):
@@ -434,4 +464,3 @@ def apply_transaction_cost(buy):
         buy += buy * COMMISION
 
     return buy
-

@@ -15,8 +15,10 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
-#session = boto3.Session(profile_name='user2')
-session = boto3.Session()
+if os.environ['LOGNAME'] == 'mousidev':
+    session = boto3.Session(profile_name='user2')
+else:
+    session = boto3.Session()
 kms_client = session.client('kms', 'us-west-2')
 
 ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
