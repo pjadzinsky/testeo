@@ -9,19 +9,14 @@ import json
 import tempfile
 
 import boto3
-import gflags
 import numpy as np
 import pandas as pd
 
-import memoize
 import bittrex_utils
 
 
-gflags.DEFINE_integer('max_markets', None, 'if set, that is the max number of markets to use')
-
-FLAGS = gflags.FLAGS
-
 boto3.setup_default_session(profile_name='user2')
+#boto3.setup_default_session()
 s3_client = boto3.resource('s3')
 
 bucket = s3_client.Bucket('my-bittrex')
@@ -45,9 +40,6 @@ class Markets(object):
             if 'short' in object.key:
                 timestamp = int(object.key.split('_')[0])
                 times.append(timestamp)
-
-                if FLAGS.max_markets and len(times) >= FLAGS.max_markets:
-                    break
 
         times.sort()
         self.times = times
@@ -351,3 +343,37 @@ class Market(object):
 
 def short_s3_key_from_timestamp(time):
     return "{0}_short".format(time)
+
+
+def pick_markets(N, markets_distance, rolling_window_size):
+    """
+    
+    :param N: Number of currencies to return
+    :param markets_distance: distsance in seconds in between market conditions used
+    :param rolling_window_size: How many points to take into accouont when computing volume and variance.
+                                Total time considered is rolling_window_size * markets_distance
+    :return: 
+    """
+    markets = Markets(markets_distance, 0)
+
+    volumes = markets.stats_volume()
+    print '*' * 80
+    print 'market volumes'
+    print volumes.head(20)
+
+    variance_df = markets.stats_variance(rolling_window_size)
+    mean_variance = variance_df.mean(axis=0)
+
+    mean_variance.sort_values(ascending=False, inplace=True)
+    print mean_variance.head(20)
+    print mean_variance.index.values[:30]
+    print '*' * 80
+
+    print type(volumes), type(mean_variance)
+    df = pd.concat([volumes, mean_variance], axis=1)
+    df.columns = ['volume', 'variance']
+    df = df[df['volume'] > 1E6]
+    df = df.sort_values('variance', ascending=False)
+    print ','.join(df.index.values[:N])
+    return df.index.values[:N]
+
