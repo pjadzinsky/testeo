@@ -19,12 +19,19 @@ if os.environ['LOGNAME'] == 'mousidev':
     session = boto3.Session(profile_name='user2')
 else:
     session = boto3.Session()
+
 kms_client = session.client('kms', 'us-west-2')
 
-ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
-BITTREX_KEY = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+if os.environ['BITTREX_ACCOUNT'] == 'gaby':
+    ENCRYPTED_KEY = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
+    ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
+elif os.environ['BITTREX_ACCOUNT'] == 'pablo':
+    ENCRYPTED_KEY = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
+    ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
+else:
+    raise NotImplementedError()
 
-ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
+BITTREX_KEY = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
 BITTREX_SECRET = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 print BITTREX_KEY

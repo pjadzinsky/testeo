@@ -15,12 +15,12 @@ quantities (not clear yet). One idea is to compute the ratio between the current
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
 import json
+import time
 import os
 import tempfile
 
 
 import boto3
-import gflags
 import numpy as np
 import pandas as pd
 import bittrex_utils
@@ -38,22 +38,23 @@ SATOSHI = 10**-8  # in BTC
 MINIMUM_TRADE = 50000   # in SAT (satohis)
 
 class Portfolio(object):
-    def __init__(self, dataframe):
+    def __init__(self, id, dataframe):
         """
         Read portfolio from API
         """
+        self.id = id
         self.dataframe = dataframe
 
     @classmethod
     def from_state(cls, market, state, base, value):
-        p = cls._start_portfolio(market, state, base, value)
+        p = cls._start_portfolio(0, market, state, base, value)
         return p
 
     @classmethod
     def from_simulation_index(cls, sim_index):
         params_df = pd.read_csv(config.PARAMS, index_col=0)
         sim_params = params_df.loc[sim_index]
-        p = cls.from_simulation_params(sim_params)
+        p = cls.from_simulation_params(0, sim_params)
         return p
 
     @classmethod
@@ -66,24 +67,41 @@ class Portfolio(object):
             if key in state.index:
                 state.drop(key, inplace=True, axis=0)
         state.columns = ['Weight']
-        p = cls._start_portfolio(market, state, base, value)
+        p = cls._start_portfolio(0, market, state, base, value)
         return p
 
     @classmethod
     def from_bittrex(cls):
-        return cls(bittrex_utils.get_balances())
+        id = os.environ['BITTREX_ACCOUNT']
+        return cls(id, bittrex_utils.get_balances())
 
     @classmethod
     def from_csv(cls, csv):
         dataframe = pd.read_csv(csv, index_col=0)
-        return cls(dataframe)
+        return cls(0, dataframe)
 
     @classmethod
     def from_s3_key(cls, s3_key):
         _, temp = tempfile.mkstemp()
-        s3_client.Bucket('trading-portfolios').download_file(s3_key, temp)
+        s3_client.Bucket('bittrex-portfolios').download_file(s3_key, temp)
         dataframe = pd.read_csv(temp, index_col=0, comment='#')
-        return cls(dataframe)
+        id = os.environ['BITTREX_ACCOUNT']
+        return cls(id, dataframe)
+
+    @classmethod
+    def last(cls):
+        bucket = s3_client.Bucket('bittrex-portfolios')
+        all_object_summaries = bucket.objects.all()
+        all_keys = [os.key for os in all_object_summaries]
+
+        # each key is of the form <account>/timestamp.csv. Keep only timestamp and convert it to an int
+        timestamps = [int(key.rstrip('.csv').split('/')[1]) for key in all_keys]
+
+        # find the key corresponding to the last timestamp
+        last_index = np.argmax(timestamps)
+        last_key = all_keys[last_index]
+
+        return cls.from_s3_key(last_key)
 
 
     def copy(self):
@@ -291,8 +309,8 @@ class Portfolio(object):
             if os.environ['PORTFOLIO_FOR_REAL']:
                 print 'inside "if"'
                 # log the requested portfolio
-                #s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                #log_state(s3_key, buy_df)
+                s3_key = '{time}_buy_df.csv'.format(time=market.time)
+                log_state('bittrex-buy-orders', s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
         return msg
@@ -337,37 +355,44 @@ class Portfolio(object):
 
 
     def report_value(self, market, s3_key):
-        """ Add a line to the given csv 
-        csv is of the form time, value
+        """ Add a line to the implied csv in s3
+        
+        csv is of the form time, USD, BTC
+        s3_key is: /<ACCOUNT>/s3_key
+        
+        In this way we'll end up with /gaby/bitcoins.csv, /gaby/trading.csv, /gaby/holding.csv, /pablo/bitcoins.csv, etc...
         """
-        print 'portfolio.report_value needs to be implemented'
         _, temp = tempfile.mkstemp()
         bucket = s3_client.Bucket('bittrex-results')
+        s3_key = '{account}/{s3_key}'.format(account=os.environ['BITTREX_ACCOUNT'], s3_key=s3_key)
         try:
             bucket.download_file(s3_key, temp)
             df = pd.read_csv(temp, comment='#')
         except:
             df = pd.DataFrame([])
 
-        new_row = pd.Series({'time': market.time, 'value': self.total_value(market, ['USDT', 'BTC'])})
+        new_row = pd.Series({'time': market.time, 'USD': self.total_value(market, ['USDT', 'BTC']),
+                             'BTC': self.total_value(market, ['BTC'])})
 
         df = df.append(new_row, ignore_index=True)
         df.to_csv(temp, index=False)
 
         bucket.upload_file(temp, s3_key)
 
-    def to_s3(self, s3_key):
+    def to_s3(self):
         """ Store self.dataframe in the given key
         """
         assert self.dataframe.index.name == 'Currency'
-        bucket = s3_client.Bucket('trading-portfolios')
+        bucket = s3_client.Bucket('bittrex-portfolios')
+        s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                               time=int(time.time()))
         _, temp = tempfile.mkstemp()
         self.dataframe.to_csv(temp)
         bucket.upload_file(temp, s3_key)
 
 
-def log_state(s3_key, some_df):
-    bucket = s3_client.Bucket('log-portfolio')
+def log_state(bucket_name,s3_key, some_df):
+    bucket = s3_client.Bucket(bucket_name)
     _, filename = tempfile.mkstemp()
     some_df.to_csv(filename)
     bucket.upload_file(filename, s3_key)
