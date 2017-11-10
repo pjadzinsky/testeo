@@ -7,6 +7,7 @@ import boto3
 import gflags
 import pandas as pd
 
+import config
 import memoize
 
 FLAGS = gflags.FLAGS
@@ -14,13 +15,6 @@ FLAGS = gflags.FLAGS
 
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
-
-if os.environ['LOGNAME'] == 'mousidev':
-    session = boto3.Session(profile_name='user2')
-else:
-    session = boto3.Session()
-
-kms_client = session.client('kms', 'us-west-2')
 
 if os.environ['BITTREX_ACCOUNT'] == 'gaby':
     ENCRYPTED_KEY = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
@@ -31,8 +25,8 @@ elif os.environ['BITTREX_ACCOUNT'] == 'pablo':
 else:
     raise NotImplementedError()
 
-BITTREX_KEY = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
-BITTREX_SECRET = kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
+BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 print BITTREX_KEY
 print BITTREX_SECRET

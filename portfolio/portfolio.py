@@ -26,12 +26,7 @@ import pandas as pd
 import bittrex_utils
 
 import config
-
-if os.environ['LOGNAME'] == 'mousidev':
-    boto3.setup_default_session(profile_name='user2')
-else:
-    boto3.setup_default_session()
-s3_client = boto3.resource('s3', 'us-west-2')
+import utils
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
@@ -83,14 +78,14 @@ class Portfolio(object):
     @classmethod
     def from_s3_key(cls, s3_key):
         _, temp = tempfile.mkstemp()
-        s3_client.Bucket('bittrex-portfolios').download_file(s3_key, temp)
+        config.s3_client.Bucket(config.PORTFOLIOS_BUCKET).download_file(s3_key, temp)
         dataframe = pd.read_csv(temp, index_col=0, comment='#')
         id = os.environ['BITTREX_ACCOUNT']
         return cls(id, dataframe)
 
     @classmethod
     def last(cls):
-        bucket = s3_client.Bucket('bittrex-portfolios')
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
         all_object_summaries = bucket.objects.all()
         all_keys = [os.key for os in all_object_summaries]
 
@@ -310,7 +305,7 @@ class Portfolio(object):
                 print 'inside "if"'
                 # log the requested portfolio
                 s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                log_state('bittrex-buy-orders', s3_key, buy_df)
+                utils.log_df('bittrex-buy-orders', s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
         return msg
@@ -363,7 +358,7 @@ class Portfolio(object):
         In this way we'll end up with /gaby/bitcoins.csv, /gaby/trading.csv, /gaby/holding.csv, /pablo/bitcoins.csv, etc...
         """
         _, temp = tempfile.mkstemp()
-        bucket = s3_client.Bucket('bittrex-results')
+        bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
         s3_key = '{account}/{s3_key}'.format(account=os.environ['BITTREX_ACCOUNT'], s3_key=s3_key)
         try:
             bucket.download_file(s3_key, temp)
@@ -383,19 +378,12 @@ class Portfolio(object):
         """ Store self.dataframe in the given key
         """
         assert self.dataframe.index.name == 'Currency'
-        bucket = s3_client.Bucket('bittrex-portfolios')
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
         s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
                                                time=int(time.time()))
         _, temp = tempfile.mkstemp()
         self.dataframe.to_csv(temp)
         bucket.upload_file(temp, s3_key)
-
-
-def log_state(bucket_name,s3_key, some_df):
-    bucket = s3_client.Bucket(bucket_name)
-    _, filename = tempfile.mkstemp()
-    some_df.to_csv(filename)
-    bucket.upload_file(filename, s3_key)
 
 
 def remove_transaction(buy_df, currency):

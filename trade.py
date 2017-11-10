@@ -16,7 +16,6 @@ gflags.DEFINE_string('state_csv', None, "path to csv containing a 'state'")
 FLAGS = gflags.FLAGS
 gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be positive or 0')
 
-#gflags.RegisterValidator('state_csv', os.path.isfile)
 
 def main(json_input, context):
     print '*' * 80
