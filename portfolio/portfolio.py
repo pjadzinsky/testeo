@@ -29,10 +29,6 @@ import log
 
 import config
 
-gflags.DEFINE_boolean('simulating', True, "if set, 'mock_buy' is used instead of the real 'buy'")
-gflags.DEFINE_boolean('for_real', True, "if set, trade operations are sent to bittrex. Otherwise just prints to screen")
-FLAGS = gflags.FLAGS
-
 boto3.setup_default_session(profile_name='user2')
 s3_client = boto3.resource('s3', 'us-west-2')
 
@@ -172,7 +168,7 @@ class Portfolio(object):
                     as a percentage)
         """
         buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
-        if FLAGS.simulating:
+        if os.environ['PORTFOLIO_SIMULATING']:
             # apply transaction costs
             buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
@@ -199,14 +195,13 @@ class Portfolio(object):
 
         apply_min_transaction_size(market, buy_df, base)
 
-        if FLAGS.simulating:
+        msg = ''
+        if os.environ['PORTFOLIO_SIMULATING']:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
-            # log the requested portfolio
-            if FLAGS.for_real:
-                s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                log_state(s3_key, buy_df)
-            self.buy(buy_df, base)
+            msg = self.buy(buy_df, base)
+
+        return msg
 
     def mock_buy(self, buy_df):
         """
@@ -251,6 +246,7 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
+        msg = ''
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
@@ -261,24 +257,26 @@ class Portfolio(object):
             satoshis = row['SAT']
 
             if amount_to_buy_in_base > 0:
-                msg = 'send BUY order'
+                msg_order = 'send BUY order'
                 trade = bittrex_utils.client.buy_limit
             else:
-                msg = 'send SELL order'
+                msg_order = 'send SELL order'
                 trade = bittrex_utils.client.sell_limit
                 amount_to_buy_in_currency *= -1
 
-            print '*'*80
-            print msg
-            print 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
-                                                                          rate, satoshis)
+            msg += '*'*80 + '\n'
+            msg += msg_order + '\n'
+            msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
+                                                                           rate, satoshis)
 
-            if FLAGS.for_real:
+            if os.environ['PORTFOLIO_FOR_REAL']:
+                # log the requested portfolio
+                s3_key = '{time}_buy_df.csv'.format(time=market.time)
+                log_state(s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
                 log.info(response)
-            else:
-                print 'NOT FOR REAL, no order sent to bittrex'
+        return msg
 
     def limit_to(self, limit_df):
         """

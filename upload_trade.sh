@@ -1,8 +1,11 @@
+#!/bin/bash
+
 # This script will do everything necessary to generate a Lambda Deployment Package, it follows instructions
 # from http://docs.aws.amazon.com/lambda/latest/dg/lambda-python-how-to-create-deployment-package.html
 # It encrypts sensitive KEY/PASSWORD information using aws KMS
 #
 # In short, the steps of the script are:
+#   0. Make sure we have no left ofer PUDB statements
 #   1. Delete Folder and all its contents
 #   2. Make a folder
 #   3. Put all necessary files in it
@@ -12,6 +15,15 @@
 
 #Constants and variables
 FOLDER=to_upload
+
+#   0. Make sure we have no left ofer PUDB statements
+pudb_lines=$(grep -R --exclude=upload_trade.sh PUDB)
+pudb_cnt=$(echo $pudb_lines | wc )
+if [ $pudb_cnt -gt 0 ]; then
+    echo $pudb_cnt
+    echo $pudb_lines
+    exit
+fi
 
 #   1. Delete Folder and all its contents
 #rm -rf $FOLDER/*
@@ -37,7 +49,9 @@ done
 
 #   5. Zip Folder
 if [ ! -f ${FOLDER}.zip ]; then
-    zip -r ${FOLDER}.zip $FOLDER
+    pushd $FOLDER
+    zip -r ../${FOLDER}.zip .
+    popd
 fi
 
 #   6. upload to s3
