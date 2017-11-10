@@ -25,11 +25,10 @@ import numpy as np
 import pandas as pd
 import bittrex_utils
 
-import log
-
 import config
 
-boto3.setup_default_session(profile_name='user2')
+#boto3.setup_default_session(profile_name='user2')
+boto3.setup_default_session()
 s3_client = boto3.resource('s3', 'us-west-2')
 
 COMMISION = 0.25/100
@@ -275,7 +274,6 @@ class Portfolio(object):
                 log_state(s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
                 print response
-                log.info(response)
         return msg
 
     def limit_to(self, limit_df):
@@ -317,10 +315,14 @@ class Portfolio(object):
                     self.dataframe.loc[currency, 'Balance'] = new_value
 
 
-    def report_value(self, market, csv):
+    def report_value(self, market, s3_key):
         """ Add a line to the given csv 
         csv is of the form time, value
         """
+        print 'portfolio.report_value needs to be implemented'
+        """
+        response = s3_client.get_object(Bucket='bittrex-results', Key=s3_key)
+
         if os.path.isfile(csv):
             df = pd.read_csv(csv)
         else:
@@ -330,6 +332,7 @@ class Portfolio(object):
 
         df = df.append(new_row, ignore_index=True)
         df.to_csv(csv, index=False)
+        """
 
 
 def log_state(s3_key, some_df):

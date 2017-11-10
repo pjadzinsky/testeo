@@ -7,7 +7,6 @@ import boto3
 import gflags
 import pandas as pd
 
-import log
 import memoize
 
 FLAGS = gflags.FLAGS
@@ -16,7 +15,8 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
-session = boto3.Session(profile_name='user2')
+#session = boto3.Session(profile_name='user2')
+session = boto3.Session()
 kms_client = session.client('kms', 'us-west-2')
 
 ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
@@ -37,8 +37,6 @@ class Bittrex(bittrex.Bittrex):
     def api_query(self, method, options=None):
         # Override api_query to log error messages
         response = super(Bittrex, self).api_query(method, options=options)
-        if not response['success']:
-            log.error(response['message'])
 
         return response
 

@@ -18,7 +18,8 @@ FOLDER=to_upload
 
 #   0. Make sure we have no left ofer PUDB statements
 pudb_lines=$(grep -R --exclude=upload_trade.sh PUDB)
-pudb_cnt=$(echo $pudb_lines | wc )
+pudb_cnt=$(echo $pudb_lines | wc -w)
+echo $pudb_cnt
 if [ $pudb_cnt -gt 0 ]; then
     echo $pudb_cnt
     echo $pudb_lines
@@ -41,18 +42,17 @@ cp trade.py $FOLDER
 cp memoize.py $FOLDER
 
 #   4. Add pip packages
-for package in {bittrex,pandas}; do
+for package in {bittrex,pandas,python-gflags,numpy}; do
     if [ ! -d "$FOLDER/$package" ]; then
         pip install $package -t $FOLDER
     fi
 done
 
 #   5. Zip Folder
-if [ ! -f ${FOLDER}.zip ]; then
-    pushd $FOLDER
-    zip -r ../${FOLDER}.zip .
-    popd
-fi
+pushd $FOLDER
+files=$(ls)
+zip -r ../${FOLDER}.zip $files
+popd
 
 #   6. upload to s3
 aws s3 cp ${FOLDER}.zip s3://my-lambda-func/trade.zip --profile user2

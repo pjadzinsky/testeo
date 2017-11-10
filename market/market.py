@@ -15,7 +15,8 @@ import pandas as pd
 import bittrex_utils
 
 
-boto3.setup_default_session(profile_name='user2')
+#boto3.setup_default_session(profile_name='user2')
+boto3.setup_default_session()
 s3_client = boto3.resource('s3')
 
 bucket = s3_client.Bucket('my-bittrex')
@@ -198,7 +199,9 @@ class Market(object):
 
     @classmethod
     def from_bittrex(cls):
+        print 'A'
         timestamp, prices_df = bittrex_utils.get_current_market()
+        print 'B'
         return cls(timestamp, prices_df)
 
     def _market_name(self,  base, currency):

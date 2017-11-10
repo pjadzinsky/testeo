@@ -18,7 +18,7 @@ gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be p
 
 #gflags.RegisterValidator('state_csv', os.path.isfile)
 
-def main():
+def main(json_input, context):
     print '*' * 80
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_FOR_REAL:', os.environ['PORTFOLIO_FOR_REAL']
@@ -36,7 +36,10 @@ def main():
     if os.environ['PORTFOLIO_FOR_REAL']:
         portfolio.log_state(s3_key, p.dataframe)
     msg = p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
+    print msg
+    print 6
     print p.dataframe
+    """
     p.report_value(current_market, os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
 
     print 'Current value is: {}(USD)'.format(p.total_value(current_market, ['USDT', 'BTC']))
@@ -44,6 +47,7 @@ def main():
     p2.report_value(current_market, os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
 
     return msg
+    """
 
 
 if __name__ == "__main__":
