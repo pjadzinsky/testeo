@@ -359,9 +359,10 @@ class Portfolio(object):
     def to_s3(self, s3_key):
         """ Store self.dataframe in the given key
         """
+        assert self.dataframe.index.name == 'Currency'
         bucket = s3_client.Bucket('trading-portfolios')
         _, temp = tempfile.mkstemp()
-        self.dataframe.to_csv(temp, index=False)
+        self.dataframe.to_csv(temp)
         bucket.upload_file(temp, s3_key)
 
 
