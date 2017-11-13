@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import os
 import tempfile
 
@@ -11,13 +10,13 @@ from portfolio import portfolio
 import utils
 
 
-def main(json_input, context):
+def report():
     print '*' * 80
     print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
 
     current_market = market.Market.from_bittrex()
 
-    p = portfolio.Portfolio.last()
+    p = portfolio.Portfolio.account_last()
     p.report_value(current_market, 'trading.csv')
 
     total_bitcoin = total_bitcoin_deposit()
@@ -27,6 +26,41 @@ def main(json_input, context):
     total_usd = total_USD_deposit(current_market)
     s = pd.Series({'time': current_market.time, 'USD': total_usd})
     utils.update_csv(s, config.RESULTS_BUCKET, 'usd.csv')
+
+    #plot()
+
+
+def plot():
+    import holoviews as hv
+    hv.extension('bokeh')
+    holding_df = utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
+    trading_df = utils.get_df(config.RESULTS_BUCKET, 'trading.csv')
+    bitcoin_df = utils.get_df(config.RESULTS_BUCKET, 'bitcoin.csv')
+    usd_df = utils.get_df(config.RESULTS_BUCKET, 'usd.csv')
+
+    days_dim = hv.Dimension('Days')
+    # convert to days
+    t0 = trading_df.loc[0, 'time']
+    #holding_df.loc[:, 'time'] = (holding_df['time'] - t0) / 86400
+    trading_df.loc[:, 'time'] = (trading_df['time'] - t0) / 86400
+    bitcoin_df.loc[:, 'time'] = (bitcoin_df['time'] - t0) / 86400
+    usd_df.loc[:, 'time'] = (usd_df['time'] - t0) / 86400
+
+    curve_opts = dict(line_width=2)
+    #my_object = \ #hv.Curve(holding_df, label='holding').opts(style=curve_opts) * \
+    my_object = hv.Curve((trading_df['time'], trading_df['BTC']), label='trading').opts(style=curve_opts) * \
+                hv.Curve((bitcoin_df['time'], bitcoin_df['BTC']), label='bitcoin').opts(style=curve_opts)
+                #hv.Curve(usd_df, label='usd').opts(style=curve_opts)
+
+    renderer = hv.renderer('bokeh').instance()
+    _, temp = tempfile.mkstemp()
+    renderer.save(my_object, temp, style=dict(Image={'cmap':'jet'}))
+
+    # upload html to s3
+    s3_key = "{account}/plot.html".format(account=os.environ['BITTREX_ACCOUNT'])
+    bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
+    bucket.upload_file(temp, s3_key)
+
 
 
 def total_bitcoin_deposit():
@@ -62,7 +96,3 @@ def total_USD_deposit(market):
     return usd
 
 
-
-
-if __name__ == "__main__":
-    main(None, None)

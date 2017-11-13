@@ -84,7 +84,7 @@ class Portfolio(object):
         return cls(id, dataframe)
 
     @classmethod
-    def last(cls):
+    def account_last(cls):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
         all_object_summaries = bucket.objects.all()
         all_keys = [os.key for os in all_object_summaries]
@@ -198,7 +198,6 @@ class Portfolio(object):
 
         # we only buy/sell if movement is above 'min_percentage_change'. However, this movement could be in the
         # amount of cryptocurrency we own (by_currency=True) or in the amount of 'base' it represents (by_currency=False)
-        print 0
         for currency in buy_df.index:
             """
             if by_currency:
@@ -214,22 +213,18 @@ class Portfolio(object):
             """
             pass
 
-        print 1
         # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
         if base in buy_df.index:
             remove_transaction(buy_df, base)
 
-        print 2
         apply_min_transaction_size(market, buy_df, base)
 
-        print 3
         msg = ''
         if os.environ['PORTFOLIO_SIMULATING']:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
-            print 4
-            msg = self.buy(buy_df, base)
+            msg = self.buy(market, buy_df, base)
 
         return msg
 
@@ -268,7 +263,7 @@ class Portfolio(object):
         self.dataframe.loc[base, 'Available'] -= self.dataframe[column].sum()
         self.dataframe.drop(['Buy', column, 'change'], inplace=True, axis=1)
 
-    def buy(self, buy_df, base_currency):
+    def buy(self, market, buy_df, base_currency):
         """
         Send buy/sell requests for all rows in buy_df
         
@@ -296,13 +291,14 @@ class Portfolio(object):
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'
+            if not os.environ['PORTFOLIO_FOR_REAL']:
+                msg += "PORTFOLIO_FOR_REAL: False\n"
             msg += msg_order + '\n'
             msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
             print 'Right before if PORTFOLIO_FOR_REAL'
             if os.environ['PORTFOLIO_FOR_REAL']:
-                print 'inside "if"'
                 # log the requested portfolio
                 s3_key = '{time}_buy_df.csv'.format(time=market.time)
                 utils.log_df('bittrex-buy-orders', s3_key, buy_df)

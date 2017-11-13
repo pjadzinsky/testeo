@@ -16,14 +16,21 @@ hv.extension('bokeh', 'matplotlib')
 def plot():
     holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
     trading_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
+    bitcoin_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/bitcoins.csv'))
 
     days_dim = hv.Dimension('Days')
     # convert to days
     t0 = holding_df.loc[0, 'time']
     holding_df.loc[:, 'time'] = (holding_df['time'] - t0) / 86400
     trading_df.loc[:, 'time'] = (trading_df['time'] - t0) / 86400
-    my_object = hv.Curve(holding_df, label='holding') * hv.Curve(trading_df, label='trading')
-    renderer = hv.renderer('bokeh').instance()#fig='svg', holomap='gif')
+    bitcoin_df.loc[:, 'time'] = (bitcoin_df['time'] - t0) / 86400
+
+    curve_opts = dict(line_width=2)
+    my_object = hv.Curve(holding_df, label='holding').opts(style=curve_opts) * \
+                hv.Curve(trading_df, label='trading').opts(style=curve_opts) * \
+                hv.Curve(bitcoin_df, label='bitcoin').opts(style=curve_opts)
+
+    renderer = hv.renderer('bokeh').instance()
     renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
 if __name__ == "__main__":
@@ -51,10 +58,12 @@ if __name__ == "__main__":
     # Therefore I have to trade anythhing over the balance 0.49538387 BTC
     # On 11/09/2017 I transferred 0.165 BTC to Gaby's account, new balance is 0.32983071
     btc_balance_to_trade = p.dataframe.loc['BTC', 'Available'] - 0.32983071
+
     limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': btc_balance_to_trade})
     p.limit_to(limit)
 
     p2 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_portfolio.csv')))
+    p3 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_bitcoins.csv')))
 
     # compare portfolios
     merged = p.dataframe.merge(p2.dataframe, left_index=True, right_index=True, suffixes=['_trade', '_hold'])[['Balance_hold', 'Balance_trade']]
@@ -64,10 +73,14 @@ if __name__ == "__main__":
 
     trading_value = p.total_value(current_market, ['USDT', 'BTC'])
     holding_value = p2.total_value(current_market, ['USDT', 'BTC'])
+    bitcoin_value = p3.total_value(current_market, ['USDT'])
+
     print 'Current value trading is: {}(USD)'.format(trading_value)
     print 'Current value holding is: {}(USD)'.format(holding_value)
+    print 'Current value bitcoin is: {}(USD)'.format(bitcoin_value)
 
-    print 'ratio is: ', trading_value / holding_value
+    print 'trading/holding ratio is: ', trading_value / holding_value
+    print 'trading/bitcoin ratio is: ', trading_value / bitcoin_value
     plot()
 
 

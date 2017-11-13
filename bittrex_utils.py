@@ -16,17 +16,14 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
-if os.environ['BITTREX_ACCOUNT'] == 'gaby':
-    ENCRYPTED_KEY = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
-    ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
-elif os.environ['BITTREX_ACCOUNT'] == 'pablo':
-    ENCRYPTED_KEY = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
-    ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
-else:
-    raise NotImplementedError()
+print 'bittrex_utils 1'
+ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
+ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
+print 'bittrex_utils 2'
 
 BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
 BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
+print 'bittrex_utils 3'
 
 print BITTREX_KEY
 print BITTREX_SECRET
@@ -105,6 +102,12 @@ def get_current_market():
     prices_df = _to_df(response['result'], 'MarketName')
     timestamp = int(time.time())
     return timestamp, prices_df
+
+
+def cancel_all_orders():
+    response = client.get_open_orders('')
+    for order in response['result']:
+        client.cancel(order['OrderUuid'])
 
 
 def _to_df(response, new_index=None):
