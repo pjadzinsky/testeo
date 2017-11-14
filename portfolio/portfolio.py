@@ -26,7 +26,7 @@ import pandas as pd
 import bittrex_utils
 
 import config
-import utils
+import s3_utils
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
@@ -271,7 +271,6 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
-        print 'inside "buy" method'
         msg = ''
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
@@ -294,16 +293,14 @@ class Portfolio(object):
             if not os.environ['PORTFOLIO_FOR_REAL']:
                 msg += "PORTFOLIO_FOR_REAL: False\n"
             msg += msg_order + '\n'
-            msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
+            msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
-            print 'Right before if PORTFOLIO_FOR_REAL'
             if os.environ['PORTFOLIO_FOR_REAL']:
                 # log the requested portfolio
                 s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                utils.log_df('bittrex-buy-orders', s3_key, buy_df)
+                s3_utils.log_df('bittrex-buy-orders', s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
-                print response
         return msg
 
     def limit_to(self, limit_df):
@@ -337,7 +334,7 @@ class Portfolio(object):
             if currency in self.dataframe.index:
                 new_value = min(self.dataframe.loc[currency, 'Available'], limit)
                 if new_value == 0:
-                    print 'Removing {} from portfolio'.format(currency, new_value)
+                    print 'Removing {} from portfolio'.format(currency)
                     self.dataframe.drop(currency, inplace=True)
                 else:
                     print 'new limit for {} is {}'.format(currency, new_value)

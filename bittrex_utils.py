@@ -16,21 +16,15 @@ FLAGS = gflags.FLAGS
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
 
-print 'bittrex_utils 1'
 ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
 ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
-print 'bittrex_utils 2'
 
 BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
 BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
-print 'bittrex_utils 3'
-
-print BITTREX_KEY
-print BITTREX_SECRET
-print BITTREX_KEY == BITTREX_SECRET
 
 currencies_timestamp = float('-inf')
 currencies_df = None
+
 
 # Expand bittrex.Bittrex to include logger
 class Bittrex(bittrex.Bittrex):

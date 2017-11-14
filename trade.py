@@ -29,14 +29,15 @@ def main(json_input, context):
     currencies = os.environ['CURRENCIES'].split(',')
     desired_state = portfolio.state_from_currencies(currencies)
     print '*'*80
+    print 'Desired state:'
     print desired_state
 
     current_market = market.Market.from_bittrex()
     p = portfolio.Portfolio.from_bittrex()
+    print 'Current Portfolio'
     print p.dataframe
 
     # log the current state
-    s3_key = '{time}_portfolio.csv'.format(time=current_market.time)
     if os.environ['PORTFOLIO_FOR_REAL']:
         p.to_s3()
     msg = p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
