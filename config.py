@@ -12,6 +12,7 @@ PARAMS_INDEX_THAT_ARE_NOT_CURRENCIES = ['N', 'time', 'value', 'timestamp', 'hour
 
 RESULTS_BUCKET = 'bittrex-results'
 PORTFOLIOS_BUCKET = 'bittrex-portfolios'
+STATES_BUCKET = 'bittrex-states'
 
 
 if os.environ['LOGNAME'] == 'mousidev':

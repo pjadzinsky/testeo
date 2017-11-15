@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 
@@ -63,3 +64,39 @@ def get_df(bucket_name, s3_key_suffix):
         df = pd.DataFrame([])
 
     return df
+
+
+def get_json_contents(bucket_name, s3_key_suffix):
+    """
+    Get python object stored in json format associated with bucketname and s3_key_suffix and return it
+    
+    :param bucket_name: 
+    :param s3_key_suffix: 
+    :return: 
+    """
+    bucket = config.s3_client.Bucket(bucket_name)
+    s3_key = "{account}/{s3_key_suffix}".format(account=os.environ['BITTREX_ACCOUNT'],
+                                                s3_key_suffix=s3_key_suffix)
+
+    object = bucket.Object(s3_key)
+    _, temp = tempfile.mkstemp()
+    try:
+        object.download_file(temp)
+        return json.load(temp)
+    except:
+        return None
+
+
+def update_json(object, bucket_name, s3_key_suffix):
+    """
+    store 'object' as json under bucket_name and <account>/s3_key_suffix
+    """
+    bucket = config.s3_client.Bucket(bucket_name)
+    s3_key_suffix = s3_key_suffix.rstrip('.json')    # just in case, ".json" is added below again
+    s3_key = '{account}/{suffix}.json'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                              suffix=s3_key_suffix)
+
+    _, temp = tempfile.mkstemp()
+    json.dump(object, temp)
+    bucket.upload_file(temp, s3_key)
+

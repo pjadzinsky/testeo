@@ -7,6 +7,7 @@ import gflags
 import bittrex_utils
 from market import market
 from portfolio import portfolio
+import state
 import report
 
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
@@ -27,7 +28,7 @@ def main(json_input, context):
     print 'PORTFOLIO_FOR_REAL:', os.environ['PORTFOLIO_FOR_REAL']
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     currencies = os.environ['CURRENCIES'].split(',')
-    desired_state = portfolio.state_from_currencies(currencies)
+    desired_state = state.from_currencies(currencies)
     print '*'*80
     print 'Desired state:'
     print desired_state
@@ -43,6 +44,7 @@ def main(json_input, context):
     msg = p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print msg
 
+    state.update_state(current_market.time, desired_state)
     report.report()
 
 

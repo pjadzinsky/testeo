@@ -1,7 +1,9 @@
 import os
 import tempfile
 
+import numpy as np
 import pandas as pd
+from pandas.util import testing
 
 import bittrex_utils
 import config
@@ -64,6 +66,32 @@ def plot():
     bucket.upload_file(temp, s3_key)
 
 
+def recompute_report():
+    """
+    Get all portfolios stored in PORTFOLIOS_BUCKET, and recompute csvs in RESULTS_BUCKET
+    :return: 
+        None
+        csvs in RESULTS_BUCKET will be regenerated
+        csvs are:
+        <account>/bitcoin.csv   has columns time, BTC and USD.
+                                BTC: the net amount of bitcoin deposited into the account
+                                USD: the value of those bitcoins at that time
+        
+        <account>/trading.csv   has columns time, BTC and USD.
+                                BTC: the value of the portfolio in BTC at that point in time
+                                USD: the value of the portfolio in USD at that point in time
+                                
+        <account>/holding.csv   has columns time, BTC and USD.
+                                BTC: the value of the original portfolio in BTC at that point in time
+                                USD: the value of the original portfolio in USD at that point in time
+                    
+    """
+    bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+    all_summaries = bucket.objects.all()
+    print all_summaries
+    for summary in all_summaries:
+        print summary.key
+
 
 def total_bitcoin_deposit():
     total_btc = 0
@@ -88,14 +116,16 @@ def total_USD_deposit(market):
     object.download_file(temp)
     df = pd.read_csv(temp, comment='#')
     df_at_time = df[df['time']==market.time]
-    row = df_at_time.index[0]
+    import pudb
+    pudb.set_trace()
 
     if df_at_time.empty:
-        bitcoins_added = df.loc[0, 'BTC']
+        total_bitcoins = df.loc[0, 'BTC']
     else:
-        bitcoins_added = df.loc[row, 'BTC'] - df.loc[row - 1, 'BTC']
+        row = df_at_time.index[0]
+        total_bitcoins = df.loc[row, 'BTC']
 
-    usd = bitcoins_added * market.currency_chain_value(['USDT', 'BTC'])
+    usd = total_bitcoins * market.currency_chain_value(['USDT', 'BTC'])
     return usd
 
 

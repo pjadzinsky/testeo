@@ -41,10 +41,15 @@ def main():
         print 'usd_df'
 
         print '*' * 80
+        print 'Account:', account
         print 'Current value trading is: {}(USD)'.format(trading_df['USD'].values[-1])
         print 'Current value usd is: {}(USD)'.format(usd_df['USD'].values[-1])
+        print 'Ratio trading/usd:', trading_df['USD'].values[-1] / usd_df['USD'].values[-1]
+        print ''
         print 'Current value trading is: {}(BTC)'.format(trading_df['BTC'].values[-1])
         print 'Current value bitcoin is: {}(BTC)'.format(bitcoin_df['BTC'].values[-1])
+        print 'Ratio trading BTC/original BTC:', trading_df['BTC'].values[-1] / bitcoin_df['BTC'].values[-1]
+
 
         """
         print 'trading/holding ratio is: ', trading_value / holding_value
