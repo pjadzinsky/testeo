@@ -15,6 +15,7 @@ import s3_utils
 
 
 def report(market, portfolio, state):
+    portfolio.to_s3(market.time)
     trading_value(market, portfolio)
     bitcoin_value(market)
     holding_value(market)
@@ -55,9 +56,12 @@ def plot():
 
 def recompute():
     """
-    Get all portfolios stored in PORTFOLIOS_BUCKET, and recompute csvs in RESULTS_BUCKET
+    Get all portfolios stored in PORTFOLIOS_BUCKET, and recompute csvs
+    in RESULTS_BUCKET
+    
     :return: 
         None
+    :uploads:
         csvs in RESULTS_BUCKET will be regenerated
         csvs are:
         <account>/bitcoin.csv   has columns time, BTC and USD.
@@ -81,6 +85,19 @@ def recompute():
             time = int(summary.key.rstrip('.csv').split('/')[-1])
             m = market.Market.at_time(time, 3600)
             report(m, p, None)
+
+
+def clean():
+    """
+    First delete all files in RESULTS_BUCKET. Then 
+    :return: 
+        None
+    """
+    bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
+    all_summaries = bucket.objects.all()
+    objects = [{'Key': summary.key} for summary in all_summaries if os.environ['BITTREX_ACCOUNT'] in summary.key]
+    if objects:
+        bucket.delete_objects(Delete={'Objects': objects})
 
 
 def bitcoin_value(market):
@@ -156,4 +173,5 @@ def trading_value(market, current_portfolio):
     return updated
 
 if __name__ == "__main__":
+    clean()
     recompute()

@@ -20,13 +20,12 @@ gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be p
 
 def main(json_input, context):
     print '*' * 80
+    print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
+    print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
+    print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'
     bittrex_utils.cancel_all_orders()
 
-    print '*' * 80
-    print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
-    print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
-    print 'PORTFOLIO_FOR_REAL:', os.environ['PORTFOLIO_FOR_REAL']
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     currencies = os.environ['CURRENCIES'].split(',')
     desired_state = state.from_currencies(currencies)
@@ -39,13 +38,12 @@ def main(json_input, context):
     print 'Current Portfolio'
     print current_portfolio.dataframe
 
-    # log the current state
-    if os.environ['PORTFOLIO_FOR_REAL']:
-        current_portfolio.to_s3()
+    # log everything state, portfolio, values according to current market in BTC, USD (only logs if environmental
+    # variable PORTFOLIO_REPORT is set
+    report.report(current_market, current_portfolio, desired_state)
+
     msg = current_portfolio.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print msg
-
-    report.report(current_market, current_portfolio, desired_state)
 
 
 if __name__ == "__main__":

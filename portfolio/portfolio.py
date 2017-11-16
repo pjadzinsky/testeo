@@ -299,13 +299,13 @@ class Portfolio(object):
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'
-            if not os.environ['PORTFOLIO_FOR_REAL']:
-                msg += "PORTFOLIO_FOR_REAL: False\n"
+            if not os.environ['PORTFOLIO_TRADE']:
+                msg += "PORTFOLIO_TRADE: False\n"
             msg += msg_order + '\n'
             msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
-            if os.environ['PORTFOLIO_FOR_REAL']:
+            if os.environ['PORTFOLIO_TRADE']:
                 # log the requested portfolio
                 s3_key = '{time}_buy_df.csv'.format(time=market.time)
                 s3_utils.log_df('bittrex-buy-orders', s3_key, buy_df)
@@ -351,41 +351,17 @@ class Portfolio(object):
                     self.dataframe.loc[currency, 'Balance'] = new_value
 
 
-    def report_value(self, market, s3_key):
-        """ Add a line to the implied csv in s3
-        
-        csv is of the form time, USD, BTC
-        s3_key is: /<ACCOUNT>/s3_key
-        
-        In this way we'll end up with /gaby/bitcoins.csv, /gaby/trading.csv, /gaby/holding.csv, /pablo/bitcoins.csv, etc...
-        """
-        _, temp = tempfile.mkstemp()
-        bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
-        s3_key = '{account}/{s3_key}'.format(account=os.environ['BITTREX_ACCOUNT'], s3_key=s3_key)
-        try:
-            bucket.download_file(s3_key, temp)
-            df = pd.read_csv(temp, comment='#')
-        except:
-            df = pd.DataFrame([])
-
-        new_row = pd.Series({'time': market.time, 'USD': self.total_value(market, ['USDT', 'BTC']),
-                             'BTC': self.total_value(market, ['BTC'])})
-
-        df = df.append(new_row, ignore_index=True)
-        df.to_csv(temp, index=False)
-
-        bucket.upload_file(temp, s3_key)
-
-    def to_s3(self):
+    def to_s3(self, time_sec):
         """ Store self.dataframe in the given key
         """
-        assert self.dataframe.index.name == 'Currency'
-        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
-                                               time=int(time.time()))
-        _, temp = tempfile.mkstemp()
-        self.dataframe.to_csv(temp)
-        bucket.upload_file(temp, s3_key)
+        if os.environ['PORTFOLIO_REPORT']:
+            assert self.dataframe.index.name == 'Currency'
+            bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+            s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                                   time=time_sec)
+            _, temp = tempfile.mkstemp()
+            self.dataframe.to_csv(temp)
+            bucket.upload_file(temp, s3_key)
 
 
 def remove_transaction(buy_df, currency):
