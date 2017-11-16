@@ -84,6 +84,15 @@ class Portfolio(object):
         return cls(id, dataframe)
 
     @classmethod
+    def at_time(cls, timestamp, max_time_difference):
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+        for summary in bucket.objects.all():
+            if os.environ['BITTREX_ACCOUNT'] in summary.key:
+                time = int(summary.key.split('/')[-1].rstrip('.csv'))
+                if abs(time - timestamp) < max_time_difference:
+                    return cls.from_s3_key(summary.key)
+
+    @classmethod
     def account_last(cls):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
         all_object_summaries = bucket.objects.all()

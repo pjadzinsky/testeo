@@ -24,6 +24,7 @@ def main(json_input, context):
     bittrex_utils.cancel_all_orders()
 
     print '*' * 80
+    print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_FOR_REAL:', os.environ['PORTFOLIO_FOR_REAL']
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
@@ -34,18 +35,17 @@ def main(json_input, context):
     print desired_state
 
     current_market = market.Market.from_bittrex()
-    p = portfolio.Portfolio.from_bittrex()
+    current_portfolio = portfolio.Portfolio.from_bittrex()
     print 'Current Portfolio'
-    print p.dataframe
+    print current_portfolio.dataframe
 
     # log the current state
     if os.environ['PORTFOLIO_FOR_REAL']:
-        p.to_s3()
-    msg = p.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
+        current_portfolio.to_s3()
+    msg = current_portfolio.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print msg
 
-    state.update_state(current_market.time, desired_state)
-    report.report()
+    report.report(current_market, current_portfolio, desired_state)
 
 
 if __name__ == "__main__":

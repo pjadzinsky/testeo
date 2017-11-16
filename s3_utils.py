@@ -41,6 +41,7 @@ def update_csv(other, bucket_name, s3_key_suffix):
 
     df.to_csv(temp, index=False)
     bucket.upload_file(temp, s3_key)
+    return df
 
 
 def get_df(bucket_name, s3_key_suffix):

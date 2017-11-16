@@ -36,10 +36,13 @@ def main():
         trading_df = s3_utils.get_df(config.RESULTS_BUCKET, 'trading.csv')
         print '*' * 8
         print 'trading_df'
-        usd_df = s3_utils.get_df(config.RESULTS_BUCKET, 'usd.csv')
+        print trading_df
+        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
         print '*' * 8
-        print 'usd_df'
+        print 'holding_df'
+        print holding_df
 
+        """
         print '*' * 80
         print 'Account:', account
         print 'Current value trading is: {}(USD)'.format(trading_df['USD'].values[-1])
@@ -49,6 +52,7 @@ def main():
         print 'Current value trading is: {}(BTC)'.format(trading_df['BTC'].values[-1])
         print 'Current value bitcoin is: {}(BTC)'.format(bitcoin_df['BTC'].values[-1])
         print 'Ratio trading BTC/original BTC:', trading_df['BTC'].values[-1] / bitcoin_df['BTC'].values[-1]
+        """
 
 
         """

@@ -180,6 +180,14 @@ class Market(object):
         return cls(timestamp, prices_df)
 
     @classmethod
+    def at_time(cls, timestamp, max_time_difference):
+        for summary in bucket.objects.all():
+            if 'short' in summary.key:
+                time = int(summary.key.split('_')[0])
+                if abs(time - timestamp) < max_time_difference:
+                    return cls.from_s3_key(summary.key)
+
+    @classmethod
     def from_s3_key(cls, s3_key):
         _, filename = tempfile.mkstemp(suffix='.csv')
         filename = os.path.join(CACHED_DIR, s3_key)
