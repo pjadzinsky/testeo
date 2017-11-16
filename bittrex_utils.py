@@ -1,28 +1,41 @@
+import os
 import time
 
+from base64 import b64decode
+from bittrex import bittrex
+import boto3
+import gflags
 import pandas as pd
 
-from bittrex import bittrex
-import credentials
-import log
+import config
 import memoize
 
+FLAGS = gflags.FLAGS
+
+
+# Decrypt code should run once and variables stored outside of the function
+# handler so that these are decrypted once per container
+
+ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
+ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
+
+BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
+BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
 currencies_timestamp = float('-inf')
 currencies_df = None
+
 
 # Expand bittrex.Bittrex to include logger
 class Bittrex(bittrex.Bittrex):
     def api_query(self, method, options=None):
         # Override api_query to log error messages
         response = super(Bittrex, self).api_query(method, options=options)
-        if not response['success']:
-            log.error(response['message'])
 
         return response
 
 
-client = Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
+client = Bittrex(BITTREX_KEY, BITTREX_SECRET)
 
 
 @memoize.memoized
@@ -83,6 +96,12 @@ def get_current_market():
     prices_df = _to_df(response['result'], 'MarketName')
     timestamp = int(time.time())
     return timestamp, prices_df
+
+
+def cancel_all_orders():
+    response = client.get_open_orders('')
+    for order in response['result']:
+        client.cancel(order['OrderUuid'])
 
 
 def _to_df(response, new_index=None):

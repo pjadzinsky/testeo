@@ -12,14 +12,11 @@ import boto3
 import numpy as np
 import pandas as pd
 
+import config
 import bittrex_utils
 
 
-boto3.setup_default_session(profile_name='user2')
-#boto3.setup_default_session()
-s3_client = boto3.resource('s3')
-
-bucket = s3_client.Bucket('my-bittrex')
+bucket = config.s3_client.Bucket('my-bittrex')
 CACHED_DIR = os.path.expanduser('~/Testeo/simulations_data/markets/')
 try:
     os.makedirs(CACHED_DIR)
@@ -181,6 +178,14 @@ class Market(object):
             prices_df.set_index('MarketName', inplace=True)
 
         return cls(timestamp, prices_df)
+
+    @classmethod
+    def at_time(cls, timestamp, max_time_difference):
+        for summary in bucket.objects.all():
+            if 'short' in summary.key:
+                time = int(summary.key.split('_')[0])
+                if abs(time - timestamp) < max_time_difference:
+                    return cls.from_s3_key(summary.key)
 
     @classmethod
     def from_s3_key(cls, s3_key):

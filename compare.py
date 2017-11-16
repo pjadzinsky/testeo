@@ -6,12 +6,60 @@ import gflags
 import holoviews as hv
 import pandas as pd
 
+import config
+import bittrex_utils
 from market import market
 from portfolio import portfolio
+import s3_utils
+
+hv.extension('bokeh')
+
+def main():
+    for account in ['gaby', 'pablo']:
+        """
+        if account == 'gaby':
+            os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
+            os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
+        elif account == 'pablo':
+            os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
+            os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
+        import pudb
+        pudb.set_trace()
+        reload(bittrex_utils)
+        """
+        os.environ['BITTREX_ACCOUNT'] = account
+
+        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, 'bitcoin.csv')
+        print '*' * 8
+        print 'bitcoin_df'
+        print bitcoin_df
+        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, 'trading.csv')
+        print '*' * 8
+        print 'trading_df'
+        print trading_df
+        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
+        print '*' * 8
+        print 'holding_df'
+        print holding_df
+
+        """
+        print '*' * 80
+        print 'Account:', account
+        print 'Current value trading is: {}(USD)'.format(trading_df['USD'].values[-1])
+        print 'Current value usd is: {}(USD)'.format(usd_df['USD'].values[-1])
+        print 'Ratio trading/usd:', trading_df['USD'].values[-1] / usd_df['USD'].values[-1]
+        print ''
+        print 'Current value trading is: {}(BTC)'.format(trading_df['BTC'].values[-1])
+        print 'Current value bitcoin is: {}(BTC)'.format(bitcoin_df['BTC'].values[-1])
+        print 'Ratio trading BTC/original BTC:', trading_df['BTC'].values[-1] / bitcoin_df['BTC'].values[-1]
+        """
 
 
-FLAGS = gflags.FLAGS
-hv.extension('bokeh', 'matplotlib')
+        """
+        print 'trading/holding ratio is: ', trading_value / holding_value
+        print 'trading/bitcoin ratio is: ', trading_value / bitcoin_value
+        plot()
+        """
 
 def plot():
     holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
@@ -34,53 +82,6 @@ def plot():
     renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
 if __name__ == "__main__":
-    try:
-        argv = FLAGS(sys.argv)
-    except gflags.FlagsError as e:
-        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
-        sys.exit(1)
-
-    print '*' * 80
-    # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
-    desired_state = portfolio.state_from_currencies(['ADA', 'TRIG', 'OK', 'RISE', 'IOP', 'NAV', 'MONA', 'EMC2',
-                                                     'ADX', 'VTC', 'MCO', 'XVG', 'SYS', 'XLM', 'KMD', 'TKN'])
-
-    current_market = market.Market.from_bittrex()
-    p = portfolio.Portfolio.from_bittrex()
-
-    # The first time, I run with this series, limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': 0.165})
-    # but after the original portfolio was created I changed it to the next line, not spending more bitcoins but
-    # just trading between selected cryptocurrencies
-    # There is a problem with my implementation. When trades are not places, and BTC are not operated
-    # some money might be shifting into BTC indefinitely.
-    # When I started Portfolio_1, I originaly had 0.66038387 BTC
-    # From those, I traded 0.165 BTC leaving a balance of 0.49538387 BTC
-    # Therefore I have to trade anythhing over the balance 0.49538387 BTC
-    # On 11/09/2017 I transferred 0.165 BTC to Gaby's account, new balance is 0.32983071
-    btc_balance_to_trade = p.dataframe.loc['BTC', 'Available'] - 0.32983071
-
-    limit = pd.Series({'XRP': 0, 'ETH': 0, 'BTC': btc_balance_to_trade})
-    p.limit_to(limit)
-
-    p2 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_portfolio.csv')))
-    p3 = portfolio.Portfolio.from_csv(os.path.expanduser(('~/Testeo/results/Portfolio_1/original_bitcoins.csv')))
-
-    # compare portfolios
-    merged = p.dataframe.merge(p2.dataframe, left_index=True, right_index=True, suffixes=['_trade', '_hold'])[['Balance_hold', 'Balance_trade']]
-    merged.loc[:, 'diff'] = merged['Balance_trade'] - merged['Balance_hold']
-    merged.loc[:, '% diff'] = merged['diff'] * 100 / merged['Balance_hold']
-    print merged
-
-    trading_value = p.total_value(current_market, ['USDT', 'BTC'])
-    holding_value = p2.total_value(current_market, ['USDT', 'BTC'])
-    bitcoin_value = p3.total_value(current_market, ['USDT'])
-
-    print 'Current value trading is: {}(USD)'.format(trading_value)
-    print 'Current value holding is: {}(USD)'.format(holding_value)
-    print 'Current value bitcoin is: {}(USD)'.format(bitcoin_value)
-
-    print 'trading/holding ratio is: ', trading_value / holding_value
-    print 'trading/bitcoin ratio is: ', trading_value / bitcoin_value
-    plot()
+    main()
 
 

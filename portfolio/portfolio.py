@@ -14,47 +14,42 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+import json
+import time
 import os
 import tempfile
 
+
 import boto3
-import gflags
 import numpy as np
 import pandas as pd
-
 import bittrex_utils
-import log
 
 import config
-
-gflags.DEFINE_boolean('simulating', True, "if set, 'mock_buy' is used instead of the real 'buy'")
-gflags.DEFINE_boolean('for_real', True, "if set, trade operations are sent to bittrex. Otherwise just prints to screen")
-FLAGS = gflags.FLAGS
-
-boto3.setup_default_session(profile_name='user2')
-s3_client = boto3.resource('s3')
+import s3_utils
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
 MINIMUM_TRADE = 50000   # in SAT (satohis)
 
 class Portfolio(object):
-    def __init__(self, dataframe):
+    def __init__(self, id, dataframe):
         """
         Read portfolio from API
         """
+        self.id = id
         self.dataframe = dataframe
 
     @classmethod
     def from_state(cls, market, state, base, value):
-        p = cls._start_portfolio(market, state, base, value)
+        p = cls._start_portfolio(0, market, state, base, value)
         return p
 
     @classmethod
     def from_simulation_index(cls, sim_index):
         params_df = pd.read_csv(config.PARAMS, index_col=0)
         sim_params = params_df.loc[sim_index]
-        p = cls.from_simulation_params(sim_params)
+        p = cls.from_simulation_params(0, sim_params)
         return p
 
     @classmethod
@@ -67,17 +62,50 @@ class Portfolio(object):
             if key in state.index:
                 state.drop(key, inplace=True, axis=0)
         state.columns = ['Weight']
-        p = cls._start_portfolio(market, state, base, value)
+        p = cls._start_portfolio(0, market, state, base, value)
         return p
 
     @classmethod
     def from_bittrex(cls):
-        return cls(bittrex_utils.get_balances())
+        id = os.environ['BITTREX_ACCOUNT']
+        return cls(id, bittrex_utils.get_balances())
 
     @classmethod
     def from_csv(cls, csv):
         dataframe = pd.read_csv(csv, index_col=0)
-        return cls(dataframe)
+        return cls(0, dataframe)
+
+    @classmethod
+    def from_s3_key(cls, s3_key):
+        _, temp = tempfile.mkstemp()
+        config.s3_client.Bucket(config.PORTFOLIOS_BUCKET).download_file(s3_key, temp)
+        dataframe = pd.read_csv(temp, index_col=0, comment='#')
+        id = os.environ['BITTREX_ACCOUNT']
+        return cls(id, dataframe)
+
+    @classmethod
+    def at_time(cls, timestamp, max_time_difference):
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+        for summary in bucket.objects.all():
+            if os.environ['BITTREX_ACCOUNT'] in summary.key:
+                time = int(summary.key.split('/')[-1].rstrip('.csv'))
+                if abs(time - timestamp) < max_time_difference:
+                    return cls.from_s3_key(summary.key)
+
+    @classmethod
+    def account_last(cls):
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+        all_object_summaries = bucket.objects.all()
+        all_keys = [os.key for os in all_object_summaries]
+
+        # each key is of the form <account>/timestamp.csv. Keep only timestamp and convert it to an int
+        timestamps = [int(key.rstrip('.csv').split('/')[1]) for key in all_keys]
+
+        # find the key corresponding to the last timestamp
+        last_index = np.argmax(timestamps)
+        last_key = all_keys[last_index]
+
+        return cls.from_s3_key(last_key)
 
 
     def copy(self):
@@ -171,7 +199,7 @@ class Portfolio(object):
                     as a percentage)
         """
         buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
-        if FLAGS.simulating:
+        if os.environ['PORTFOLIO_SIMULATING']:
             # apply transaction costs
             buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
@@ -180,6 +208,7 @@ class Portfolio(object):
         # we only buy/sell if movement is above 'min_percentage_change'. However, this movement could be in the
         # amount of cryptocurrency we own (by_currency=True) or in the amount of 'base' it represents (by_currency=False)
         for currency in buy_df.index:
+            """
             if by_currency:
                 # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
                 percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
@@ -190,6 +219,8 @@ class Portfolio(object):
             buy_df.loc[currency, "change"] = percentage_change
             if percentage_change < min_percentage_change:
                 buy_df.loc[currency, 'Buy'] = 0
+            """
+            pass
 
         # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
@@ -198,14 +229,13 @@ class Portfolio(object):
 
         apply_min_transaction_size(market, buy_df, base)
 
-        if FLAGS.simulating:
+        msg = ''
+        if os.environ['PORTFOLIO_SIMULATING']:
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
-            # log the requested portfolio
-            if FLAGS.for_real:
-                s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                log_state(s3_key, buy_df)
-            self.buy(buy_df, base)
+            msg = self.buy(market, buy_df, base)
+
+        return msg
 
     def mock_buy(self, buy_df):
         """
@@ -242,7 +272,7 @@ class Portfolio(object):
         self.dataframe.loc[base, 'Available'] -= self.dataframe[column].sum()
         self.dataframe.drop(['Buy', column, 'change'], inplace=True, axis=1)
 
-    def buy(self, buy_df, base_currency):
+    def buy(self, market, buy_df, base_currency):
         """
         Send buy/sell requests for all rows in buy_df
         
@@ -250,6 +280,7 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
+        msg = ''
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
@@ -260,24 +291,26 @@ class Portfolio(object):
             satoshis = row['SAT']
 
             if amount_to_buy_in_base > 0:
-                msg = 'send BUY order'
+                msg_order = 'send BUY order'
                 trade = bittrex_utils.client.buy_limit
             else:
-                msg = 'send SELL order'
+                msg_order = 'send SELL order'
                 trade = bittrex_utils.client.sell_limit
                 amount_to_buy_in_currency *= -1
 
-            print '*'*80
-            print msg
-            print 'Market_name: {}, amount: {}, rate: {} ({} SAT)'.format(market_name, amount_to_buy_in_currency,
-                                                                          rate, satoshis)
+            msg += '*'*80 + '\n'
+            if not os.environ['PORTFOLIO_FOR_REAL']:
+                msg += "PORTFOLIO_FOR_REAL: False\n"
+            msg += msg_order + '\n'
+            msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
+                                                                           rate, satoshis)
 
-            if FLAGS.for_real:
+            if os.environ['PORTFOLIO_FOR_REAL']:
+                # log the requested portfolio
+                s3_key = '{time}_buy_df.csv'.format(time=market.time)
+                s3_utils.log_df('bittrex-buy-orders', s3_key, buy_df)
                 response = trade(market_name, amount_to_buy_in_currency, rate)
-                print response
-                log.info(response)
-            else:
-                print 'NOT FOR REAL, no order sent to bittrex'
+        return msg
 
     def limit_to(self, limit_df):
         """
@@ -310,7 +343,7 @@ class Portfolio(object):
             if currency in self.dataframe.index:
                 new_value = min(self.dataframe.loc[currency, 'Available'], limit)
                 if new_value == 0:
-                    print 'Removing {} from portfolio'.format(currency, new_value)
+                    print 'Removing {} from portfolio'.format(currency)
                     self.dataframe.drop(currency, inplace=True)
                 else:
                     print 'new limit for {} is {}'.format(currency, new_value)
@@ -318,26 +351,41 @@ class Portfolio(object):
                     self.dataframe.loc[currency, 'Balance'] = new_value
 
 
-    def report_value(self, market, csv):
-        """ Add a line to the given csv 
-        csv is of the form time, value
+    def report_value(self, market, s3_key):
+        """ Add a line to the implied csv in s3
+        
+        csv is of the form time, USD, BTC
+        s3_key is: /<ACCOUNT>/s3_key
+        
+        In this way we'll end up with /gaby/bitcoins.csv, /gaby/trading.csv, /gaby/holding.csv, /pablo/bitcoins.csv, etc...
         """
-        if os.path.isfile(csv):
-            df = pd.read_csv(csv)
-        else:
+        _, temp = tempfile.mkstemp()
+        bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
+        s3_key = '{account}/{s3_key}'.format(account=os.environ['BITTREX_ACCOUNT'], s3_key=s3_key)
+        try:
+            bucket.download_file(s3_key, temp)
+            df = pd.read_csv(temp, comment='#')
+        except:
             df = pd.DataFrame([])
 
-        new_row = pd.Series({'time': market.time, 'value': self.total_value(market, ['USDT', 'BTC'])})
+        new_row = pd.Series({'time': market.time, 'USD': self.total_value(market, ['USDT', 'BTC']),
+                             'BTC': self.total_value(market, ['BTC'])})
 
         df = df.append(new_row, ignore_index=True)
-        df.to_csv(csv, index=False)
+        df.to_csv(temp, index=False)
 
+        bucket.upload_file(temp, s3_key)
 
-def log_state(s3_key, some_df):
-    bucket = s3_client.Bucket('log-portfolio')
-    _, filename = tempfile.mkstemp()
-    some_df.to_csv(filename)
-    bucket.upload_file(filename, s3_key)
+    def to_s3(self):
+        """ Store self.dataframe in the given key
+        """
+        assert self.dataframe.index.name == 'Currency'
+        bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+        s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                               time=int(time.time()))
+        _, temp = tempfile.mkstemp()
+        self.dataframe.to_csv(temp)
+        bucket.upload_file(temp, s3_key)
 
 
 def remove_transaction(buy_df, currency):
@@ -432,4 +480,3 @@ def apply_transaction_cost(buy):
         buy += buy * COMMISION
 
     return buy
-
