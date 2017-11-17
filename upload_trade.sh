@@ -43,6 +43,8 @@ cp bittrex_utils.py $FOLDER
 cp config.py $FOLDER
 cp memoize.py $FOLDER
 cp report.py $FOLDER
+cp s3_utils.py $FOLDER
+cp state.py $FOLDER
 cp trade.py $FOLDER
 cp utils.py $FOLDER
 

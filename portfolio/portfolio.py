@@ -14,19 +14,16 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
-import json
-import time
 import os
 import tempfile
 
-
-import boto3
 import numpy as np
 import pandas as pd
 import bittrex_utils
 
 import config
 import s3_utils
+import state
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
@@ -309,7 +306,7 @@ class Portfolio(object):
                 # log the requested portfolio
                 s3_key = '{time}_buy_df.csv'.format(time=market.time)
                 s3_utils.log_df('bittrex-buy-orders', s3_key, buy_df)
-                response = trade(market_name, amount_to_buy_in_currency, rate)
+                trade(market_name, amount_to_buy_in_currency, rate)
         return msg
 
     def limit_to(self, limit_df):
@@ -390,56 +387,6 @@ def _market_name(base, currency):
         return name
 
     return None
-
-
-def state_from_largest_markes(market, N, include_usd):
-    state = _uniform_state(market, N, include_usd=include_usd)
-    return state
-
-
-def state_from_currencies(currencies):
-    weights = 1.0 / len(currencies)
-    state = pd.DataFrame({'Weight': weights}, index=currencies)
-    return state
-
-
-def random_state(currencies, N):
-    """ Generate a random makret using 'N' currencies from 'currencies'
-    """
-    currencies_to_use = np.random.choice(currencies, size=N, replace=False)
-    return state_from_currencies(currencies_to_use)
-
-
-def _uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
-    """
-    
-    :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
-        state
-    :param N: number of cryptocurrencies to include
-    :param currencies: dict linking currencies to the values of the 'state'
-    :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
-    :return: Dataframe with the weight of each currency (1/N)
-    """
-    volumes_df = market.usd_volumes(intermediates)
-    volumes_df.drop('USDT', axis=0, inplace=True)
-
-    currencies = volumes_df.head(N).index.tolist()
-    assert 'USDT' not in volumes_df.index
-    if include_usd:
-        currencies[-1] = 'USDT'
-
-    state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
-
-    return state
-
-
-def currencies_from_state(state):
-    currencies = state[state['Weight'] > 0].index.values
-    return currencies
-
-
-def n_from_state(state):
-    return len(currencies_from_state(state))
 
 
 def apply_transaction_cost(buy):

@@ -82,3 +82,54 @@ def previous_state(time_sec):
 
     return last_time, last_state
 
+
+def from_largest_markes(market, N, include_usd):
+    state = uniform_state(market, N, include_usd=include_usd)
+    return state
+
+
+def from_currencies(currencies):
+    weights = 1.0 / len(currencies)
+    state = pd.DataFrame({'Weight': weights}, index=currencies)
+    return state
+
+
+def random(currencies, N):
+    """ Generate a random makret using 'N' currencies from 'currencies'
+    """
+    currencies_to_use = np.random.choice(currencies, size=N, replace=False)
+    return from_currencies(currencies_to_use)
+
+
+def uniform_state(market, N, include_usd=True, intermediates=['BTC', 'ETH']):
+    """
+    
+    :param market: DataFrame with market conditions. The 'N' currencies with the most volume will be used to define a
+        state
+    :param N: number of cryptocurrencies to include
+    :param currencies: dict linking currencies to the values of the 'state'
+    :param include_usd: If true, usd will be added to the list of cryptocurrencies to hold (even though it is not).
+    :return: Dataframe with the weight of each currency (1/N)
+    """
+    volumes_df = market.usd_volumes(intermediates)
+    volumes_df.drop('USDT', axis=0, inplace=True)
+
+    currencies = volumes_df.head(N).index.tolist()
+    assert 'USDT' not in volumes_df.index
+    if include_usd:
+        currencies[-1] = 'USDT'
+
+    state = pd.DataFrame([1. / N] * N, index=currencies, columns=['Weight'])
+
+    return state
+
+
+def currencies_from_state(state):
+    currencies = state[state['Weight'] > 0].index.values
+    return currencies
+
+
+def n_from_state(state):
+    return len(currencies_from_state(state))
+
+

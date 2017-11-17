@@ -2,9 +2,7 @@
 import os
 import tempfile
 
-import numpy as np
 import pandas as pd
-from pandas.util import testing
 
 import bittrex_utils
 import config
@@ -23,6 +21,7 @@ def report(market, portfolio, state):
 
 
 def plot():
+    # TODO needs to be re-written
     import holoviews as hv
     hv.extension('bokeh')
     holding_df = s3_utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
