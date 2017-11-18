@@ -83,6 +83,7 @@ def recompute():
             p = portfolio.Portfolio.from_s3_key(summary.key)
             time = int(summary.key.rstrip('.csv').split('/')[-1])
             m = market.Market.at_time(time, 3600)
+            print time, m.time
             report(m, p, None)
 
 
