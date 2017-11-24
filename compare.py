@@ -6,46 +6,35 @@ import gflags
 import holoviews as hv
 import pandas as pd
 
-import config
-import bittrex_utils
 from market import market
 from portfolio import portfolio
-import state
+import bittrex_utils
+import config
+import report
 import s3_utils
+import state
 
 hv.extension('bokeh')
 
 def main():
     for account in ['gaby', 'pablo']:
-        """
         if account == 'gaby':
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
             os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_GABY_ENCRYPTED']
         elif account == 'pablo':
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
             os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
+
         reload(bittrex_utils)
-        """
         os.environ['BITTREX_ACCOUNT'] = account
         print '*' * 80
         print 'BITTREX_ACCOUNT:', account
 
         print "This is the original Portfolio"
 
-        p = portfolio.Portfolio.from_first_buy_order()
-        print p.dataframe
-
-        """
-        portfolio_starttime, _ = state.last_state()
-        print 'account_last'
-        print portfolio.Portfolio.last_logged().dataframe
-        print 'at_time'
-        print portfolio.Portfolio.at_time(portfolio_starttime, 3600 * 12).dataframe
-        print 'from_bittrex'
-        print portfolio.Portfolio.from_bittrex().dataframe
-        continue
-        """
-
+        current_portfolio = portfolio.Portfolio.from_bittrex()
+        portfolio_change = report.portfolio_change(current_portfolio)
+        print portfolio_change
 
         bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
         print '*' * 8
@@ -61,10 +50,11 @@ def main():
         print holding_df
 
         """
+        Too many comparissons in BTC/USD vs bitcoin and holding???
         print '*' * 80
         print 'Account:', account
         print 'Current value trading is: {}(USD)'.format(trading_df['USD'].values[-1])
-        print 'Current value usd is: {}(USD)'.format(usd_df['USD'].values[-1])
+        print 'Current value holding is: {}(USD)'.format(usd_df['USD'].values[-1])
         print 'Ratio trading/usd:', trading_df['USD'].values[-1] / usd_df['USD'].values[-1]
         print ''
         print 'Current value trading is: {}(BTC)'.format(trading_df['BTC'].values[-1])
@@ -72,12 +62,6 @@ def main():
         print 'Ratio trading BTC/original BTC:', trading_df['BTC'].values[-1] / bitcoin_df['BTC'].values[-1]
         """
 
-
-        """
-        print 'trading/holding ratio is: ', trading_value / holding_value
-        print 'trading/bitcoin ratio is: ', trading_value / bitcoin_value
-        plot()
-        """
 
 def plot():
     holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))

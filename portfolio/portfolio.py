@@ -67,6 +67,8 @@ class Portfolio(object):
 
     @classmethod
     def from_first_buy_order(cls):
+        """ return the portfolio first traded
+        """
         bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
 
         time_stamp, _ = state.last_state()

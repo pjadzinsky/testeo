@@ -15,6 +15,7 @@ import s3_utils
 def report(market, portfolio, state):
     portfolio.to_s3(market.time)
     state.update_state()
+    portfolio_change(portfolio)
     trading_value(market, portfolio)
     bitcoin_value(market)
     holding_value(market)
@@ -172,6 +173,30 @@ def trading_value(market, current_portfolio):
     s = pd.Series({'time': time, 'BTC': btc_value, 'USD': usd_value})
     updated = s3_utils.update_csv(s, config.RESULTS_BUCKET, 'trading')
     return updated
+
+
+def portfolio_change(current_portfolio):
+    """
+    Build and return a dataframe comparing change in portfolio holdings.
+    
+    :param current_portfolio: 
+    :return: pd.DataFrame indexed by 'currency' with columns: '%', 'Diff', 'original', 'Current'
+    """
+    first_portfolio = portfolio.Portfolio.from_first_buy_order()
+
+    original = first_portfolio.dataframe['Balance']
+    current = current_portfolio.dataframe['Balance']
+    difference = current - original
+    percentage = difference * 100 / original
+
+    change_df = pd.DataFrame({'Original': original,
+                              'Current': current,
+                              'Diff': difference,
+                              '%': percentage})
+    change_df.dropna(inplace=True)
+
+    return change_df
+
 
 if __name__ == "__main__":
     clean()
