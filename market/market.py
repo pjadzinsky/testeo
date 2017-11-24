@@ -7,6 +7,7 @@ from itertools import product
 import os
 import json
 import tempfile
+import time
 
 import boto3
 import numpy as np
@@ -26,17 +27,19 @@ except:
 
 
 class Markets(object):
-    def __init__(self, seconds, offset, max_markets=10):
+    def __init__(self, seconds, offset, max_markets=10, start_time=None):
         self.seconds = seconds
         self.offset = offset
         self.current_time = None
+        self.start_time = start_time
         self.markets = {}
         times = []
 
         for object in bucket.objects.all():
             if 'short' in object.key:
                 timestamp = int(object.key.split('_')[0])
-                times.append(timestamp)
+                if start_time and timestamp >= start_time:
+                    times.append(timestamp)
 
         times.sort()
         self.times = times
@@ -359,7 +362,9 @@ def pick_markets(N, markets_distance, rolling_window_size):
                                 Total time considered is rolling_window_size * markets_distance
     :return: 
     """
-    markets = Markets(markets_distance, 0)
+    import pudb;
+    pudb.set_trace()
+    markets = Markets(markets_distance, 0, start_time=time.time() - rolling_window_size*markets_distance)
 
     volumes = markets.stats_volume()
     print '*' * 80

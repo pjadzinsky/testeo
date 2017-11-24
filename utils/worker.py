@@ -11,8 +11,6 @@ import credentials
 def main():
     # table is flexible, we can define keys as we use it. The only required
     # keys are 'symbol' and 'time'
-    import pudb
-    pudb.set_trace()
     table = table_manager.get_or_create_table(credentials.AWS_KEY,
                                               credentials.AWS_SECRET,
                                               'us-west-2')

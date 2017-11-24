@@ -10,6 +10,7 @@ import config
 import bittrex_utils
 from market import market
 from portfolio import portfolio
+import state
 import s3_utils
 
 hv.extension('bokeh')
@@ -23,21 +24,38 @@ def main():
         elif account == 'pablo':
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
             os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
-        import pudb
-        pudb.set_trace()
         reload(bittrex_utils)
         """
         os.environ['BITTREX_ACCOUNT'] = account
+        print '*' * 80
+        print 'BITTREX_ACCOUNT:', account
 
-        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, 'bitcoin.csv')
+        print "This is the original Portfolio"
+
+        p = portfolio.Portfolio.from_first_buy_order()
+        print p.dataframe
+
+        """
+        portfolio_starttime, _ = state.last_state()
+        print 'account_last'
+        print portfolio.Portfolio.last_logged().dataframe
+        print 'at_time'
+        print portfolio.Portfolio.at_time(portfolio_starttime, 3600 * 12).dataframe
+        print 'from_bittrex'
+        print portfolio.Portfolio.from_bittrex().dataframe
+        continue
+        """
+
+
+        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
         print '*' * 8
         print 'bitcoin_df'
         print bitcoin_df
-        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, 'trading.csv')
+        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
         print '*' * 8
         print 'trading_df'
         print trading_df
-        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
+        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
         print '*' * 8
         print 'holding_df'
         print holding_df

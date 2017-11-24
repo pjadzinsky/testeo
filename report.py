@@ -14,6 +14,7 @@ import s3_utils
 
 def report(market, portfolio, state):
     portfolio.to_s3(market.time)
+    state.update_state()
     trading_value(market, portfolio)
     bitcoin_value(market)
     holding_value(market)
@@ -24,10 +25,10 @@ def plot():
     # TODO needs to be re-written
     import holoviews as hv
     hv.extension('bokeh')
-    holding_df = s3_utils.get_df(config.RESULTS_BUCKET, 'holding.csv')
-    trading_df = s3_utils.get_df(config.RESULTS_BUCKET, 'trading.csv')
-    bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, 'bitcoin.csv')
-    usd_df = s3_utils.get_df(config.RESULTS_BUCKET, 'usd.csv')
+    holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+    trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+    bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+    usd_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/usd.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
 
     days_dim = hv.Dimension('Days')
     # convert to days

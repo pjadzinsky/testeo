@@ -30,16 +30,15 @@ SATOSHI = 10**-8  # in BTC
 MINIMUM_TRADE = 50000   # in SAT (satohis)
 
 class Portfolio(object):
-    def __init__(self, id, dataframe):
+    def __init__(self, dataframe):
         """
         Read portfolio from API
         """
-        self.id = id
         self.dataframe = dataframe
 
     @classmethod
     def from_state(cls, market, state, base, value):
-        p = cls._start_portfolio(0, market, state, base, value)
+        p = cls._start_portfolio(market, state, base, value)
         return p
 
     @classmethod
@@ -59,13 +58,28 @@ class Portfolio(object):
             if key in state.index:
                 state.drop(key, inplace=True, axis=0)
         state.columns = ['Weight']
-        p = cls._start_portfolio(0, market, state, base, value)
+        p = cls._start_portfolio(market, state, base, value)
         return p
 
     @classmethod
     def from_bittrex(cls):
-        id = os.environ['BITTREX_ACCOUNT']
-        return cls(id, bittrex_utils.get_balances())
+        return cls(bittrex_utils.get_balances())
+
+    @classmethod
+    def from_first_buy_order(cls):
+        bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
+
+        time_stamp, _ = state.last_state()
+        print 'timestamp', time_stamp
+        all_summaries = bucket.objects.all()
+        for summary in all_summaries:
+            if str(time_stamp) in summary.key:
+                buy_order_df = s3_utils.get_df(bucket.name, summary.key)
+                buy_order_df.loc[:, 'Available'] = buy_order_df['target_currency']
+                buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
+                buy_order_df = buy_order_df[buy_order_df['Available'] > 0]
+
+                return cls(buy_order_df[['Available', 'Balance', 'Pending']])
 
     @classmethod
     def from_csv(cls, csv):
@@ -77,8 +91,7 @@ class Portfolio(object):
         _, temp = tempfile.mkstemp()
         config.s3_client.Bucket(config.PORTFOLIOS_BUCKET).download_file(s3_key, temp)
         dataframe = pd.read_csv(temp, index_col=0, comment='#')
-        id = os.environ['BITTREX_ACCOUNT']
-        return cls(id, dataframe)
+        return cls(dataframe)
 
     @classmethod
     def at_time(cls, timestamp, max_time_difference):
@@ -90,7 +103,7 @@ class Portfolio(object):
                     return cls.from_s3_key(summary.key)
 
     @classmethod
-    def account_last(cls):
+    def last_logged(cls):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
         all_object_summaries = bucket.objects.all()
         all_keys = [os.key for os in all_object_summaries]
@@ -124,6 +137,8 @@ class Portfolio(object):
         intermediate_currencies = ['BTC']
         dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
         portfolio = Portfolio(dataframe=dataframe)
+        import pudb; pudb.set_trace()
+
         portfolio.rebalance(market, state, intermediate_currencies, 0)
 
         return portfolio
@@ -304,8 +319,9 @@ class Portfolio(object):
 
             if os.environ['PORTFOLIO_TRADE']:
                 # log the requested portfolio
-                s3_key = '{time}_buy_df.csv'.format(time=market.time)
-                s3_utils.log_df('bittrex-buy-orders', s3_key, buy_df)
+                s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                                              time=int(market.time))
+                s3_utils.log_df(config.BUY_ORDERS_BUCKET, s3_key, buy_df)
                 trade(market_name, amount_to_buy_in_currency, rate)
         return msg
 

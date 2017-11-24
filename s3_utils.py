@@ -45,23 +45,21 @@ def update_csv(other, bucket_name, s3_key_suffix):
     return df
 
 
-def get_df(bucket_name, s3_key_suffix):
+def get_df(bucket_name, s3_key):
     """
     Get dataframe from csv associated with bucketname and s3_key_suffix and return it
     If any problem returns an empty DF
     :param bucket_name: 
-    :param s3_key_suffix: 
+    :param s3_key: 
     :return: 
     """
     bucket = config.s3_client.Bucket(bucket_name)
-    s3_key = "{account}/{s3_key_suffix}".format(account=os.environ['BITTREX_ACCOUNT'],
-                                                s3_key_suffix=s3_key_suffix)
 
     object = bucket.Object(s3_key)
     _, temp = tempfile.mkstemp()
     try:
         object.download_file(temp)
-        df = pd.read_csv(temp, comment='#')
+        df = pd.read_csv(temp, comment='#', index_col=0)
     except:
         df = pd.DataFrame([])
 

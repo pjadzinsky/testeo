@@ -15,6 +15,8 @@ def update_state(time_sec, desired_state):
     
     :param time_sec:
     """
+    import pudb; pudb.set_trace()
+
     states = get_states()
     if states.empty:
         last_state = None
@@ -45,6 +47,7 @@ def get_states():
         states = pd.DataFrame([])
 
     return states
+
 
 def frames_are_equal(left, right):
     left.sort_index(inplace=True)
