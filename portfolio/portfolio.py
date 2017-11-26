@@ -76,7 +76,7 @@ class Portfolio(object):
         all_summaries = bucket.objects.all()
         for summary in all_summaries:
             if str(time_stamp) in summary.key:
-                buy_order_df = s3_utils.get_df(bucket.name, summary.key)
+                buy_order_df = s3_utils.get_df(bucket.name, summary.key, comment='#', index_col=0)
                 buy_order_df.loc[:, 'Available'] = buy_order_df['target_currency']
                 buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
                 buy_order_df = buy_order_df[buy_order_df['Available'] > 0]

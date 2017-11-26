@@ -45,7 +45,7 @@ def update_csv(other, bucket_name, s3_key_suffix):
     return df
 
 
-def get_df(bucket_name, s3_key):
+def get_df(bucket_name, s3_key, **read_csv_kwarg):
     """
     Get dataframe from csv associated with bucketname and s3_key_suffix and return it
     If any problem returns an empty DF
@@ -59,7 +59,8 @@ def get_df(bucket_name, s3_key):
     _, temp = tempfile.mkstemp()
     try:
         object.download_file(temp)
-        df = pd.read_csv(temp, comment='#', index_col=0)
+        read_csv_kwarg.update({'comment': '#'})
+        df = pd.read_csv(temp, **read_csv_kwarg)
     except:
         df = pd.DataFrame([])
 

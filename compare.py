@@ -17,6 +17,13 @@ import state
 hv.extension('bokeh')
 
 def main():
+    holding_usd = 0
+    trading_usd = 0
+    bitcoin_usd = 0
+    holding_btc = 0
+    trading_btc = 0
+    bitcoin_btc = 0
+
     for account in ['gaby', 'pablo']:
         if account == 'gaby':
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_GABY_ENCRYPTED']
@@ -49,18 +56,24 @@ def main():
         print 'holding_df'
         print holding_df
 
-        """
-        Too many comparissons in BTC/USD vs bitcoin and holding???
-        print '*' * 80
-        print 'Account:', account
-        print 'Current value trading is: {}(USD)'.format(trading_df['USD'].values[-1])
-        print 'Current value holding is: {}(USD)'.format(usd_df['USD'].values[-1])
-        print 'Ratio trading/usd:', trading_df['USD'].values[-1] / usd_df['USD'].values[-1]
-        print ''
-        print 'Current value trading is: {}(BTC)'.format(trading_df['BTC'].values[-1])
-        print 'Current value bitcoin is: {}(BTC)'.format(bitcoin_df['BTC'].values[-1])
-        print 'Ratio trading BTC/original BTC:', trading_df['BTC'].values[-1] / bitcoin_df['BTC'].values[-1]
-        """
+        holding_usd += holding_df['USD'].values[-1]
+        trading_usd += trading_df['USD'].values[-1]
+        bitcoin_usd += bitcoin_df['USD'].values[-1]
+        holding_btc += holding_df['BTC'].values[-1]
+        trading_btc += trading_df['BTC'].values[-1]
+        bitcoin_btc += bitcoin_df['BTC'].values[-1]
+    print 'holding_usd:', holding_usd
+    print 'trading_usd:', trading_usd
+    print 'bitcoin_usd:', bitcoin_usd
+    print 'holding_btc:', holding_btc
+    print 'trading_btc:', trading_btc
+    print 'bitcoin_btc:', bitcoin_btc
+    print '*' * 80
+    print 'Ratio trading/holding (usd):', trading_usd / holding_usd
+    print 'Ratio trading/bitcoin (usd):', trading_usd / bitcoin_usd
+    print '*' * 80
+    print 'Ratio trading/holding (BTC):', trading_btc / holding_btc
+    print 'Ratio trading/bitcoin (BTC):', trading_btc / bitcoin_btc
 
 
 def plot():
