@@ -1,20 +1,13 @@
 #!/usr/bin/python
 import os
-import sys
 
-import gflags
-import holoviews as hv
-import pandas as pd
 
-from market import market
 from portfolio import portfolio
 import bittrex_utils
 import config
 import report
 import s3_utils
-import state
 
-hv.extension('bokeh')
 
 def main():
     holding_usd = 0
@@ -62,6 +55,8 @@ def main():
         holding_btc += holding_df['BTC'].values[-1]
         trading_btc += trading_df['BTC'].values[-1]
         bitcoin_btc += bitcoin_df['BTC'].values[-1]
+
+    original_usd = 6000
     print 'holding_usd:', holding_usd
     print 'trading_usd:', trading_usd
     print 'bitcoin_usd:', bitcoin_usd
@@ -71,30 +66,8 @@ def main():
     print '*' * 80
     print 'Ratio trading/holding (usd):', trading_usd / holding_usd
     print 'Ratio trading/bitcoin (usd):', trading_usd / bitcoin_usd
-    print '*' * 80
-    print 'Ratio trading/holding (BTC):', trading_btc / holding_btc
-    print 'Ratio trading/bitcoin (BTC):', trading_btc / bitcoin_btc
+    print 'Ratio trading/original (usd):', trading_usd / original_usd
 
-
-def plot():
-    holding_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/holding.csv'))
-    trading_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/trading.csv'))
-    bitcoin_df = pd.read_csv(os.path.expanduser('~/Testeo/results/Portfolio_1/bitcoins.csv'))
-
-    days_dim = hv.Dimension('Days')
-    # convert to days
-    t0 = holding_df.loc[0, 'time']
-    holding_df.loc[:, 'time'] = (holding_df['time'] - t0) / 86400
-    trading_df.loc[:, 'time'] = (trading_df['time'] - t0) / 86400
-    bitcoin_df.loc[:, 'time'] = (bitcoin_df['time'] - t0) / 86400
-
-    curve_opts = dict(line_width=2)
-    my_object = hv.Curve(holding_df, label='holding').opts(style=curve_opts) * \
-                hv.Curve(trading_df, label='trading').opts(style=curve_opts) * \
-                hv.Curve(bitcoin_df, label='bitcoin').opts(style=curve_opts)
-
-    renderer = hv.renderer('bokeh').instance()
-    renderer.save(my_object, 'example_I', style=dict(Image={'cmap':'jet'}))
 
 if __name__ == "__main__":
     main()

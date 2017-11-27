@@ -2,6 +2,7 @@
 import os
 import tempfile
 
+import holoviews as hv
 import pandas as pd
 
 import bittrex_utils
@@ -11,6 +12,8 @@ from portfolio import portfolio
 import state
 import s3_utils
 
+hv.extension('bokeh')
+
 
 def report(market, portfolio, state):
     portfolio.to_s3(market.time)
@@ -19,40 +22,55 @@ def report(market, portfolio, state):
     trading_value(market, portfolio)
     bitcoin_value(market)
     holding_value(market)
-    #plot()
+    plot()
 
 
+ONEDAY = 86400      # seconds in a day
 def plot():
-    # TODO needs to be re-written
-    import holoviews as hv
-    hv.extension('bokeh')
-    holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
-    trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
-    bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
-    usd_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/usd.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+    renderer = hv.renderer('bokeh').instance(fig='html')
+    in_bitcoins_df = pd.DataFrame([], columns=['holding', 'trading', 'bitcoin'])
+    in_usd_df = pd.DataFrame([], columns=['holding', 'trading', 'bitcoin'])
 
-    days_dim = hv.Dimension('Days')
-    # convert to days
-    t0 = trading_df.loc[0, 'time']
-    #holding_df.loc[:, 'time'] = (holding_df['time'] - t0) / 86400
-    trading_df.loc[:, 'time'] = (trading_df['time'] - t0) / 86400
-    bitcoin_df.loc[:, 'time'] = (bitcoin_df['time'] - t0) / 86400
-    usd_df.loc[:, 'time'] = (usd_df['time'] - t0) / 86400
+    for account in ['pablo', 'gaby']:
+        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=account),
+                                     index_col=2)
+        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=account),
+                                     index_col=2)
+        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=account),
+                                     index_col=2)
 
-    curve_opts = dict(line_width=2)
-    #my_object = \ #hv.Curve(holding_df, label='holding').opts(style=curve_opts) * \
-    my_object = hv.Curve((trading_df['time'], trading_df['BTC']), label='trading').opts(style=curve_opts) * \
-                hv.Curve((bitcoin_df['time'], bitcoin_df['BTC']), label='bitcoin').opts(style=curve_opts)
-                #hv.Curve(usd_df, label='usd').opts(style=curve_opts)
+        days_dim = hv.Dimension('Days')
+        # convert to days
+        t0 = trading_df.index[0]
 
-    renderer = hv.renderer('bokeh').instance()
+        holding_df.index = ((holding_df.index - t0) / ONEDAY).astype(int)
+        trading_df.index = ((trading_df.index - t0) / ONEDAY).astype(int)
+        bitcoin_df.index = ((bitcoin_df.index - t0) / ONEDAY).astype(int)
+
+        in_bitcoins_df.loc[:, 'holding'] += holding_df['BTC']
+        in_bitcoins_df.loc[:, 'trading'] += trading_df['BTC']
+        in_bitcoins_df.loc[:, 'bitcoin'] += bitcoin_df['BTC']
+        in_usd_df.loc[:, 'holding'] += holding_df['USD']
+        in_usd_df.loc[:, 'trading'] += trading_df['USD']
+        in_usd_df.loc[:, 'bitcoin'] += bitcoin_df['USD']
+
+
+    import pudb; pudb.set_trace()
+
+    plot_opts = dict(line_width=2)
+    my_object = hv.Curve((in_bitcoins_df.index, in_bitcoins_df['holding']), label='holding').opts(plot=plot_opts) * \
+                hv.Curve((in_bitcoins_df.index, in_bitcoins_df['trading']), label='trading').opts(plot=plot_opts) * \
+                hv.Curve((in_bitcoins_df.index, in_bitcoins_df['bitcoin']), label='bitcoin').opts(plot=plot_opts)
+
     _, temp = tempfile.mkstemp()
     renderer.save(my_object, temp, style=dict(Image={'cmap':'jet'}))
 
+    """
     # upload html to s3
     s3_key = "{account}/plot.html".format(account=os.environ['BITTREX_ACCOUNT'])
     bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
     bucket.upload_file(temp, s3_key)
+    """
 
 
 def recompute():
