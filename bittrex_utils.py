@@ -9,6 +9,7 @@ import pandas as pd
 
 import config
 import memoize
+print 'Finished with imports in', __file__
 
 FLAGS = gflags.FLAGS
 
@@ -65,6 +66,7 @@ def get_balances():
     """
     response = client.get_balances()
     result = _to_df(response['result'], 'Currency')
+    result = result[result['Balance'] > 0]
     return result
 
 
@@ -119,3 +121,4 @@ def _to_df(response, new_index=None):
         df.set_index(new_index, drop=True, inplace=True)
     return df
 
+print 'finished loading', __file__

@@ -50,7 +50,7 @@ cp utils.py $FOLDER
 
 echo 4
 #   4. Add pip packages
-for package in {bittrex,pandas,python-gflags,numpy,holoviews}; do
+for package in {bittrex,pandas,python-gflags,numpy}; do
     if [ ! -d "$FOLDER/$package" ]; then
         pip install $package -t $FOLDER
     fi

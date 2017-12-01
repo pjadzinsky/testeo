@@ -14,6 +14,7 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
+print 'About to start loading modules from', __file__
 import os
 import tempfile
 
@@ -24,10 +25,11 @@ import bittrex_utils
 import config
 import s3_utils
 import state
+print 'Finished with imports in', __file__
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
-MINIMUM_TRADE = 50000   # in SAT (satohis)
+MINIMUM_TRADE = 100000   # in SAT (satohis)
 
 class Portfolio(object):
     def __init__(self, dataframe):
@@ -67,21 +69,46 @@ class Portfolio(object):
 
     @classmethod
     def from_first_buy_order(cls):
-        """ return the portfolio first traded
+        """ return the portfolio first traded after the 'state' was last updated.
+        
+        (We are actually trying to load the portfolio from the first 'buy' order, some currencies might not have been
+        executed at the requested limit buy/sell)
+        
+        In case the Buy order does not exist, try to load the portfolio from config.PORTFOLIOS_BUCKET
         """
-        bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
+        orders_bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
 
-        time_stamp, _ = state.last_state()
-        print 'timestamp', time_stamp
-        all_summaries = bucket.objects.all()
+        # get the timestamp corresponding to the 'state' definiition.
+        # IF there is a csv in bittrex-buy-orders bucket matching <account>/<time_stamp>_buy_df.csv. Load
+        # portfolio from this key
+        time_stamp, _ = state.current()
+        all_summaries = orders_bucket.objects.all()
         for summary in all_summaries:
             if str(time_stamp) in summary.key:
-                buy_order_df = s3_utils.get_df(bucket.name, summary.key, comment='#', index_col=0)
+                buy_order_df = s3_utils.get_df(orders_bucket.name, summary.key, comment='#', index_col=0)
                 buy_order_df.loc[:, 'Available'] = buy_order_df['target_currency']
                 buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
                 buy_order_df = buy_order_df[buy_order_df['Available'] > 0]
 
                 return cls(buy_order_df[['Available', 'Balance', 'Pending']])
+
+        # if we get here, is because '<account>/<time_stamp>_buy_df.csv' was not found in BUY_ORDERS_BUCKET
+        # In this case, we'll use the 1st portfolio defined after time_stamp (when the 'state' was defined)
+        portfolios_bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+        all_summaries = portfolios_bucket.objects.all()
+        time_diff = np.inf
+        key = None
+        for summary in all_summaries:
+            if os.environ['BITTREX_ACCOUNT'] in summary.key:
+                # summary.key is of the form <account>/<time_stamp>.csv
+                portfolio_time = int(summary.key.rstrip('.csv').split('/')[1])
+                if portfolio_time > time_stamp and portfolio_time - time_stamp < time_diff:
+                    time_diff = portfolio_time - time_stamp
+                    key = summary.key
+        if key:
+            return cls.from_s3_key(summary.key)
+        else:
+            return None
 
     @classmethod
     def from_csv(cls, csv):
@@ -139,7 +166,6 @@ class Portfolio(object):
         intermediate_currencies = ['BTC']
         dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
         portfolio = Portfolio(dataframe=dataframe)
-        import pudb; pudb.set_trace()
 
         portfolio.rebalance(market, state, intermediate_currencies, 0)
 
@@ -213,7 +239,7 @@ class Portfolio(object):
                     as a percentage)
         """
         buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
-        if os.environ['PORTFOLIO_SIMULATING']:
+        if os.environ['PORTFOLIO_SIMULATING'] == 'True':
             # apply transaction costs
             buy_df.loc[:, 'Buy'] = buy_df['Buy'].apply(apply_transaction_cost)
 
@@ -244,7 +270,7 @@ class Portfolio(object):
         apply_min_transaction_size(market, buy_df, base)
 
         msg = ''
-        if os.environ['PORTFOLIO_SIMULATING']:
+        if os.environ['PORTFOLIO_SIMULATING'] == 'True':
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
             msg = self.buy(market, buy_df, base)
@@ -313,13 +339,13 @@ class Portfolio(object):
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'
-            if not os.environ['PORTFOLIO_TRADE']:
+            if not os.environ['PORTFOLIO_TRADE'] == 'True':
                 msg += "PORTFOLIO_TRADE: False\n"
             msg += msg_order + '\n'
             msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
-            if os.environ['PORTFOLIO_TRADE']:
+            if os.environ['PORTFOLIO_TRADE'] == 'True':
                 # log the requested portfolio
                 s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
                                                               time=int(market.time))
@@ -369,7 +395,7 @@ class Portfolio(object):
     def to_s3(self, time_sec):
         """ Store self.dataframe in the given key
         """
-        if os.environ['PORTFOLIO_REPORT']:
+        if os.environ['PORTFOLIO_REPORT'] == 'True':
             assert self.dataframe.index.name == 'Currency'
             bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
             s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
@@ -421,3 +447,6 @@ def apply_transaction_cost(buy):
         buy += buy * COMMISION
 
     return buy
+
+
+print 'finished loading', __file__

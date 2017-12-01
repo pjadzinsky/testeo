@@ -6,9 +6,11 @@ import re
 import pandas as pd
 
 import config
+print 'Finished with imports in', __file__
+
 
 def log_df(bucket_name, s3_key, some_df):
-    if os.environ['PORTFOLIO_REPORT']:
+    if os.environ['PORTFOLIO_REPORT'] == 'True':
         bucket = config.s3_client.Bucket(bucket_name)
         _, filename = tempfile.mkstemp()
         some_df.to_csv(filename)
@@ -41,7 +43,7 @@ def append_to_csv(other, bucket_name, s3_key, save_index=False):
         other = other.to_frame().T
 
     df = df.append(other)
-    if os.environ['PORTFOLIO_REPORT']:
+    if os.environ['PORTFOLIO_REPORT'] == 'True':
         df.to_csv(temp, index=save_index)
         bucket.upload_file(temp, s3_key)
     return df

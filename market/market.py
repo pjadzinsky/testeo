@@ -9,12 +9,12 @@ import json
 import tempfile
 import time
 
-import boto3
 import numpy as np
 import pandas as pd
 
 import config
 import bittrex_utils
+print 'Finished with imports in', __file__
 
 
 bucket = config.s3_client.Bucket('my-bittrex')
@@ -60,7 +60,6 @@ class Markets(object):
         return market
 
     def first_market(self):
-        print self.times[0]
         return self.market_at_time(self.times[0])
 
     def last_market(self):
@@ -362,8 +361,6 @@ def pick_markets(N, markets_distance, rolling_window_size):
                                 Total time considered is rolling_window_size * markets_distance
     :return: 
     """
-    import pudb;
-    pudb.set_trace()
     markets = Markets(markets_distance, 0, start_time=time.time() - rolling_window_size*markets_distance)
 
     volumes = markets.stats_volume()
@@ -387,3 +384,4 @@ def pick_markets(N, markets_distance, rolling_window_size):
     print ','.join(df.index.values[:N])
     return df.index.values[:N]
 
+print 'finished loading', __file__

@@ -9,6 +9,7 @@ from market import market
 from portfolio import portfolio
 import state
 import report
+print 'Finished with imports in', __file__
 
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
                     "1 is 100%")
@@ -20,11 +21,13 @@ gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be p
 
 def main(json_input, context):
     print '*' * 80
+
     print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'
-    bittrex_utils.cancel_all_orders()
+    if os.environ['PORTFOLIO_TRADE'] == 'True':
+        bittrex_utils.cancel_all_orders()
 
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     currencies = os.environ['CURRENCIES'].split(',')
