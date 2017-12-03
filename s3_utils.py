@@ -94,15 +94,11 @@ def bucket_timestamps(bucket_name):
 
     """
     bucket = config.s3_client.Bucket(bucket_name)
-    all_summaries = bucket.objects.all()
+    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
     s3_keys = [summary.key for summary in all_summaries]
 
-    # limit s3_keys to current account and those with digits on them
-    s3_keys = [key for key in s3_keys if os.environ['BITTREX_ACCOUNT'] in key]
-    print s3_keys
     regex = re.compile('.*\d+')
     s3_keys = [key for key in s3_keys if regex.match(key)]
-    print s3_keys
 
     regex = re.compile('\d+')
     times = [int(regex.findall(s3_key)[0]) for s3_key in s3_keys]

@@ -25,12 +25,9 @@ def main():
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
             os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
 
-        reload(bittrex_utils)
         os.environ['BITTREX_ACCOUNT'] = account
         print '*' * 80
         print 'BITTREX_ACCOUNT:', account
-
-        print "This is the original Portfolio"
 
         current_portfolio = portfolio.Portfolio.from_bittrex()
         portfolio_change = report.portfolio_change(current_portfolio)

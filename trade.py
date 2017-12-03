@@ -43,7 +43,7 @@ def main(json_input, context):
 
     # log everything state, portfolio, values according to current market in BTC, USD (only logs if environmental
     # variable PORTFOLIO_REPORT is set
-    report.report(current_market, current_portfolio, desired_state)
+    report.during_trading(current_market, current_portfolio, desired_state)
 
     msg = current_portfolio.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
     print msg

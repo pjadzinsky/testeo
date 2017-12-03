@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import os
 import tempfile
+import time
 from dateutil import parser
 
 import pandas as pd
@@ -19,19 +20,14 @@ if os.environ['LOGNAME'] == 'pablo':
 
 
 
-def report(current_market, current_portfolio, desired_state):
+def during_trading(current_market, current_portfolio, desired_state):
 
     current_portfolio.to_s3(current_market.time)
     state.save(current_market.time, desired_state)
-    if os.environ['LOGNAME'] == 'pablo':
-        portfolio_change(current_portfolio)
     deposits(current_market)
     trading_value(current_market, current_portfolio)
     bitcoin_value(current_market)
     holding_value(current_market)
-    """
-    plot()
-    """
 
 
 ONEDAY = 86400      # seconds in a day
@@ -116,18 +112,17 @@ def recompute():
     """
 
     bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-    all_summaries = bucket.objects.all()
+    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
     for summary in all_summaries:
-        if os.environ['BITTREX_ACCOUNT'] in summary.key:
-            print '*' * 80
-            print 'processing portfolio from key:', summary.key
-            p = portfolio.Portfolio.from_s3_key(summary.key)
-            time = int(summary.key.rstrip('.csv').split('/')[-1])
-            m = market.Market.at_time(time, 3600)
+        print '*' * 80
+        print 'processing portfolio from key:', summary.key
+        p = portfolio.Portfolio.from_s3_key(summary.key)
+        time = int(summary.key.rstrip('.csv').split('/')[-1])
+        m = market.Market.at_time(time, 3600)
 
-            desired_state = state.at_time(m.time)
+        desired_state = state.at_time(m.time)
 
-            report(m, p, desired_state)
+        report(m, p, desired_state)
 
 
 
@@ -140,8 +135,8 @@ def clean():
     """
 
     bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
-    all_summaries = bucket.objects.all()
-    objects = [{'Key': summary.key} for summary in all_summaries if os.environ['BITTREX_ACCOUNT'] in summary.key]
+    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    objects = [{'Key': summary.key} for summary in all_summaries]
     if objects:
         bucket.delete_objects(Delete={'Objects': objects})
 
@@ -278,7 +273,8 @@ def portfolio_change(current_portfolio):
     :return: pd.DataFrame indexed by 'currency' with columns: '%', 'Diff', 'original', 'Current'
     """
 
-    first_portfolio = portfolio.Portfolio.from_first_buy_order()
+    state_timestamp, _ = state.at_time(time.time())
+    first_portfolio = portfolio.Portfolio.after_time(state_timestamp)
 
     original = first_portfolio.dataframe['Balance']
     current = current_portfolio.dataframe['Balance']
@@ -292,6 +288,46 @@ def portfolio_change(current_portfolio):
     change_df.dropna(inplace=True)
 
     return change_df
+
+
+def currency_changes_in_portfolio():
+    """ Load all the portfolios in config.PORTFOLIOS_BUCKET/<account>/<time>.csv
+    and every time there is a chnage in the currencies, print the timestamp of the new portfolio, and the change
+    in currencies
+    """
+    bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+
+    previous_currencies = set([])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    try:
+        os.makedirs('/tmp/{}'.format(os.environ['BITTREX_ACCOUNT']))
+    except:
+        pass
+    for summary in all_summaries:
+        df = s3_utils.get_df(config.PORTFOLIOS_BUCKET, summary.key, index_col=0)
+        df = df[df['Balance']>0]
+        current_currencies = set(df.index.tolist())
+
+        time = int(summary.key.split('/')[1].replace('.csv', ''))
+        if previous_currencies != current_currencies:
+            print '*' * 80
+            print 'Time:', time
+            print 'Currencies gone:', previous_currencies.difference(current_currencies)
+            print 'New currencies:', current_currencies.difference(previous_currencies)
+            print 'len(new_currencies) =', len(current_currencies)
+            if len(current_currencies) % 2 and 'BTC' in current_currencies:
+                current_currencies.discard('BTC')
+
+            if len(current_currencies) == 0:
+                continue
+
+            df = state.from_currencies(current_currencies)
+            df.to_csv('/tmp/{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                                                    time=time))
+            print 'All currencies:', current_currencies
+            previous_currencies = current_currencies
+
+        print summary.key
 
 
 if __name__ == "__main__":

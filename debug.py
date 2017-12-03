@@ -45,7 +45,6 @@ def debug1():
     import time
     from portfolio import portfolio
 
-    import pudb; pudb.set_trace()
 
     p = portfolio.Portfolio.from_bittrex()
     _, state1 = state.at_time(time.time())
@@ -66,6 +65,10 @@ def state_at_time():
 
     state.at_time(time.time())
 
+def currency_changes_in_portfolio():
+    import report
+    report.currency_changes_in_portfolio()
+
 
 def env_variables():
     import os
@@ -77,6 +80,52 @@ def env_variables():
         print False
 
 
+def bucket_timestamp():
+    import s3_utils
+    import config
+    print s3_utils.bucket_timestamps(config.PORTFOLIOS_BUCKET)
+
+
+def remove_equal():
+    """
+    I have a bunch of csvs in /tmp/<account>/<timestamp>.csv
+    
+    load them in order and for every pair, if 'first' == 'second' remove 'second'
+    :return: 
+    
+    """
+    import os
+    import pandas as pd
+    import numpy as np
+
+    files = os.listdir('/tmp/pablo')
+    files = ['/tmp/pablo/' + f for f in files]
+    files.sort()
+
+    first = files[0]
+    df1 = pd.read_csv(first, index_col=0)
+    for second in files[1:]:
+        df2 = pd.read_csv(second, index_col=0)
+
+        if len(df1)==len(df2) and np.all(df1.index == df2.index) and np.all(df1.Weight == df2.Weight):
+            print 'removing', second
+            os.unlink(second)
+        else:
+            print '\tkeeping', first
+            df1 = df2
+
+
+def report_change():
+    import report
+    from portfolio import portfolio
+    current_portfolio = portfolio.Portfolio.from_bittrex()
+
+    print report.portfolio_change(current_portfolio)
+
+
 
 if __name__ == "__main__":
-    env_variables()
+    #bucket_timestamp()
+    #currency_changes_in_portfolio()
+    #remove_equal()
+    report_change()

@@ -40,19 +40,21 @@ def current():
 def at_time(time_sec):
     """ Return the 'state' that was desired at 'time_sec' and the time when it was first defined
     
-    Time defining the 'state' is in the s3_key name, which is of the form <account>/<time_stamp>.csv
+    The 'state' is defined by a file (if it exists) in BITTREX_STATES under <account>/<time_stamp>.csv
+    and where the time_stamp is the closest one to time_sec that is also less than time_sec
     
-    If STATES_BUCKET doesn't have a csv corresponding to a time before 'time_sec', then try to infer the state
-    from the pevious buy order
+    If STATES_BUCKET doesn't have a csv corresponding to a time before 'time_sec', retrun None, None
     """
     bucket = config.s3_client.Bucket(config.STATES_BUCKET)
-    all_summaries = bucket.objects.all()
+    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
 
     delta = np.inf
     state_timestamp = None
+    state = None
     s3_key = None
+
     for summary in all_summaries:
-        if os.environ['BITTREX_ACCOUNT'] in summary.key and summary.key.endswith('.csv'):
+        if summary.key.endswith('.csv'):
             timestamp = int(summary.key.split('/')[1].replace('.csv', ''))
             if timestamp <= time_sec and time_sec - timestamp < delta:
                 state_timestamp = timestamp
@@ -61,9 +63,6 @@ def at_time(time_sec):
 
     if s3_key:
         state = s3_utils.get_df(config.STATES_BUCKET, s3_key, index_col=0)
-    else:
-        #
-        state_timestamp, state = from_previous_buy_order(time_sec)
 
     return state_timestamp, state
 
@@ -71,7 +70,7 @@ def at_time(time_sec):
 def from_previous_buy_order(time):
     orders_bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
 
-    all_summaries = orders_bucket.objects.all()
+    all_summaries = orders_bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
 
     time_diff = np.inf
     best_key = None
@@ -81,8 +80,6 @@ def from_previous_buy_order(time):
         # key is of the form <account>/<time_stamp>_buy_df.csv
         # but as of 11/29/2017 we have a bug in production and there are order_buckets without "<account>/". That is
         # why I'm checking for <account> in the key explicitely
-        if not os.environ['BITTREX_ACCOUNT'] in summary.key:
-            continue
         order_time = int(summary.key.split('/')[1].split('_')[0])
         if order_time < time and time - order_time < time_diff:
             time_diff = time - order_time
@@ -102,6 +99,7 @@ def save(time_sec, state):
     """ If needed, save the 'state' associated with time_sec
     
     We'll only save parameter 'state' if the returned state by 'at_time(time_sec)' is different from 'state'
+    (or if there is no 'state' at all)
     """
 
 
