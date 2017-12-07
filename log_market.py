@@ -1,3 +1,4 @@
+#!/usr/bin/python
 """
 I'm following this example from aws documentation
 
@@ -8,16 +9,12 @@ import tempfile
 import json
 import time
 
-from bittrex import bittrex
-import boto3
-import hashlib
+import bittrex_utils
 
-import credentials
+from ../market import market
 
 bucket_name = 'my-bittrex'
 
-s3_client = boto3.client('s3')
-bittrex_client = bittrex.Bittrex(credentials.BITTREX_KEY, credentials.BITTREX_SECRET)
 
 def lambda_handler(event, context):
     print('Staring handler')
@@ -27,9 +24,11 @@ def lambda_handler(event, context):
 
 
 def main():
+    import pudb; pudb.set_trace()
+
     timestamp = int(time.time())
 
-    response = bittrex_client.get_market_summaries()
+    response = bittrex_utils.client.get_market_summaries()
     json_response = json.dumps(response)
 
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
@@ -59,7 +58,12 @@ def main():
         fid.write(json.dumps(short_results))
 
     dest_key = str(timestamp) + '_short'
-    s3_client.upload_file(filename, bucket_name, dest_key)
+    #s3_client.upload_file(filename, bucket_name, dest_key)
+
+    current_market = market.Market.from_dictionry(short_results)
+    last = current_market.last_in_usdt()
+    volume = current_market.usd_volumes()
+
 
 if __name__ == "__main__":
     main()
