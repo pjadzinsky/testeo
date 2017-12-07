@@ -131,8 +131,6 @@ class Portfolio(object):
 
     @classmethod
     def after_time(cls, timestamp):
-        import pudb; pudb.set_trace()
-
         max_time_difference = np.inf
         best_key = None
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)

@@ -14,7 +14,7 @@
 #   6. upload to s3
 
 #Constants and variables
-FOLDER=to_upload
+FOLDER=upload_trade
 
 #   0. Make sure we have no left ofer PUDB statements
 pudb_lines=$(grep -R --exclude=upload_trade.sh --exclude=to_upload.zip PUDB)

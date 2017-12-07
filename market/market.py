@@ -7,7 +7,6 @@ from itertools import product
 import os
 import json
 import tempfile
-import time
 
 import numpy as np
 import pandas as pd
@@ -182,6 +181,13 @@ class Market(object):
         return cls(timestamp, prices_df)
 
     @classmethod
+    def from_dictionary(cls, dictionary, timestamp):
+        prices_df = pd.DataFrame(dictionary)
+        prices_df.set_index('MarketName', inplace=True)
+
+        return cls(timestamp, prices_df)
+
+    @classmethod
     def at_time(cls, timestamp, max_time_difference):
         for summary in bucket.objects.all():
             if 'short' in summary.key:
@@ -200,9 +206,16 @@ class Market(object):
 
         print 'Looking and downloading file from s3:', filename
         if 'short' in s3_key:
-            # object points to a row that we don't have in df, add it
-            bucket.download_file(s3_key, filename)
-            return cls.from_local_file(filename, timestamp)
+            try:
+                # object points to a row that we don't have in df, add it
+                bucket.download_file(s3_key, filename)
+                return cls.from_local_file(filename, timestamp)
+            except:
+                # quick fix to be able to download file in aws
+                _, temp = tempfile.mkstemp()
+                bucket.download_file(s3_key, temp)
+                return cls.from_local_file(temp, timestamp)
+
 
     @classmethod
     def from_bittrex(cls):
@@ -319,7 +332,7 @@ class Market(object):
     def last_in_usdt(self, intermediates):
         """ Return a Series index by cryptocurrency where the associated value is the 'Last' traded value but in USDT
         
-        For most currencies it is necessary to go through inermediates (which should not include 'USDT')
+        For most currencies it is necessary to go through intermediates (which should not include 'USDT')
         Most likely intermediates is just ['BTC']
         """
         if 'USDT' not in intermediates:
@@ -352,36 +365,5 @@ def short_s3_key_from_timestamp(time):
     return "{0}_short".format(time)
 
 
-def pick_markets(N, markets_distance, rolling_window_size):
-    """
-    
-    :param N: Number of currencies to return
-    :param markets_distance: distsance in seconds in between market conditions used
-    :param rolling_window_size: How many points to take into accouont when computing volume and variance.
-                                Total time considered is rolling_window_size * markets_distance
-    :return: 
-    """
-    markets = Markets(markets_distance, 0, start_time=time.time() - rolling_window_size*markets_distance)
-
-    volumes = markets.stats_volume()
-    print '*' * 80
-    print 'market volumes'
-    print volumes.head(20)
-
-    variance_df = markets.stats_variance(rolling_window_size)
-    mean_variance = variance_df.mean(axis=0)
-
-    mean_variance.sort_values(ascending=False, inplace=True)
-    print mean_variance.head(20)
-    print mean_variance.index.values[:30]
-    print '*' * 80
-
-    print type(volumes), type(mean_variance)
-    df = pd.concat([volumes, mean_variance], axis=1)
-    df.columns = ['volume', 'variance']
-    df = df[df['volume'] > 1E6]
-    df = df.sort_values('variance', ascending=False)
-    print ','.join(df.index.values[:N])
-    return df.index.values[:N]
 
 print 'finished loading', __file__

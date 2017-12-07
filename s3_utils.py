@@ -104,3 +104,24 @@ def bucket_timestamps(bucket_name):
     times = [int(regex.findall(s3_key)[0]) for s3_key in s3_keys]
     return times
 
+
+def upload_json(data, bucket_name, s3_key):
+    bucket = config.s3_client.Bucket(bucket_name)
+
+    _, temp = tempfile.mkstemp()
+    with open(temp, 'w') as fid:
+        json.dump(data, fid)
+
+    bucket.upload_file(temp, s3_key)
+
+
+def download_json(bucket_name, s3_key):
+    bucket = config.s3_client.Bucket(bucket_name)
+
+    object = bucket.Object(s3_key)
+    _, temp = tempfile.mkstemp()
+    object.download_file(temp)
+    with open(temp, 'r') as fid:
+        data = json.load(fid)
+    return data
+

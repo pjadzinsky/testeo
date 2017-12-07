@@ -10,8 +10,9 @@ import json
 import time
 
 import bittrex_utils
+import config
 
-from ../market import market
+from market import market
 
 bucket_name = 'my-bittrex'
 
@@ -36,7 +37,7 @@ def main():
         fid.write(json_response)
 
     dest_key = str(timestamp) + '_full'
-    s3_client.upload_file(filename, bucket_name, dest_key)
+    #config.s3_client.upload_file(filename, bucket_name, dest_key)
 
     result = response['result']
     short_results = []
@@ -58,11 +59,15 @@ def main():
         fid.write(json.dumps(short_results))
 
     dest_key = str(timestamp) + '_short'
-    #s3_client.upload_file(filename, bucket_name, dest_key)
+    #config.s3_client.upload_file(filename, bucket_name, dest_key)
 
-    current_market = market.Market.from_dictionry(short_results)
-    last = current_market.last_in_usdt()
-    volume = current_market.usd_volumes()
+    import pudb; pudb.set_trace()
+
+    current_market = market.Market.from_dictionary(short_results, timestamp)
+    last = current_market.last_in_usdt(['BTC'])
+    volume = current_market.usd_volumes(['BTC'])
+    print(last)
+    print(volume)
 
 
 if __name__ == "__main__":

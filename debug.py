@@ -122,10 +122,15 @@ def report_change():
 
     print report.portfolio_change(current_portfolio)
 
+def plot():
+    import report
+    report.plot()
+
 
 
 if __name__ == "__main__":
     #bucket_timestamp()
     #currency_changes_in_portfolio()
     #remove_equal()
-    report_change()
+    #report_change()
+    plot()

@@ -50,10 +50,10 @@ def plot():
     trading_df.loc[:, 'time'] == (trading_df['time'] // 86400) * 86400
     bitcoin_df.loc[:, 'time'] == (bitcoin_df['time'] // 86400) * 86400
 
-    # group by 'time' and compute mean
-    holding_df = holding_df.groupby('time', as_index=False).mean()
-    trading_df = trading_df.groupby('time', as_index=False).mean()
-    bitcoin_df = bitcoin_df.groupby('time', as_index=False).mean()
+    # group by 'time' and compute totals
+    holding_df = holding_df.groupby('time', as_index=False).sum()
+    trading_df = trading_df.groupby('time', as_index=False).sum()
+    bitcoin_df = bitcoin_df.groupby('time', as_index=False).sum()
 
     """
     for account in ['pablo', 'gaby']:
@@ -76,8 +76,10 @@ def plot():
                 hv.Curve((trading_df['time'], trading_df['BTC']), label='trading.csv').opts(plot=plot_opts) * \
                 hv.Curve((bitcoin_df['time'], bitcoin_df['BTC']), label='bitcoin.csv').opts(plot=plot_opts)
 
-    _, temp = tempfile.mkstemp()
-    print temp
+    #if os.path.isfile('/tmp/trading_btc.html')
+    temp = '/tmp/trading_btc'
+    #_, temp = tempfile.mkstemp()
+    #print temp
     renderer.save(my_object, temp, style=dict(Image={'cmap':'jet'}))
 
     """
