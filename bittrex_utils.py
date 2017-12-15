@@ -30,8 +30,6 @@ if 'BITTREX_KEY_ENCRYPTED' in os.environ:
     ENCRYPTED_KEY = os.environ['BITTREX_KEY_ENCRYPTED']
     ENCRYPTED_SECRET = os.environ['BITTREX_SECRET_ENCRYPTED']
 
-    import pudb; pudb.set_trace()
-
     BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
     BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
     private_client = Bittrex(BITTREX_KEY, BITTREX_SECRET)

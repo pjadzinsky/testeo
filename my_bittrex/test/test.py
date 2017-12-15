@@ -275,8 +275,6 @@ class TestRebalance1(unittest.TestCase):
         # since Market2 is [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         # 'BTC' @ 2000, position should be 1250/2000 = 0.625
         # 'ETH' @ 500, position should be 1250/500 = 2.5
-        import pudb
-        pudb.set_trace()
         portfolio.rebalance(market, state, portfolio, 'USDT', 0)
         print portfolio.portfolio
         """

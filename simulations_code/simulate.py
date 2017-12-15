@@ -65,8 +65,6 @@ def index_from_params(sim_params):
         temp_params.drop('timestamp', inplace=True)
 
     for index, row in params_df.iterrows():
-        import pudb
-        pudb.set_trace()
         if np.all(row.drop('timestamp') == temp_params):
             return index
 

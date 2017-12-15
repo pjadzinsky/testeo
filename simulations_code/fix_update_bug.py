@@ -22,8 +22,6 @@ def fix1():
 
     t0 = 1505779200
     for index in params_df.index:
-        import pudb
-        pudb.set_trace()
         csv_name = os.path.join(config.DATAFOLDER, "{0}.csv".format(index))
         df = pd.read_csv(csv_name)
         df = df[df['time'] < t0]
@@ -37,8 +35,6 @@ def fix2():
     params_df = simulate.params_df
 
     for index, row in params_df.iterrows():
-        import pudb
-        pudb.set_trace()
         desired_state = simulate.desired_state_from_params(row)
         params_df.loc[index, 'N'] = portfolio.n_from_state(desired_state)
 
