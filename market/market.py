@@ -3,6 +3,7 @@
 Download keys from s3 and generate a dataframe with all
 the information in them
 """
+from collections import defaultdict
 from itertools import product
 import os
 import json
@@ -322,12 +323,12 @@ class Market(object):
         """ Return a dataframe with volumes for all currencies in USDT """
         currencies = bittrex_utils.currencies_df().index.values
 
-        volumes_df = pd.DataFrame([], columns=['Volume (USDT)'])
+        volumes = pd.Series([])
         for currency in currencies:
-            volumes_df.loc[currency, 'Volume (USDT)'] = self.currency_volume('USDT', [intermediates, [currency]])
+            volumes[currency] = self.currency_volume('USDT', [intermediates, [currency]])
 
-        volumes_df.sort_values('Volume (USDT)', ascending=False, inplace=True)
-        return volumes_df
+        volumes.sort_values(ascending=False, inplace=True)
+        return volumes
 
     def last_in_usdt(self, intermediates):
         """ Return a Series index by cryptocurrency where the associated value is the 'Last' traded value but in USDT

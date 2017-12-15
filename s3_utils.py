@@ -17,7 +17,7 @@ def log_df(bucket_name, s3_key, some_df):
         bucket.upload_file(filename, s3_key)
 
 
-def append_to_csv(other, bucket_name, s3_key, save_index=False):
+def append_to_csv(other, bucket_name, s3_key, **kwargs):
     """
     download the csv associated with bucket/s3_key (or create an empty one if bucket/s3_key is empty)
     add the contents of row and save it back into bucket/s3_key  
@@ -32,19 +32,17 @@ def append_to_csv(other, bucket_name, s3_key, save_index=False):
     object = bucket.Object(s3_key)
     try:
         object.download_file(temp)
-        if save_index:
-            df = pd.read_csv(temp, index_col=0, comment='#')
-        else:
-            df = pd.read_csv(temp, comment='#')
+        df = pd.read_csv(temp, comment='#')
     except:
         df = pd.DataFrame([])
+        kwargs.update({'index': True})
 
     if type(other) == pd.Series:
         other = other.to_frame().T
 
     df = df.append(other)
     if os.environ['PORTFOLIO_REPORT'] == 'True':
-        df.to_csv(temp, index=save_index)
+        df.to_csv(temp, **kwargs)
         bucket.upload_file(temp, s3_key)
     return df
 
