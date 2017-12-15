@@ -16,7 +16,6 @@ PORTFOLIOS_BUCKET = 'bittrex-portfolios'
 RESULTS_BUCKET = 'bittrex-results'
 STATES_BUCKET = 'bittrex-states'
 
-
 if os.environ['LOGNAME'] == 'pablo':
     boto3.setup_default_session(profile_name='user2')
     session = boto3.Session(profile_name='user2')

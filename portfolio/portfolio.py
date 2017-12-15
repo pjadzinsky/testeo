@@ -357,10 +357,10 @@ class Portfolio(object):
 
             if amount_to_buy_in_base > 0:
                 msg_order = 'send BUY order'
-                trade = bittrex_utils.client.buy_limit
+                trade = bittrex_utils.private_client.buy_limit
             else:
                 msg_order = 'send SELL order'
-                trade = bittrex_utils.client.sell_limit
+                trade = bittrex_utils.private_client.sell_limit
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'

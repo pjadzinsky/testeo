@@ -127,10 +127,15 @@ def plot():
     report.plot()
 
 
+def log_market():
+    import log_market
+    log_market.main()
+
 
 if __name__ == "__main__":
     #bucket_timestamp()
     #currency_changes_in_portfolio()
     #remove_equal()
     #report_change()
-    plot()
+    #plot()
+    log_market()
