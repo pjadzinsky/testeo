@@ -68,18 +68,35 @@ def main():
     bucket.upload_file(filename, dest_key)
 
     current_market = market.Market.from_dictionary(short_results, timestamp)
+    _log_last_and_volume(current_market)
+
+
+def _log_last_and_volume(current_market):
     last = current_market.last_in_usdt(['BTC'])
 
     last_dest_key = '{account}/markets_lasts.csv'.format(account=os.environ['BITTREX_ACCOUNT'])
-    append(bucket_name, last_dest_key, last, timestamp)
+    _append(bucket_name, last_dest_key, last, current_market.time)
     volume_dest_key = '{account}/markets_volumes.csv'.format(account=os.environ['BITTREX_ACCOUNT'])
     volume = current_market.usd_volumes(['BTC'])
-    append(bucket_name, volume_dest_key, volume, timestamp)
+    _append(bucket_name, volume_dest_key, volume, current_market.time)
 
 
-def append(bucket_name, s3_key, row, new_index):
+def _append(bucket_name, s3_key, series, new_index):
+    """
+    Download df associated with bucket_name and s3_key and add the contents of 'series' 
+    as a new column named 'new_index'
+    
+    :param bucket_name: 
+    :param s3_key: 
+    :param series: 
+    :param new_index: 
+    :return: 
+    """
+    assert type(series) == pd.Series
     df = s3_utils.get_df(bucket_name, s3_key, index_col=0)
-    df[new_index] = row
+    if new_index in df:
+        raise ValueError('Dataframe already has this index in it')
+    df[new_index] = series
     s3_utils.put_csv(df, bucket_name, s3_key)
 
 

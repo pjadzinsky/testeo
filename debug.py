@@ -127,8 +127,23 @@ def plot():
     report.plot()
 
 
-def log_market():
+def fix_log_market():
     import log_market
+    import config
+    from market import market
+    import s3_utils
+
+    bucket = config.s3_client.Bucket('my-bittrex')
+    all_objects = bucket.objects.all()
+    import pudb; pudb.set_trace()
+
+    for object in all_objects:
+        if 'short' not in object.key:
+            continue
+
+        current_market = market.Market.from_s3_key(object.key)
+        log_market._log_last_and_volume(current_market)
+
     log_market.main()
 
 
@@ -138,4 +153,4 @@ if __name__ == "__main__":
     #remove_equal()
     #report_change()
     #plot()
-    log_market()
+    fix_log_market()
