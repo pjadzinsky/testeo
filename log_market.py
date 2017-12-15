@@ -26,7 +26,6 @@ def lambda_handler(event, context):
 
 
 def main():
-    import pudb; pudb.set_trace()
 
     timestamp = int(time.time())
 
@@ -37,8 +36,11 @@ def main():
     with open(filename, 'w') as fid:
         fid.write(json_response)
 
+    import pudb; pudb.set_trace()
+    bucket = config.s3_client.Bucket(bucket_name)
+
     dest_key = '{account}/{timestamp}_full'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
-    config.s3_client.upload_file(filename, bucket_name, dest_key)
+    bucket.upload_file(filename, dest_key)
 
     result = response['result']
     short_results = []
@@ -58,6 +60,10 @@ def main():
     print(filename)
     with open(filename, 'w') as fid:
         fid.write(json.dumps(short_results))
+
+    dest_key = '{account}/{timestamp}_short'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
+    bucket.upload_file(filename, dest_key)
+
 
 
 if __name__ == "__main__":
