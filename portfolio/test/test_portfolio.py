@@ -1,14 +1,8 @@
 #!/usr/bin/python
 import unittest
 
-import gflags
-import numpy as np
-import sys
-
 from portfolio import portfolio
 from market import market
-
-FLAGS = gflags.FLAGS
 
 
 class TestPortfolio(unittest.TestCase):
@@ -159,10 +153,4 @@ class TestPortfolio(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    try:
-        argv = FLAGS(sys.argv)
-    except gflags.FlagsError as e:
-        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
-        sys.exit(1)
-
     unittest.main()

@@ -128,7 +128,7 @@ def plot():
 
 
 def fix_log_market():
-    import log_market
+    import log_markets
     import config
     from market import market
     import s3_utils
@@ -142,9 +142,9 @@ def fix_log_market():
             continue
 
         current_market = market.Market.from_s3_key(object.key)
-        log_market._log_last_and_volume(current_market)
+        log_markets._log_last_and_volume(current_market)
 
-    log_market.main()
+    log_markets.main()
 
 
 if __name__ == "__main__":

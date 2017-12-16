@@ -43,6 +43,7 @@ def main():
     bucket = config.s3_client.Bucket(bucket_name)
 
     dest_key = '{account}/{timestamp}_full'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
+    print('uploading {} to {}'.format(filename, dest_key))
     bucket.upload_file(filename, dest_key)
 
     result = response['result']
@@ -60,7 +61,7 @@ def main():
         short_results.append(r)
 
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
-    print(filename)
+    print('uploading {} to {}'.format(filename, dest_key))
     with open(filename, 'w') as fid:
         fid.write(json.dumps(short_results))
 
@@ -69,7 +70,7 @@ def main():
 
     current_market = market.Market.from_dictionary(short_results, timestamp)
     _log_last_and_volume(current_market)
-
+    print('Finished')
 
 def _log_last_and_volume(current_market):
     last = current_market.last_in_usdt(['BTC'])

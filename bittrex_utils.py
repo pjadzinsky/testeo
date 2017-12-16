@@ -4,14 +4,11 @@ import time
 from base64 import b64decode
 from bittrex import bittrex
 import boto3
-import gflags
 import pandas as pd
 
 import config
 import memoize
 print 'Finished with imports in', __file__
-
-FLAGS = gflags.FLAGS
 
 
 # Expand bittrex.Bittrex to include logger

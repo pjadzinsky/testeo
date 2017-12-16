@@ -1,8 +1,5 @@
 #!/usr/bin/python
 import os
-import sys
-
-import gflags
 
 import bittrex_utils
 from market import market
@@ -11,15 +8,8 @@ import state
 import report
 print 'Finished with imports in', __file__
 
-gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."
-                    "1 is 100%")
-gflags.DEFINE_string('state_csv', None, "path to csv containing a 'state'")
 
-FLAGS = gflags.FLAGS
-gflags.RegisterValidator('min_percentage_change', lambda x: x >= 0, 'Should be positive or 0')
-
-
-def main(json_input, context):
+def main():
     print '*' * 80
 
     print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
@@ -49,11 +39,12 @@ def main(json_input, context):
     print msg
 
 
-if __name__ == "__main__":
-    try:
-        argv = FLAGS(sys.argv)
-    except gflags.FlagsError as e:
-        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
-        sys.exit(1)
+def lambda_handler(event, context):
+    print('Staring handler')
+    print('event: {}'.format(event))
+    print('context: {}'.format(context))
+    main()
 
-    main(None, None)
+
+if __name__ == "__main__":
+    main()

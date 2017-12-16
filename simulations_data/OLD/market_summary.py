@@ -1,13 +1,9 @@
 #!/usr/bin/python
 import sys
 
-import gflags
 import pandas as pd
 
 from market import market
-
-gflags.DEFINE_bool('ascending', False, '')
-FLAGS = gflags.FLAGS
 
 
 def main():
@@ -43,6 +39,4 @@ def main():
 
 
 if __name__ == "__main__":
-    FLAGS(sys.argv)
-
     main()
