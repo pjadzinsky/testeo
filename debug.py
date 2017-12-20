@@ -131,20 +131,56 @@ def fix_log_market():
     import log_markets
     import config
     from market import market
-    import s3_utils
+    import boto3
+    s3 = boto3.resource('s3')
 
     bucket = config.s3_client.Bucket('my-bittrex')
     all_objects = bucket.objects.all()
-    import pudb; pudb.set_trace()
 
     for object in all_objects:
+        if 'prod' in object.key:
+            continue
+
+        if 'staging' in object.key:
+            continue
+
         if 'short' not in object.key:
             continue
 
+        import pudb; pudb.set_trace()
         current_market = market.Market.from_s3_key(object.key)
         log_markets._log_last_and_volume(current_market)
 
-    log_markets.main()
+        copy_source = {
+            'Bucket': 'my-bittrex',
+            'Key': object.key
+        }
+        dest_key = 'prod/{}'.format(object.key)
+
+        print copy_source
+        print dest_key
+        bucket.copy(copy_source, dest_key)
+
+        new_object = s3.Object('my-bittrex', dest_key)
+        msg = 'etags are equal: '
+        if new_object.e_tag == object.e_tag:
+            msg += 'True'
+            print 'deleting:', object.key
+            object.delete()
+        else:
+            msg += 'False'
+        print msg
+
+
+
+def fix_log_market2():
+    import s3_utils
+    import numpy as np
+
+    df = s3_utils.get_df('my-bittrex', 'markets_lasts.csv')
+    cols = df.drop('Unnamed: 0', axis=1).columns
+    times = [int(c) for c in cols]
+    diffs = np.diff(times)
 
 
 if __name__ == "__main__":
