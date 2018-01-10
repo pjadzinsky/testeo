@@ -11,16 +11,8 @@ import memoize
 print 'Finished with imports in', __file__
 
 
-# Expand bittrex.Bittrex to include logger
-class Bittrex(bittrex.Bittrex):
-    def api_query(self, method, options=None):
-        # Override api_query to log error messages
-        response = super(Bittrex, self).api_query(method, options=options)
+public_client = bittrex.Bittrex('', '')
 
-        return response
-
-
-public_client = Bittrex('', '')
 if 'BITTREX_KEY_ENCRYPTED' in os.environ:
     # Decrypt code should run once and variables stored outside of the function
     # handler so that these are decrypted once per container
@@ -31,20 +23,17 @@ if 'BITTREX_KEY_ENCRYPTED' in os.environ:
     BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
     private_client = Bittrex(BITTREX_KEY, BITTREX_SECRET)
 
-currencies_timestamp = float('-inf')
-currencies_df = None
-
-
 
 @memoize.memoized
 def currencies_df():
     """
     
     :return: Dataframe indexed by "Currency" with available currencies. Columns are:
-     [u'BaseAddress', u'CoinType', u'CurrencyLong', u'IsActive', u'MinConfirmation', u'Notice', u'TxFee']
+     [u'IsActive', u'TxFee']
     """
     response = public_client.get_currencies()
     result = _to_df(response['result'], 'Currency')
+    result = result[['IsActive'], ['TxFee']]
     return result
 
 
@@ -58,25 +47,13 @@ def get_balances():
     bittrex.client returns balances as a list of dictionaries with these keys:
     Currency, Available, Balance, CryptoAddress, Pending, Requested, Uuid
     
-    :return:  pd.Dataframe that can be used with portfolio.Portfolio(df)
+    :return:  pd.Series that can be used with portfolio.Portfolio(s)
               It is indexed by "Currency" and has columns Available, Balance, CryptoAddress, Pending, Requested, Uuid
     """
     response = private_client.get_balances()
     result = _to_df(response['result'], 'Currency')
     result = result[result['Balance'] > 0]
-    return result
-
-
-def get_balance(currency):
-    """
-    bittrex.client returns balances as a list of dictionaries with these keys:
-    Currency, Available, Balance, CryptoAddress, Pending, Requested, Uuid
-    
-    :return:  pd.Dataframe that can be used with portfolio.Portfolio(df)
-              It is indexed by "Currency" and has columns Available, Balance, CryptoAddress, Pending, Requested, Uuid
-    """
-    response = private_client.get_balance(currency)
-    result = response['result']
+    result = result['Available']
     return result
 
 
@@ -86,13 +63,18 @@ def get_current_market():
     'Ask', 'BaseVolume', 'Bid', 'Created', 'High', 'Last', 'Low', 'MarketName', 'OpenBuyOrders', 'OpenSellOrders',
      'PrevDay', 'TimeStamp', 'Volume'
 
-    :return:    pd.Dataframe that can be used with market.Market(df)
-                It is indexed by "MarketName" and has all other keys as columns
+    :return:    tuple (timestamp, df)
+                
+                df: pd.Dataframe that can be used with market.Market(df)
+                It is indexed by "MarketName" and has these keys as columns:
+                'Last', 'BaseVolume'
     
     :return: 
     """
     response = public_client.get_market_summaries()
     prices_df = _to_df(response['result'], 'MarketName')
+    prices_df = prices_df[['Last', 'BaseVolume']]
+
     timestamp = int(time.time())
     return timestamp, prices_df
 
