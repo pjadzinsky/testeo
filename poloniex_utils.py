@@ -93,9 +93,13 @@ def get_current_market():
 
 
 def cancel_all_orders():
-    response = private_client.get_open_orders('')
-    for order in response['result']:
-        private_client.cancel(order['OrderUuid'])
+    response = private_client.returnOpenOrders()
+    for currency_pair, orders in response.items():
+        for order in orders:
+            id = order['orderNumber']
+            status = private_client.cancelOrder(id)
+            if not status['success']:
+                print 'currency_pair', order, id, 'failed to cancel'
 
 
 def _to_df(response):
