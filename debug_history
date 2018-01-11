@@ -1,0 +1,1000 @@
+ 1143  ./demo_graph.py 
+ 1144  ipython
+ 1145  ./demo_graph.py 
+ 1146  ipy`
+ 1147  ipython
+ 1148  ./demo_graph.py 
+ 1149  pip install -help
+ 1150  git branch 
+ 1151  git status 
+ 1152  git add -u
+ 1153  git reset HEAD ../readme.md
+ 1154  git status 
+ 1155  git diff --cached 
+ 1156  git staut
+ 1157  git status 
+ 1158  git reset HEAD ../storage_client.py
+ 1159  git status 
+ 1160  git commit 
+ 1161  git checkout comments 
+ 1162  git status 
+ 1163  git stash 
+ 1164  git checkout comments 
+ 1165  git stash pop
+ 1166  git status 
+ 1167  git diff ../storage_client.py
+ 1168  git status 
+ 1169  git log
+ 1170  git status 
+ 1171  git add -u
+ 1172  git commit --amend 
+ 1173  git branch 
+ 1174  git checkout pablo_metrics_graph 
+ 1175  git checkout pablo_metrics_graph ipy
+ 1176  ipython
+ 1177  free -k
+ 1178  free -m
+ 1179  free -g
+ 1180  htop
+ 1181  exit
+ 1182  cd /tmp/
+ 1183  ls -ltr
+ 1184  cat 1511791222.csv 
+ 1185  env | grep BITTREX_AC
+ 1186  env | grep BITT
+ 1187  cd ~/Testeo/
+ 1188  . credentials.sh 
+ 1189  env | grep BITTREX_AC
+ 1190  ./debug.py 
+ 1191  . credentials.sh 
+ 1192  ./compare.py 
+ 1193  exit
+ 1194  ipython
+ 1195  . credentials.sh 
+ 1196  ipython
+ 1197  git status 
+ 1198  git add s3_utils.py 
+ 1199  git commit 
+ 1200  git push origin master
+ 1201  ipython
+ 1202  git status 
+ 1203  git add s3_utils.py 
+ 1204  git commit --amend 
+ 1205  git push -f origin master
+ 1206  ./report.py 
+ 1207  ./compare.py 
+ 1208  exit
+ 1209  cat /tmp/tmpkKwVxu
+ 1210  ipython
+ 1211  ./compare.py 
+ 1212  . credentials.sh 
+ 1213  ./compare.py 
+ 1214  sudo status 
+ 1215  git status 
+ 1216  ipython
+ 1217  ./report.py 
+ 1218  ipython
+ 1219  ./compare.py 
+ 1220  cd ~/opas/core/training/python/
+ 1221  ls
+ 1222  cd opasml
+ 1223  ls
+ 1224  cd correlation/
+ 1225  ls
+ 1226  git checkout pablo_entropy 
+ 1227  git status 
+ 1228  git diff
+ 1229  git status 
+ 1230  git add demos/demo_graph.py 
+ 1231  git commit 
+ 1232  git push origin pablo_metrics_graph 
+ 1233  git checkout comments 
+ 1234  git status 
+ 1235  git add storage_client.py 
+ 1236  git commit --amend 
+ 1237  git status 
+ 1238  git reset HEAD~1
+ 1239  git status 
+ 1240  git stash
+ 1241  git checkout comments 
+ 1242  git branch 
+ 1243  git stash pop
+ 1244  git status
+ 1245  git add -u
+ 1246  git commit 
+ 1247  git checkout pablo_entropy 
+ 1248  ls ~/.ssh/id_rsa.pub 
+ 1249  xclip -sel clip < ~/.ssh/id_rsa.pub 
+ 1250  git push origin pablo_entropy 
+ 1251  git remote show origin
+ 1252  git remote -v
+ 1253  git remote -h
+ 1254  git remote set-url origin git@gitlab.com:opas.ai/core.git
+ 1255  git remote -v
+ 1256  git push origin pablo_entropy 
+ 1257  sudo apt-remove terminator
+ 1258  sudo apt remove terminator
+ 1259  sudo apt install terminator
+ 1260  terminator 
+ 1261  bg
+ 1262  apt search slack
+ 1263  terminator &
+ 1264  git checkout pablo_metrics_graph 
+ 1265  slack
+ 1266  ipython
+ 1267  cd tests/
+ 1268  ls
+ 1269  ./test_graph_utils.py TestOnRealData
+ 1270  ipython
+ 1271  ./test_graph_utils.py TestOnRealData
+ 1272  ./test_mutual_information.py TestMI.test_different_bins
+ 1273  ls
+ 1274  ./test_graph_utils.py TestOnRealData
+ 1275  ipython
+ 1276  cd ~/Testeo/
+ 1277  . credentials.sh 
+ 1278  ipython
+ 1279  ./debug.py 
+ 1280  XRP,TKN,ETH,BTG
+ 1281  ./debug.py 
+ 1282  ipython
+ 1283  ./debug.py 
+ 1284  aws s3 mv s3://bittrex-buy-orders/1511532036_buy_df.csv s3://bittrex-buy-orders/gaby/1511532036_buy_df.csv --profile=user2
+ 1285  aws s3 mv s3://bittrex-buy-orders/1511532039_buy_df.csv s3://bittrex-buy-orders/pablo/1511532039_buy_df.csv --profile=user2
+ 1286  aws s3 mv s3://bittrex-buy-orders/1511618435_buy_df.csv s3://bittrex-buy-orders/gaby/1511618435_buy_df.csv --profile=user2
+ 1287  aws s3 mv s3://bittrex-buy-orders/1511618436_buy_df.csv s3://bittrex-buy-orders/pablo/1511618436_buy_df.csv --profile=user2
+ 1288  aws s3 mv s3://bittrex-buy-orders/1511704836_buy_df.csv s3://bittrex-buy-orders/gaby/1511704836_buy_df.csv --profile=user2
+ 1289  aws s3 mv s3://bittrex-buy-orders/1511704838_buy_df.csv s3://bittrex-buy-orders/pablo/1511704838_buy_df.csv --profile=user2
+ 1290  aws s3 mv s3://bittrex-buy-orders/1511791238_buy_df.csv s3://bittrex-buy-orders/gaby/1511791238_buy_df.csv --profile=user2
+ 1291  aws s3 mv s3://bittrex-buy-orders/1511791239_buy_df.csv s3://bittrex-buy-orders/pablo/1511791239_buy_df.csv --profile=user2
+ 1292  aws s3 mv s3://bittrex-buy-orders/1511877637_buy_df.csv s3://bittrex-buy-orders/gaby/1511877637_buy_df.csv --profile=user2
+ 1293  aws s3 mv s3://bittrex-buy-orders/1511877638_buy_df.csv s3://bittrex-buy-orders/pablo/1511877638_buy_df.csv --profile=user2
+ 1294  aws s3 mv s3://bittrex-buy-orders/1511964035_buy_df.csv s3://bittrex-buy-orders/gaby/1511964035_buy_df.csv --profile=user2
+ 1295  aws s3 mv s3://bittrex-buy-orders/1511964036_buy_df.csv s3://bittrex-buy-orders/pablo/1511964036_buy_df.csv --profile=user2
+ 1296  ./debug.py 
+ 1297  env | grep BITTREX_A
+ 1298  ./report.py 
+ 1299  exit
+ 1300  cd opas/core/training/python/opasml/correlation/
+ 1301  git branch 
+ 1302  git push origin comments
+ 1303  git branch -m comments pablo_comments
+ 1304  git push origin pablo_comments 
+ 1305  exit
+ 1306  . ~/.bashrc
+ 1307  cd opas/core/training/python/opasml/correlation/
+ 1308  git push origin pablo_comments 
+ 1309  git diff --name-only pablo_entropy master
+ 1310  git checkout pablo_entropy 
+ 1311  git status 
+ 1312  git add -u
+ 1313  git commit 
+ 1314  git status 
+ 1315  git add demos/
+ 1316  git status 
+ 1317  git commit 
+ 1318  git checkout pablo_entropy 
+ 1319  git diff --name-only master
+ 1320  git rebase master
+ 1321  git status 
+ 1322  git add mi_graph.py 
+ 1323  git status 
+ 1324  ls tests/
+ 1325  git rebase --continue 
+ 1326  git status 
+ 1327  git add mi_graph.py 
+ 1328  git status 
+ 1329  git rebase --continue 
+ 1330  ls
+ 1331  git diff --name-only master
+ 1332  git checkout pablo_metrics_graph mutual_information.py
+ 1333  git status 
+ 1334  git reset HEAD mutual_information.py
+ 1335  git checkout mutual_information.py
+ 1336  git status 
+ 1337  git diff pablo_metrics_graph mutual_information.py
+ 1338  git diff pablo_metrics_graph tests/test_mutual_information.py
+ 1339  git checkout pablo_metrics_graph -- tests/test_mutual_information.py
+ 1340  git status 
+ 1341  git commit 
+ 1342  ls
+ 1343  git diff --name-only master
+ 1344  git diff pablo_metrics_graph graph_utils.py
+ 1345  vim graph_utils.py
+ 1346  git rm graph_utils.py 
+ 1347  git status 
+ 1348  git commit 
+ 1349  git rm graph_utils.py 
+ 1350  git diff --name-only master
+ 1351  git diff master metric_processor.py
+ 1352  git checkout master metric_processor.py
+ 1353  git diff --name-only master
+ 1354  git diff master mi_graph.py
+ 1355  vim mi_graph.py
+ 1356  git checkout master mi_refactor 
+ 1357  git checkout master -- mi_graph.py
+ 1358  git status 
+ 1359  git add -u
+ 1360  git commit 
+ 1361  git diff --name-only master
+ 1362  git diff pablo_metrics_graph tests/test_graph_utils.py
+ 1363  git rm tests/test_graph_utils.py 
+ 1364  git commit 
+ 1365  git diff --name-only master
+ 1366  git push origin master
+ 1367  git push -f origin master
+ 1368  git push origin pablo_entropy 
+ 1369  git push -f origin pablo_entropy 
+ 1370  git checkout pablo_comments 
+ 1371  git rebase master
+ 1372  git add storage_client.py 
+ 1373  git add metric.py 
+ 1374  git status 
+ 1375  git rebase --continue 
+ 1376  git add storage_client.py 
+ 1377  git status 
+ 1378  git commit 
+ 1379  git rebase --continue 
+ 1380  git push origin pablo_comments 
+ 1381  git push -f origin pablo_comments 
+ 1382  git checkout pablo_entropy 
+ 1383  git diff master
+ 1384  git diff master --name-only
+ 1385  git checkout pablo_metrics_graph 
+ 1386  ls /proc
+ 1387  ls /proc/1107
+ 1388  ls /proc/1107/stat
+ 1389  cat /proc/1107/stat
+ 1390  cat /proc/1107/cpuset 
+ 1391  cat /proc/1107/io 
+ 1392  cat /proc/1107/mem 
+ 1393  git checkout pablo_comments 
+ 1394  git status 
+ 1395  git stash 
+ 1396  git checkout pablo_comments 
+ 1397  git rebase  -i
+ 1398  git rebase -i origin 
+ 1399  git push origin pablo_comments -f
+ 1400  git checkout pablo_entropy 
+ 1401  git commit --amend 
+ 1402  git rebase -i origin
+ 1403  git log
+ 1404  git status 
+ 1405  git log
+ 1406  git push origin pablo_entropy 
+ 1407  git log
+ 1408  git branch 
+ 1409  git status 
+ 1410  find . -name "mutual_information.py"
+ 1411  git blame mutual_information.py
+ 1412  git log
+ 1413  git commit --amend
+ 1414  git status
+ 1415  git ranch
+ 1416  git branch
+ 1417  git log
+ 1418  git commit --amend
+ 1419  git commit --amend --author "Pablo Jadzinsky <pablo@opas.ai>"
+ 1420  git status
+ 1421  git log
+ 1422  git push -f origin master
+ 1423  git push -f origin pablo_entropy 
+ 1424  git checkout pablo_metrics_graph 
+ 1425  git checkout master 
+ 1426  git pull
+ 1427  git branch -d pablo_comments 
+ 1428  git branch pablo_metrics_graph 
+ 1429  git checkout pablo_metrics_graph 
+ 1430  git stash pop
+ 1431  cd tests/
+ 1432  ls
+ 1433  ./test_graph_utils.py Test3MetricsGraph1
+ 1434  ./test_mutual_information.py TestMI.test_sum_of_independent_variales
+ 1435  ./test_mutual_information.py TestMI.test_sum_of_independent_variables
+ 1436  ./test_mutual_information.py TestMI.test_sum_of_indepcontinuous_endent_variables
+ 1437  ./test_mutual_information.py TestMI.t
+ 1438  ./test_mutual_information.py 
+ 1439  ./test_graph_utils.py Test3MetricsGraph1
+ 1440  mv test_muaulinfo_v1.py test_mutualinfo_v1.py
+ 1441  chmod +x test_mutualinfo_v1.py 
+ 1442  ./test_mutualinfo_v1.py 
+ 1443  ipython
+ 1444  ls
+ 1445  mv ../test_mutualinfo_v2.py .
+ 1446  chmod +x test_mutualinfo_v2.py 
+ 1447  ./test_mutualinfo_v2.py 
+ 1448  cd ~/Testeo/
+ 1449  ./compare.py 
+ 1450  . credentials.sh 
+ 1451  ./compare.py 
+ 1452  exit
+ 1453  . credentials.sh 
+ 1454  ipython
+ 1455  ./debug.py 
+ 1456  . credentials.sh 
+ 1457  env | grep PORT
+ 1458  export PORTFOLIO_REPORT=
+ 1459  env | grep PORT
+ 1460  . credentials.sh 
+ 1461  ./trade.py 
+ 1462  A=1
+ 1463  echo $A
+ 1464  B='1'
+ 1465  echo $B
+ 1466  ipython
+ 1467  exit
+ 1468  cd opas/core/training/python/opasml/correlation/
+ 1469  cd tests/
+ 1470  ./test_mutualinfo_v2.py 
+ 1471  ./test_mutualinfo_v2.py MyTestCase.test_binary_distribution
+ 1472  cd ~/Testeo/
+ 1473  . credentials.sh 
+ 1474  ./report.py 
+ 1475  env | grep FOR_R
+ 1476  env | grep TRADE
+ 1477  env | grep SIM
+ 1478  enf | grep BITT
+ 1479  env | grep BITT
+ 1480  env | grep PORTFO
+ 1481  env | grep PORTFO
+ 1482  ./trade.py 
+ 1483  ls
+ 1484  ./upload_trade.sh 
+ 1485  ./trade.py 
+ 1486  ./upload_trade.sh 
+ 1487  ./debug.py 
+ 1488  . credentials.sh 
+ 1489  env | grep PORTFO
+ 1490  ./debug.py 
+ 1491  . credentials.sh 
+ 1492  ./trade.py 
+ 1493  ./upload_trade.sh 
+ 1494  env | grep LOGNAME
+ 1495  ls
+ 1496  rm -rf to_upload/*
+ 1497  ls
+ 1498  ./to_upload/
+ 1499  rm to_upload.zip 
+ 1500  ./upload_trade.sh 
+ 1501  ipython
+ 1502  ./upload_trade.sh 
+ 1503  ipython
+ 1504  pip install -u bittrex
+ 1505  pip install -U bittrex
+ 1506  sudo pip install -U bittrex
+ 1507  ipython
+ 1508  ./upload_trade.sh 
+ 1509  git status 
+ 1510  git add -u
+ 1511  git status 
+ 1512  git commit 
+ 1513  git add simulations_data/*
+ 1514  git commit 
+ 1515  git tag -h
+ 1516  git tag -a
+ 1517  git tag -a 5.0
+ 1518  git tag -l
+ 1519  cd ~/opas/core/training/python/opasml/correlation/
+ 1520  cd tests/
+ 1521  ./test_mutualinfo_v2.py TestEntropy.test_gaussian_distributions_with_different_sigmas
+ 1522  ipython
+ 1523  ls
+ 1524  ./test_mutual_information.py TestMI.test_continuous_distributions
+ 1525  git status 
+ 1526  git stash
+ 1527  git checkout pablo_entropy 
+ 1528  git status 
+ 1529  git stash pop
+ 1530  git status
+ 1531  git reset HEAD ../mutualinfo_v1.py
+ 1532  git reset HEAD ../mutualinfo_v2.py
+ 1533  git status 
+ 1534  git stash
+ 1535  git status 
+ 1536  git commit 
+ 1537  git checkout --ours ../graph_utils.py ../metric.py test_graph_utils.py
+ 1538  git status 
+ 1539  git rm ../graph_utils.py 
+ 1540  git rm test_graph_utils.py 
+ 1541  git status 
+ 1542  git checkout --ours ../metric.py
+ 1543  git status 
+ 1544  git reset HEAD ../metric.py
+ 1545  git status 
+ 1546  git commit 
+ 1547  git status 
+ 1548  git push origin pablo_entropy 
+ 1549  git checkout pablo_metrics_graph 
+ 1550  git status 
+ 1551  git stash
+ 1552  git checkout pablo_metrics_graph 
+ 1553  git stash pop
+ 1554  git status 
+ 1555  ls
+ 1556  ./test_mutual_information.py 
+ 1557  git status 
+ 1558  git add -u
+ 1559  git commit 
+ 1560  git status 
+ 1561  git checkout pablo_entropy 
+ 1562  git checkout pablo_metrics_graph -- test_mutual_information.py
+ 1563  git status 
+ 1564  ./test_mutual_information.py 
+ 1565  git commit 
+ 1566  ls
+ 1567  cd ..
+ 1568  ls
+ 1569  mv mutual_information.py discrete_information.py
+ 1570  mv tests/test_mutual_information.py tests/test_discrete_information.py
+ 1571  git status 
+ 1572  git add discrete_information.py tests/test_discrete_information.py 
+ 1573  git status 
+ 1574  git rm  mutual_information.py tests/test_mutual_information.py 
+ 1575  git status 
+ 1576  git commit 
+ 1577  git push origin pablo_entropy 
+ 1578  git checkout pablo_metrics_graph 
+ 1579  git rebase pablo_entropy 
+ 1580  git add mi_graph.py 
+ 1581  git status 
+ 1582  git rebase --continue 
+ 1583  mv tests/test_mutualinfo_v1.py ~/.
+ 1584  git rebase --continue 
+ 1585  git status 
+ 1586  mv ~/test_mutualinfo_v1.py tests/.
+ 1587  git status 
+ 1588  git log
+ 1589  git log --follow graph_utils.py
+ 1590  git log --follow -- graph_utils.py
+ 1591  git log
+ 1592  git checkout HEAD~3
+ 1593  git log
+ 1594  ls
+ 1595  git log
+ 1596  git checkout HEAD~1
+ 1597  ls
+ 1598  git checkout HEAD~1
+ 1599  ls
+ 1600  git checkout HEAD~1
+ 1601  ls
+ 1602  git checkout HEAD~1
+ 1603  ls
+ 1604  git checkout HEAD~1
+ 1605  ls
+ 1606  git checkout HEAD~1
+ 1607  ls
+ 1608  git checkout HEAD
+ 1609  git checkout pablo_metrics_graph 
+ 1610  git status 
+ 1611  git rebase --abort 
+ 1612  git status 
+ 1613  ls
+ 1614  ls tests/
+ 1615  git rebase pablo_entropy 
+ 1616  git add mi_graph.py 
+ 1617  git status 
+ 1618  git rebase --continue 
+ 1619  mv tests/test_mutualinfo_v1.py ~/.
+ 1620  git rebase --continue 
+ 1621  git staut
+ 1622  git status 
+ 1623  ls
+ 1624  git checkout HEAD~1 graph_utils.py
+ 1625  git checkout HEAD~1
+ 1626  ls
+ 1627  git log
+ 1628  git reflog
+ 1629  git checkout a084cad
+ 1630  git log
+ 1631  ls
+ 1632  git reflog
+ 1633  git checkout 2baf950
+ 1634  ls
+ 1635  mv graph_utils.py ~/.
+ 1636  mv tests/test_graph_utils.py ~/.
+ 1637  git checkout pablo_metrics_graph 
+ 1638  git status 
+ 1639  git checkout -- graph_utils.py
+ 1640  git checkout tests/test_graph_utils.py
+ 1641  git status 
+ 1642  ls
+ 1643  ls tests/
+ 1644  git status 
+ 1645  ls
+ 1646  git pull
+ 1647  git show kde_test
+ 1648  git status
+ 1649  git checkout master 
+ 1650  git status
+ 1651  git dad tests/test_graph_utils.py
+ 1652  git add tests/test_graph_utils.py
+ 1653  git status 
+ 1654  git commit 
+ 1655  git checkout master 
+ 1656  git pull
+ 1657  git checkout pablo_metrics_graph 
+ 1658  git rebase master
+ 1659  git rebase origin master
+ 1660  git rebase --abort 
+ 1661  git rebase origin master
+ 1662  git rebase master
+ 1663  git checkout pablo_metrics_graph 
+ 1664  git rebase master
+ 1665  git add mi_graph.py 
+ 1666  git status 
+ 1667  git rebase --continue 
+ 1668  git checkout --ours mi_refactor 
+ 1669  git checkout --ours mi_graph.py
+ 1670  git status 
+ 1671  git add mi_graph.py 
+ 1672  git rebase --continue 
+ 1673  git checkout --theirs -- tests/test_mutual_information.py
+ 1674  git status 
+ 1675  git checkout --theirs -- mutual_information.py
+ 1676  git status 
+ 1677  git add mutual_information.py 
+ 1678  git status 
+ 1679  git rebase --continue 
+ 1680  git checkout master 
+ 1681  git checkout pablo_metrics_graph 
+ 1682  git rebase pablo_entropy 
+ 1683  ls
+ 1684  ls tests/
+ 1685  rm tests/test_mutual_information.py~46ec50a19dda4b04d45a9de21407df90600b7d5f 
+ 1686  ls
+ 1687  ls tests
+ 1688  git status 
+ 1689  cd tests/
+ 1690  ls
+ 1691  chmod +x test_kde.py 
+ 1692  ./test_kde.py 
+ 1693  ipython
+ 1694  ./test_differential_information.py TestEntropy2D
+ 1695  ipython
+ 1696  ./test_differential_information.py TestEntropy2D
+ 1697  ./test_differential_information.py TestEntropy1D
+ 1698  ./test_differential_information.py 
+ 1699  git status
+ 1700  git stash
+ 1701  git checkout master
+ 1702  git stash pop
+ 1703  git checkout -b differential_information
+ 1704  git status 
+ 1705  git rm test_kde.py 
+ 1706  git add ../differential_information.py test_differential_information.py 
+ 1707  git status 
+ 1708  git commit 
+ 1709  git push origin differential_information 
+ 1710  git checkout pablo_entropy 
+ 1711  ./test_discrete_information.py 
+ 1712  git status 
+ 1713  git diff
+ 1714  git commit 
+ 1715  git add -u
+ 1716  git commit 
+ 1717  git push origin pablo_entropy
+ 1718  git status 
+ 1719  git rebase -i
+ 1720  git rebase -i master
+ 1721  git log
+ 1722  git status 
+ 1723  git log
+ 1724  git commit --amend 
+ 1725  git push -f origin pablo_entropy 
+ 1726  git checkout master
+ 1727  git pull
+ 1728  git branch -d pablo_entropy 
+ 1729  git branch 
+ 1730  git checkout pablo_metrics_graph 
+ 1731  git rebase master
+ 1732  git checkout --ours ../discrete_information.py
+ 1733  git status 
+ 1734  ls
+ 1735  rm test_discrete_information.py~f877fdbd08efc8a79830e17259f8644b15f5d2ed 
+ 1736  git status 
+ 1737  rm ../discrete_information.py~f877fdbd08efc8a79830e17259f8644b15f5d2ed 
+ 1738  git rebase --continue 
+ 1739  git checkout --ours ../metric_processor.py
+ 1740  git checkout --ours ../metric_processor
+ 1741  cd ..
+ 1742  git checkout --ours metric_correlator.py
+ 1743  git checkout --ours construct_metrics.py
+ 1744  git status 
+ 1745  git rebase --continue 
+ 1746  git add construct_metrics.py 
+ 1747  git add metric_correlator.py 
+ 1748  git add metric_processor.py 
+ 1749  git rebase --continue 
+ 1750  git status 
+ 1751  git rebase --skip
+ 1752  git branch 
+ 1753  git checkout differential_information 
+ 1754  ipython
+ 1755  git checkout differential_information 
+ 1756  cd tests/
+ 1757  ls
+ 1758  ./test_differential_information.py 
+ 1759  ./test_differential_information.py TestConditionalEntropy
+ 1760  ./test_differential_information.py 
+ 1761  ./test_differential_information.py TestConditionalEntropy
+ 1762  sudo shutdown now
+ 1763  cd opas/core/training/python/opasml/correlation/
+ 1764  cd tests/
+ 1765  ls
+ 1766  ./test_differential_information.py 
+ 1767  ./test_differential_information.py TestConditionalEntropy
+ 1768  ./test_differential_information.py TestConditio
+ 1769  ./test_differential_information.py TestEntropy2D
+ 1770  ./test_differential_information.py TestConditio
+ 1771  ./test_differential_information.py TestConditionalEntropy
+ 1772  ./test_differential_information
+ 1773  ./test_differential_information.py 
+ 1774  ./test_differential_information.py TestConditionalEntropy
+ 1775  ./test_differential_
+ 1776  ./test_differential_information.py 
+ 1777  git status 
+ 1778  git add -u
+ 1779  git commit 
+ 1780  git push origin differential_information 
+ 1781  ipython
+ 1782  cd ~/Testeo/
+ 1783  . credentials.sh 
+ 1784  ipython
+ 1785  ./compare.py 
+ 1786  ipython
+ 1787  ./debug.py 
+ 1788  ls
+ 1789  rm -rf to_upload
+ 1790  rm to_upload.zip 
+ 1791  ./debug.py 
+ 1792  ipython
+ 1793  ./debug.py 
+ 1794  ipython
+ 1795  ./debug.py 
+ 1796  ls /tmp/
+ 1797  ipython
+ 1798  ./debug.py 
+ 1799  cd /tmp/gaby/
+ 1800  ls
+ 1801  cat 1510329623.csv 
+ 1802  cat 1510333222.csv 
+ 1803  rm 1510333222.csv 
+ 1804  cat 1510335131.csv 
+ 1805  rm 1510335131.csv 
+ 1806  ls
+ 1807  cat 1510335204.csv 
+ 1808  rm 1510335204.csv 
+ 1809  cat 1510668022.csv 
+ 1810  ls
+ 1811  cat 1511013622.csv 
+ 1812  cat 1510668022.csv 
+ 1813  rm 1510668022.csv 
+ 1814  ls
+ 1815  cat 1511013641.csv 
+ 1816  cat 1511013622.csv 
+ 1817  ls
+ 1818  rm 1511013641.csv 
+ 1819  cat 1511100022.csv 
+ 1820  rm 1511100022.csv 
+ 1821  ls
+ 1822  cat 1511100039.csv 
+ 1823  rm 1511100039.csv 
+ 1824  cat 1511186422.csv 
+ 1825  rm 1511186422.csv 
+ 1826  rm 1511186438.csv 
+ 1827  cat 1511272822.csv 
+ 1828  rm 1511272822.csv 
+ 1829  ls
+ 1830  cat 1511272838.csv 
+ 1831  cat 1511013622.csv 
+ 1832  rm 1511272838.csv 
+ 1833  ls
+ 1834  cat 1511359222.csv 
+ 1835  rm 1511359222.csv 
+ 1836  cat 1511359239.csv 
+ 1837  rm 1511359239.csv 
+ 1838  ls
+ 1839  cat 1511442027.csv 
+ 1840  rm 1511442027.csv 
+ 1841  cat 1511445623.csv 
+ 1842  rm 1511445623.csv 
+ 1843  cat 1511445637.csv 
+ 1844  rm 1511445637.csv 
+ 1845  ls
+ 1846  cat 1511532022.csv 
+ 1847  wc -l 1511532022.csv 
+ 1848  cat 1511618422.csv 
+ 1849  wc -l 1511618422.csv 
+ 1850  ls
+ 1851  cat 1512136836.csv 
+ 1852  wc -l 1512136836.csv 
+ 1853  cd -
+ 1854  . credentials.sh 
+ 1855  ./debug.py 
+ 1856  ipython
+ 1857  cd -
+ 1858  cd ../pablo/
+ 1859  ls
+ 1860  cat 1511359222.csv 
+ 1861  rm 1511359222.csv 
+ 1862  ipython
+ 1863  ls
+ 1864  rm *.csv
+ 1865  ls
+ 1866  cd ~/Testeo/
+ 1867  ls
+ 1868  ./debug.py 
+ 1869  ./compare.py 
+ 1870  cd ../opas/core/training/python/opasml/correlation/
+ 1871  cd tests/
+ 1872  ./test_differential_information.py TestConditionalEntropy
+ 1873  ./test_differential_information.py TestJointPDF
+ 1874  cd ~/Testeo/
+ 1875  ./compare.py 
+ 1876  exit
+ 1877  cd ~/Testeo/
+ 1878  ./compare.py 
+ 1879  . credentials.sh 
+ 1880  ./compare.py 
+ 1881  exit
+ 1882  cd opas/core/training/python/opasml/correlation/
+ 1883  cd tests/
+ 1884  ls
+ 1885  ./test_differential_information.py TestJointPDF
+ 1886  ls
+ 1887  ./test_differential_information.py TestJointPDF
+ 1888  ipython
+ 1889  cd ~/Testeo/
+ 1890  . credentials.sh 
+ 1891  ipython
+ 1892  ls ~/Downloads/
+ 1893  rm ~/Downloads/*.csv
+ 1894  cd -
+ 1895  ./test_differential_information.py TestJointPDF
+ 1896  cd -
+ 1897  ./compare.py 
+ 1898  ./debug.py 
+ 1899  env | grep EX_AC
+ 1900  ./debug.py 
+ 1901  ./compare.py 
+ 1902  git status 
+ 1903  git add -u
+ 1904  git commit 
+ 1905  git push origin master
+ 1906  ./compare.py 
+ 1907  ./debug.py 
+ 1908  ./compare.py 
+ 1909  ./debug.py 
+ 1910  cd ~/opas/core/training/python/opasml/correlation/
+ 1911  cd tests/
+ 1912  ls
+ 1913  ./test_differential_information.py 
+ 1914  ./test_differential_information.py TestJointPDF
+ 1915  pip search information
+ 1916  pip search Shannon
+ 1917  pip install shannon
+ 1918  sudo pip install shannon
+ 1919  pip show shannon
+ 1920  sudo pip unintsall shannon
+ 1921  ./test_differential_information.py TestJointPDF
+ 1922  sudo pip install shannon
+ 1923  ipython
+ 1924  sudo -H pip install shannon
+ 1925  pip install -U pip
+ 1926  sudo pip install --upgrade pip
+ 1927  sudo pip install shannon
+ 1928  ipython
+ 1929  git branch 
+ 1930  git checkout -b compare_entropies
+ 1931  git status 
+ 1932  git checkout differential_information 
+ 1933  git status 
+ 1934  git add -u
+ 1935  git commit --amend 
+ 1936  git push origin differential_information 
+ 1937  git push -f origin differential_information 
+ 1938  git checkout master 
+ 1939  git pull
+ 1940  git branch -d comments
+ 1941  git branch 
+ 1942  git branch prune
+ 1943  git checkout compare_entropies 
+ 1944  cd ..
+ 1945  ls
+ 1946  git checkout pablo_entropy 
+ 1947  ls
+ 1948  git checkout compare_entropies 
+ 1949  git checkout pablo_entropy -- discrete_information.py
+ 1950  git status 
+ 1951  git checkout pablo_entropy -- tests/test_discrete_information.py
+ 1952  ls
+ 1953  git branch 
+ 1954  git checkout master
+ 1955  git status 
+ 1956  git checkout tests/test_discrete_information.py
+ 1957  git status 
+ 1958  git branch -d compare_entropies 
+ 1959  git branch -D compare_entropies 
+ 1960  git pull
+ 1961  git checkout pablo_metrics_graph 
+ 1962  git rebase master
+ 1963  cd tests/
+ 1964  ./test_graph_utils.py TestOnRealData.test1
+ 1965  ipython
+ 1966  ./test_graph_utils.py TestOnRealData.test1
+ 1967  ./test_graph_utils.py TestToyGraphs
+ 1968  git status 
+ 1969  git stash
+ 1970  git checkout pablo_correlations 
+ 1971  cd ../demos/
+ 1972  ls
+ 1973  ./demo_correlations.py 
+ 1974  cat /tmp/kernel/filename_to_metrics.txt 
+ 1975  qfg
+ 1976  fg
+ 1977  ./demo_correlations.py 
+ 1978  git status 
+ 1979  git add -u
+ 1980  git commit 
+ 1981  git push origin pablo_correlations 
+ 1982  git status 
+ 1983  git branch 
+ 1984  git checkout pablo_metrics_graph 
+ 1985  git stash pop
+ 1986  ./test_graph_utils.py TestToyGraphs
+ 1987  cd ../tests/
+ 1988  ./test_graph_utils.py TestToyGraphs
+ 1989  ./test_graph_utils.py TestToyGraphs.test_graph_2
+ 1990  cd ~/Testeo/
+ 1991  . credentials.sh 
+ 1992  ./compare.py 
+ 1993  ipython
+ 1994  exit
+ 1995  cd opas/core/training/python/opasml/correlation/tests/
+ 1996  ./test_graph_utils.py TestToyGraphs.test_graph_2
+ 1997  git status 
+ 1998  git add -u
+ 1999  git commit 
+ 2000  git push origin pablo_metrics_graph 
+ 2001  git push -f origin pablo_metrics_graph 
+ 2002  cd ~/Testeo/
+ 2003  ./compare.py 
+ 2004  . credentials.sh 
+ 2005  ./compare.py 
+ 2006  cd ~/opas/core/training/python/opasml/correlation//tests/
+ 2007  ls
+ 2008  ./test_graph_utils.py TestToyGraphs.test_graph-3
+ 2009  ./test_graph_utils.py TestToyGraphs.test_graph_3
+ 2010  ipython
+ 2011  ./test_graph_utils.py TestToyGraphs.test_graph_3
+ 2012  git status 
+ 2013  git add -u
+ 2014  git commit 
+ 2015  ./test_graph_utils.py TestToyGraphs.test_graph_1
+ 2016  git status 
+ 2017  git add -u
+ 2018  git commit 
+ 2019  ./test_graph_utils.py TestToyGraphs.test_graph_1
+ 2020  ./test_graph_utils.py TestToyGraphs.test_graph_1 --minloglevel 0
+ 2021  ./test_graph_utils.py TestToyGraphs.test_graph_1 --logtostderr
+ 2022  ./test_graph_utils.py TestToyGraphs.test_graph_1
+ 2023  cd ../demos/
+ 2024  ls
+ 2025  ./demo_graph.py 
+ 2026  select mean("OneMinuteRate") from "org.apache.cassandra.metrics:type=ColumnFamily" where ( ( "cluster"='Prod_Cluster' ) and ( "name"='ReadLatency' ) ) AND  1512254142 <= time AND time <= 1512513342 GROUP BY time('3125') "
+ 2027  ./demo_graph.py 
+ 2028  cd ..
+ 2029  ls
+ 2030  cd tests/
+ 2031  ls
+ 2032  ./test_correlations.py 
+ 2033  ./test_discrete_information.py 
+ 2034  ./test_graph_utils.py 
+ 2035  ./test_graph_utils.py TestToyGraphs
+ 2036  ./test_graph_utils.py 
+ 2037  ./test_graph_utils.py TestToyGraphs
+ 2038  ./test_graph_utils.py TestShiftedMI
+ 2039  ./test_graph_utils.py 
+ 2040  ./test_graph_utils.py TestMIAtCorrelationPeak
+ 2041  ./test_graph_utils.py 
+ 2042  ls
+ 2043  ./test_correlations.py 
+ 2044  ./test_discrete_information.py 
+ 2045  ./test_mutual_information.py 
+ 2046  ./test_mutualinfo_v2.py 
+ 2047  git status 
+ 2048  git add -u
+ 2049  git commit 
+ 2050  cd ../demos/
+ 2051  ls
+ 2052  ./demo_graph.py 
+ 2053  ipython
+ 2054  ./demo_graph.py 
+ 2055  git status 
+ 2056  ./demo_graph.py 
+ 2057  git add -u
+ 2058  git commit 
+ 2059  ./demo_graph.py 
+ 2060  0 1 0 0.446902708384
+ 2061  0 2 0 0.336364408901
+ 2062  0 3 0 0.25873510128
+ 2063  0 4 0 0.210091725758
+ 2064  0 5 0 0.299951673387
+ 2065  1 2 0 0.324253542196
+ 2066  1 3 0 0.323381802867
+ 2067  1 4 0 0.255545101666
+ 2068  1 5 0 0.34835314541
+ 2069  2 3 0 0.361804421952
+ 2070  2 4 0 0.175658922938
+ 2071  2 5 0 0.245201513689
+ 2072  3 4 0 0.107795733407
+ 2073  3 5 0 0.178495102596
+ 2074  4 5 0 0.646041685631
+ 2075  ./demo_graph.py 
+ 2076  git status 
+ 2077  git add demo_graph.py 
+ 2078  git commit 
+ 2079  cd ~/Testeo/
+ 2080  ./compare.py 
+ 2081  cd -
+ 2082  cd ~/Testeo/
+ 2083  ipython
+ 2084  ls
+ 2085  ls market/
+ 2086  ./market/market.py 
+ 2087  ipython
+ 2088  . config.py
+ 2089  . credentials.sh 
+ 2090  env | grep ACCOU
+ 2091  BITTREX_ACCOUNT='dev'
+ 2092  env | grep ACCOU
+ 2093  ls
+ 2094  chmod +x pick_currencies.py 
+ 2095  ./pick_currencies.py 
+ 2096  ipython
+ 2097  ./pick_currencies.py 
+ 2098  ipython
+ 2099  ./pick_currencies.py 
+ 2100  ./redefine_state.py 
+ 2101  ls
+ 2102  ./upload_redefine_state.sh 
+ 2103  ls
+ 2104  ls redefine_state_upload
+ 2105  mv redefine_state.py update_state.py
+ 2106  mv upload_redefine_state.sh upload_update_state.py
+ 2107  ls
+ 2108  mv upload_update_state.py upload_update_state.sh
+ 2109  ls
+ 2110  rm redefine_state_upload
+ 2111  rm redefine_state_upload.zip
+ 2112  rm -rf redefine_state_upload
+ 2113  ls
+ 2114  ./upload_update_state.sh 
+ 2115  ls upload_*
+ 2116  ls
+ 2117  ./upload_update_state.sh 
+ 2118  ipython
+ 2119  ./market/log_market.py 
+ 2120  which python
+ 2121  ./market/log_market.py 
+ 2122  ./log_market.py 
+ 2123  git status 
+ 2124  git add simulations_data/*
+ 2125  git commit 
+ 2126  git status 
+ 2127  git add -u
+ 2128  git commit 
+ 2129  git status 
+ 2130  git add config credentials.sh s3_utils
+ 2131  git status 
+ 2132  git add update_state.py 
+ 2133  git add upload_update_state.sh
+ 2134  git status 
+ 2135  rm os 
+ 2136  rm pd
+ 2137  rm time
+ 2138  git status 
+ 2139  git commit --amend 
+ 2140  git push origin master
+ 2141  ./compare.py 
+ 2142  history > debug_history
