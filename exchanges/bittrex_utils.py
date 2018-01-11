@@ -1,6 +1,7 @@
 import os
 import time
 
+'''
 from base64 import b64decode
 from bittrex import bittrex
 import pandas as pd
@@ -103,3 +104,4 @@ def _to_df(response, new_index=None):
     return df
 
 print 'finished loading', __file__
+'''

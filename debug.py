@@ -183,10 +183,16 @@ def fix_log_market2():
     diffs = np.diff(times)
 
 
+def debug_imports():
+    from exchanges import exchanges
+    print exchanges.Exchange.get_currencies()
+
+
 if __name__ == "__main__":
     #bucket_timestamp()
     #currency_changes_in_portfolio()
     #remove_equal()
     #report_change()
     #plot()
-    fix_log_market()
+    #fix_log_market()
+    debug_imports()

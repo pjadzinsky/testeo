@@ -13,7 +13,7 @@ import pandas as pd
 
 import config
 from portfolio import portfolio
-import bittrex_utils
+from exchanges.exchanges import Exchange
 
 
 try:
@@ -253,7 +253,7 @@ def fix_csv():
 def series_from_params(timestamp, desired_state, base, value, hour, min_percentage_change, is_baseline):
 
     # start sim_params with all currencies set to 0
-    currencies = bittrex_utils.currencies_df().index.tolist()
+    currencies = Exchange.currencies_df().index.tolist()
     data_dict = {c:0 for c in currencies}
     data_dict.update({'timestamp': timestamp,
                       'hour': hour,

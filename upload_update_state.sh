@@ -38,7 +38,7 @@ mkdir $FOLDER
 echo 3
 #   3. Put all necessary files in it
 cp -r market $FOLDER
-cp bittrex_utils.py $FOLDER
+cp -r exchanges $FOLDER
 cp config.py $FOLDER
 cp memoize.py $FOLDER
 cp update_state.py $FOLDER

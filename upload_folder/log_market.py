@@ -14,7 +14,7 @@ import time
 
 import pandas as pd
 
-import bittrex_utils
+from exchanges.exchanges import Exchange
 import config
 from market import market
 import s3_utils
@@ -33,7 +33,7 @@ def main():
 
     timestamp = int(time.time())
 
-    response = bittrex_utils.public_client.get_market_summaries()
+    response = Exchange.get_market_summaries()
     json_response = json.dumps(response)
 
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))

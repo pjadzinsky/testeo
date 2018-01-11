@@ -20,8 +20,9 @@ import tempfile
 
 import numpy as np
 import pandas as pd
-import bittrex_utils
 
+
+from exchanges.exchanges import Exchange
 import config
 import s3_utils
 import state
@@ -64,8 +65,8 @@ class Portfolio(object):
         return p
 
     @classmethod
-    def from_bittrex(cls):
-        return cls(bittrex_utils.get_balances())
+    def from_exchange(cls):
+        return cls(Exchange.get_balances())
 
     @classmethod
     def from_first_buy_order(cls):
@@ -357,10 +358,10 @@ class Portfolio(object):
 
             if amount_to_buy_in_base > 0:
                 msg_order = 'send BUY order'
-                trade = bittrex_utils.private_client.buy_limit
+                trade = Exchange.buy_limit
             else:
                 msg_order = 'send SELL order'
-                trade = bittrex_utils.private_client.sell_limit
+                trade = Exchange.sell_limit
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'
@@ -452,7 +453,7 @@ def apply_min_transaction_size(market, buy_df, base):
 
 def _market_name(base, currency):
     name = base + '-' + currency
-    if name in bittrex_utils.market_names():
+    if name in Exchange.market_names():
         return name
 
     return None

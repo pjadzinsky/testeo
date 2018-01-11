@@ -96,7 +96,7 @@ class TestMarket(unittest.TestCase):
         self.assertEqual(computed, 300)
 
 
-    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
     def test__direct_volume_in_base(self, mocked_currencies):
 
         computed = self.market._direct_volume_in_base(base='USDT', currency='AAA')
@@ -110,7 +110,7 @@ class TestMarket(unittest.TestCase):
         computed = self.market._direct_volume_in_base(base='AAA', currency='CCC')
         self.assertEqual(computed, 30)
 
-    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
     def test_currency_volume(self, mocked_currencies):
 
         computed = self.market.currency_volume('USDT', [[]])
@@ -132,7 +132,7 @@ class TestMarket(unittest.TestCase):
         computed = self.market.currency_volume('USDT', [['AAA', 'XXX'], ['BBB']])
         self.assertEqual(computed, 4020)
 
-    @mock.patch('bittrex_utils.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
     def test_usd_volumes(self, mocked_currencies):
         computed = self.market.usd_volumes(['AAA', 'XXX'])
 
@@ -148,7 +148,7 @@ class TestMarket(unittest.TestCase):
 
 
 def fake_market(currency_prices_vols):
-    """ Return a jsong blob as would be returned by bittrex.client.get_market_summaries
+    """ Return a jsong blob as would be returned by bittrex_exchange.Exchange.get_market_summaries
     but where the currencies, prices, volues are the tuples in currency_prices_vols
     """
     response = """ {

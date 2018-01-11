@@ -6,7 +6,7 @@ from dateutil import parser
 
 import pandas as pd
 
-import bittrex_utils
+from exchanges.exchanges import Exchange
 import config
 from market import market
 from portfolio import portfolio
@@ -163,7 +163,7 @@ def deposits(market):
 
     btc_value = 0
     for currency in ['BTC', 'ETH', 'XRP', 'LTC']:
-        response = bittrex_utils.client.get_deposit_history(currency)
+        response = Exchange.get_deposit_history(currency)
         for transaction_dict in response['result']:
             currency = transaction_dict['Currency']
             ammount = transaction_dict['Amount']
@@ -174,7 +174,7 @@ def deposits(market):
             if transaction_time > last_time and transaction_time < market.time:
                 btc_value += market.currency_chain_value(['BTC', currency]) * ammount
 
-        response = bittrex_utils.client.get_withdrawal_history(currency)
+        response = Exchange.get_withdrawal_history(currency)
         print 'response:', response
         for transaction_dict in response['result']:
             currency = transaction_dict['Currency']

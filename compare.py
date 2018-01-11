@@ -3,7 +3,7 @@ import os
 
 
 from portfolio import portfolio
-import bittrex_utils
+from exchanges.exchanges import Exchange
 import config
 import report
 import s3_utils
