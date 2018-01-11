@@ -3,7 +3,7 @@ import os
 
 
 from portfolio import portfolio
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 import config
 import report
 import s3_utils

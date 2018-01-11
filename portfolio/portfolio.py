@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 import config
 import s3_utils
 import state
@@ -66,7 +66,7 @@ class Portfolio(object):
 
     @classmethod
     def from_exchange(cls):
-        return cls(Exchange.get_balances())
+        return cls(exchange.get_balances())
 
     @classmethod
     def from_first_buy_order(cls):
@@ -358,10 +358,10 @@ class Portfolio(object):
 
             if amount_to_buy_in_base > 0:
                 msg_order = 'send BUY order'
-                trade = Exchange.buy_limit
+                trade = exchange.buy_limit
             else:
                 msg_order = 'send SELL order'
-                trade = Exchange.sell_limit
+                trade = exchange.sell_limit
                 amount_to_buy_in_currency *= -1
 
             msg += '*'*80 + '\n'
@@ -453,7 +453,7 @@ def apply_min_transaction_size(market, buy_df, base):
 
 def _market_name(base, currency):
     name = base + '-' + currency
-    if name in Exchange.market_names():
+    if name in exchange.market_names():
         return name
 
     return None

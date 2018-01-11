@@ -21,7 +21,8 @@ class Exchange(object):
         
         :return: Dataframe indexed by "Currency" with columns: 'IsActive', and 'TxFee'
         """
-        response = public_client.returnCurrencies()
+        import pudb; pudb.set_trace()
+        response = self.public_client.returnCurrencies()
         result = _to_df(response)
 
         result.loc[:, 'IsActive'] = ~ result['disabled'].astype(bool)
@@ -32,7 +33,7 @@ class Exchange(object):
 
     @memoize.memoized
     def market_names(self):
-        response = public_client.returnTicker()
+        response = self.public_client.returnTicker()
         return response.keys()
 
 
@@ -42,7 +43,7 @@ class Exchange(object):
         
         :return:  pd.Series
         """
-        response = private_client.returnBalances()
+        response = self.private_client.returnBalances()
         s = pd.Series(response.values(), index=response.keys())
         s = s[s > 0]
 
@@ -67,7 +68,7 @@ class Exchange(object):
         
         :return: 
         """
-        response = public_client.returnTicker()
+        response = self.public_client.returnTicker()
         prices_df = pd.DataFrame(response.values(), index=response.keys())
         prices_df = prices_df[['last', 'baseVolume']]
         prices_df.columns = ['Last', 'BaseVolume']
@@ -76,14 +77,35 @@ class Exchange(object):
         return timestamp, prices_df
 
 
-    def cancel_all_orders():
-        response = private_client.returnOpenOrders()
+    def cancel_all_orders(self):
+        response = self.private_client.returnOpenOrders()
         for currency_pair, orders in response.items():
             for order in orders:
                 id = order['orderNumber']
-                status = private_client.cancelOrder(id)
+                status = self.private_client.cancelOrder(id)
                 if not status['success']:
                     print 'currency_pair', order, id, 'failed to cancel'
+
+    def withdrawals_and_deposits(self):
+        start = 151000000
+        end = time.time()
+        response = self.private_client.returnDepositsWithdrawals(start, end)
+        df = pd.DataFrame()
+        for withdrawal_flag, transactions in response.items():
+            for transaction in transactions:
+                s = {'Currencty': transaction.get('currency'),
+                     'Address': transaction.get('address'),
+                     'Amount': transaction.get('amount'),
+                     'Txid': transaction.get('txid'),
+                     'Timestamp': transaction.get('timestamp'),
+                     'Status': transaction.get('status'),
+                     'ipAddress': transaction.get('ipAddress'),
+                     'Type': withdrawal_flag.rstrip('s')
+                }
+
+                df = df.append(s, ignore_index=True)
+
+        return df
 
 
 def get_private_client():

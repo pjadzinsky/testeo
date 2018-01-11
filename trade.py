@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os
 
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 from market import market
 from portfolio import portfolio
 import state
@@ -12,12 +12,13 @@ print 'Finished with imports in', __file__
 def main():
     print '*' * 80
 
-    print 'BITTREX_ACCOUNT:', os.environ['BITTREX_ACCOUNT']
+    import pudb; pudb.set_trace()
+
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'
     if os.environ['PORTFOLIO_TRADE'] == 'True':
-        Exchange.cancel_all_orders()
+        exchange.cancel_all_orders()
 
     # currently we have only XRP in bittrex, start a portfolio with 'desired' state given only by 'XRP' and 'ETH'
     currencies = os.environ['CURRENCIES'].split(',')

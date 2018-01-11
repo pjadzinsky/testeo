@@ -14,7 +14,7 @@ import time
 
 import pandas as pd
 
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 import config
 from market import market
 import s3_utils
@@ -33,7 +33,7 @@ def main():
 
     timestamp = int(time.time())
 
-    response = Exchange.get_market_summaries()
+    response = exchange.get_market_summaries()
     json_response = json.dumps(response)
 
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))

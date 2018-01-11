@@ -1,7 +1,7 @@
+from dateutil import parser
 import os
 import time
 
-'''
 from base64 import b64decode
 from bittrex import bittrex
 import pandas as pd
@@ -72,6 +72,35 @@ class Exchange(object):
         for order in response['result']:
             self.private_client.cancel(order['OrderUuid'])
 
+    def withdrawals_and_deposits(self):
+        withdrawals = self.private_client.getwithdrawalhistory()
+        df = pd.DataFrame()
+        for withdrawal in withdrawals['result']:
+            s = {'Currencty': withdrawal.get('Currency'),
+                 'Address': withdrawal.get('Address'),
+                 'Amount': withdrawal.get('Amount'),
+                 'Txid': withdrawal.get('TxId'),
+                 'Timestamp': parser.parse(withdrawal.get('Opened')),
+                 'Status': withdrawal.get('Status'),
+                 'ipAddress': withdrawal.get('ipAddress'),
+                 'Type': 'deposit'
+            }
+            df = df.append(s, ignore_index=True)
+
+        deposits = self.private_client.getdeposithistory()
+        for deposit in deposits['result']:
+            s = {'Currencty': deposit.get('Currency'),
+                 'Address': deposit.get('Address'),
+                 'Amount': deposit.get('Amount'),
+                 'Txid': deposit.get('TxId'),
+                 'Timestamp': parser.parse(deposit.get('Opened')),
+                 'Status': deposit.get('Status'),
+                 'ipAddress': deposit.get('ipAddress'),
+                 'Type': 'deposit'
+                 }
+            df = df.append(s, ignore_index=True)
+
+        return df
 def get_private_client():
     private_client = None
     if 'BITTREX_KEY_ENCRYPTED' in os.environ:
@@ -104,4 +133,3 @@ def _to_df(response, new_index=None):
     return df
 
 print 'finished loading', __file__
-'''

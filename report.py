@@ -6,7 +6,7 @@ from dateutil import parser
 
 import pandas as pd
 
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 import config
 from market import market
 from portfolio import portfolio
@@ -161,29 +161,23 @@ def deposits(market):
     else:
         last_time = deposits_df['time'].iloc[-1]
 
-    btc_value = 0
-    for currency in ['BTC', 'ETH', 'XRP', 'LTC']:
-        response = Exchange.get_deposit_history(currency)
-        for transaction_dict in response['result']:
-            currency = transaction_dict['Currency']
-            ammount = transaction_dict['Amount']
-            time_str = transaction_dict['LastUpdated']
-            datetime_obj = parser.parse(time_str)
-            transaction_time = int(datetime_obj.strftime('%s'))
+    df = exchange.withdrawals_and_deposits()
+    df = df[(df['Timestamp'] > last_time) & (df['Timestamp'] < market.time)]
 
-            if transaction_time > last_time and transaction_time < market.time:
-                btc_value += market.currency_chain_value(['BTC', currency]) * ammount
+    def in_btc(row):
+        if row['Type'] == 'deposit':
+            sign = 1
+        elif row['Type'] == 'withdrawal':
+            sign = -1
+        else:
+            raise IOError
 
-        response = Exchange.get_withdrawal_history(currency)
-        print 'response:', response
-        for transaction_dict in response['result']:
-            currency = transaction_dict['Currency']
-            ammount = transaction_dict['Amount']
-            time_str = transaction_dict['Opened']
-            datetime_obj = parser.parse(time_str)
-            transaction_time = int(datetime_obj.strftime('%s'))
-            if transaction_time > last_time and transaction_time < market.time:
-                btc_value -= market.currency_chain_value(['BTC', currency]) * ammount
+        amount = row['Amount'] * market.currency_chain_value(['BTC'], row['Currency']) * sign
+        return amount
+
+    df.loc[:, 'btc_value'] = df.apply(lambda row: in_btc(row), axis=1)
+
+    btc_value = df['btc_value'].sum()
 
     if btc_value:
         usd_value = btc_value * market.currency_chain_value(['USDT', 'BTC'])

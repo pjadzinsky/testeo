@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 import config
-from exchanges.exchanges import Exchange
+from exchanges.exchange import exchange
 print 'Finished with imports in', __file__
 
 
@@ -220,7 +220,7 @@ class Market(object):
 
     @classmethod
     def from_exchange(cls):
-        timestamp, prices_df = Exchange.get_current_market()
+        timestamp, prices_df = exchange.get_current_market()
         return cls(timestamp, prices_df)
 
     def _market_name(self,  base, currency):
@@ -310,7 +310,7 @@ class Market(object):
         volume = 0
 
         if len(list_of_intermediates[0]) == 0:
-            list_of_intermediates = [Exchange.currencies_df().index.tolist()]
+            list_of_intermediates = [exchange.currencies_df().index.tolist()]
 
         chains = product(*list_of_intermediates)
         for chain in chains:
@@ -321,7 +321,7 @@ class Market(object):
 
     def usd_volumes(self, intermediates):
         """ Return a dataframe with volumes for all currencies in USDT """
-        currencies = Exchange.currencies_df().index.values
+        currencies = exchange.currencies_df().index.values
 
         volumes = pd.Series([])
         for currency in currencies:
@@ -339,7 +339,7 @@ class Market(object):
         if 'USDT' not in intermediates:
             intermediates = ['USDT'] + intermediates
 
-        currencies = Exchange.currencies_df().index.values
+        currencies = exchange.currencies_df().index.values
         values = [self.currency_chain_value(intermediates + [c]) for c in currencies]
 
         s = pd.Series(values, index=currencies)

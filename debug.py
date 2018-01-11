@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import report
-
 def fix_buy_order_folder():
     """
     As of 2017/11/29 there is a bug in production and buy orders are logged into 'bittrex-buy-orders' rather than
@@ -172,7 +170,6 @@ def fix_log_market():
         print msg
 
 
-
 def fix_log_market2():
     import s3_utils
     import numpy as np
@@ -184,8 +181,11 @@ def fix_log_market2():
 
 
 def debug_imports():
-    from exchanges import exchanges
-    print exchanges.Exchange.get_currencies()
+    from exchanges import bittrex_utils
+    from exchanges import poloniex_utils
+    from exchanges import exchange
+
+    print exchange.Exchange().currencies_df()
 
 
 if __name__ == "__main__":
