@@ -56,7 +56,7 @@ class Exchange(object):
         """
         # TODO seems like I should be subscribing to the PUSH API rather than doing this
         response = self.public_client.returnTicker()
-        ticker_df = pd.DataFrame(response.values(), index=response.keys())
+        ticker_df = _to_df(response)
         high = [None] * len(ticker_df)
         low = high
         volume = ticker_df['quoteVolume']
@@ -89,13 +89,12 @@ class Exchange(object):
         :return: 
         """
         response = self.public_client.returnTicker()
-        prices_df = pd.DataFrame(response.values(), index=response.keys())
+        prices_df = _to_df(response)
         prices_df = prices_df[['last', 'baseVolume']]
         prices_df.columns = ['Last', 'BaseVolume']
 
         timestamp = int(time.time())
         return timestamp, prices_df
-
 
     def cancel_all_orders(self):
         response = self.private_client.returnOpenOrders()
@@ -163,7 +162,9 @@ def _to_df(response):
 
     df = pd.DataFrame([])
     for k, v in response.iteritems():
-        row = pd.Series(v.values(), index=v.keys(), name=k)
+        # poloniex uses XXX_YYY and my code assumes in several places XXX-YYY. For the time being I'm changing
+        # the key from XXX_YYY into XXX-YYY
+        row = pd.Series(v.values(), index=v.keys(), name=k.replace('_', '-'))
 
         df = df.append(row)
 

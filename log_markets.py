@@ -33,12 +33,11 @@ def main():
 
     timestamp = int(time.time())
 
-    response = exchange.get_market_summaries()
-    json_response = json.dumps(response)
+    import pudb; pudb.set_trace()
+    df_summaries = exchange.market_summaries()
 
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
-    with open(filename, 'w') as fid:
-        fid.write(json_response)
+    df_summaries.to_json(filename)
 
     bucket = config.s3_client.Bucket(bucket_name)
 
@@ -46,31 +45,10 @@ def main():
     print('uploading {} to {}'.format(filename, dest_key))
     bucket.upload_file(filename, dest_key)
 
-    result = response['result']
-    short_results = []
-    for r in result:
-        del r["PrevDay"]
-        del r["TimeStamp"]
-        del r["Bid"]
-        del r["Created"]
-        del r["OpenBuyOrders"]
-        del r["OpenSellOrders"]
-        del r["High"]
-        del r["Low"]
-        del r["Ask"]
-        short_results.append(r)
-
-    fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
-    print('uploading {} to {}'.format(filename, dest_key))
-    with open(filename, 'w') as fid:
-        fid.write(json.dumps(short_results))
-
-    dest_key = '{account}/{timestamp}_short'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
-    bucket.upload_file(filename, dest_key)
-
-    current_market = market.Market.from_dictionary(short_results, timestamp)
+    current_market = market.Market(timestamp, df_summaries[['Last', 'BaseVolume']])
     _log_last_and_volume(current_market)
     print('Finished')
+
 
 def _log_last_and_volume(current_market):
     last = current_market.last_in_usdt(['BTC'])
