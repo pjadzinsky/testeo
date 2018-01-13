@@ -46,6 +46,17 @@ class Exchange(object):
         result = result['Available']
         return result
 
+    def market_summaries(self):
+        """ 
+        :return: DataFrame indexed by MarketName with columns: High, Low, Volume, Last, BaseVolume, TimeStamp
+        """
+        response = self.public_client.get_market_summaries()
+        df = _to_df(response['result'], 'MarketName')
+        df.drop(['OpenBuyOrders', 'OpenSellOrders', 'PrevDay', 'Bid', 'Ask', 'Created'], axis=1, inplace=True)
+        df.loc[:, 'TimeStamp'] = df['TimeStamp'].apply(lambda x: int(parser.parse(x).strftime('%s')))
+
+        return df
+
     def get_current_market(self):
         """
         bittrex.client returns market_summaries as a list of dictionaries with these keys:
@@ -101,6 +112,8 @@ class Exchange(object):
             df = df.append(s, ignore_index=True)
 
         return df
+
+
 def get_private_client():
     private_client = None
     if 'BITTREX_KEY_ENCRYPTED' in os.environ:

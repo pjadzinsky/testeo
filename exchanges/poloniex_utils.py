@@ -50,6 +50,26 @@ class Exchange(object):
         return s
 
 
+    def market_summaries(self):
+        """ 
+        :return: DataFrame indexed by MarketName with columns: High, Low, Volume, Last, BaseVolume, TimeStamp
+        """
+        # TODO seems like I should be subscribing to the PUSH API rather than doing this
+        response = self.public_client.returnTicker()
+        ticker_df = pd.DataFrame(response.values(), index=response.keys())
+        high = [None] * len(ticker_df)
+        low = high
+        volume = ticker_df['quoteVolume']
+        last = ticker_df['last']
+        base_volume = ticker_df['baseVolume']
+        timestamp = int(time.time())
+        market_pairs = ticker_df.index
+
+        df = pd.DataFrame({'High': high, 'Low': low, 'Volume': volume, 'Last': last, 'BaseVolume': base_volume,
+                           'TimeStamp': timestamp}, index=market_pairs)
+
+        return df
+
     def get_current_market(self):
         """
         poloniex.client returns a dictionary linking currency pairs to:
