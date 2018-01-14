@@ -137,7 +137,6 @@ def get_private_client():
 
         POLONIEX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
         POLONIEX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
-        private_client = poloniex.Poloniex(POLONIEX_KEY, POLONIEX_SECRET)
 
     if 'POLONIEX_KEY' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
@@ -145,7 +144,7 @@ def get_private_client():
         POLONIEX_KEY = os.environ['POLONIEX_KEY']
         POLONIEX_SECRET = os.environ['POLONIEX_SECRET']
 
-        private_client = poloniex.Poloniex(POLONIEX_KEY, POLONIEX_SECRET)
+    private_client = poloniex.Poloniex(POLONIEX_KEY, POLONIEX_SECRET)
 
     return private_client
 

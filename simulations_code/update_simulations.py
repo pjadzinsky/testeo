@@ -1,10 +1,9 @@
 #!/usr/bin/python
-import os
 import sys
 
 import gflags
 
-from market import market
+import market
 from simulations_code import simulate
 
 FLAGS = gflags.FLAGS

@@ -1,17 +1,15 @@
 #!/usr/bin/python
 import os
-import tempfile
 import time
-from dateutil import parser
 
 import pandas as pd
 
-from exchanges.exchange import exchange
 import config
-from market import market
-from portfolio import portfolio
-import state
+import market
 import s3_utils
+import state
+from exchanges.exchange import exchange
+from portfolio import portfolio
 
 print 'Finished with imports in', __file__
 if os.environ['LOGNAME'] == 'pablo':

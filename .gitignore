@@ -8,3 +8,4 @@ dist/*
 my_bittrex/data/*.csv
 simulations_data/*/*.csv
 simulations_code/*/*.csv
+upload_folder/

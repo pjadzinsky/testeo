@@ -1,13 +1,9 @@
 #!/usr/bin/python
-import os
 import sys
-from collections import namedtuple
 
 import gflags
-import pandas as pd
-import numpy as np
 
-from market import market
+import market
 from portfolio import portfolio
 from simulations_code import simulate
 

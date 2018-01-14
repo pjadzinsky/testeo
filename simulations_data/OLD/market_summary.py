@@ -1,13 +1,12 @@
 #!/usr/bin/python
-import sys
 
 import pandas as pd
 
-from market import market
+import market
 
 
 def main():
-    markets = market.Markets(3600*24, 0)
+    markets = market.Markets(3600 * 24, 0)
 
     volumes = markets.stats_volume()
     print '*' * 80

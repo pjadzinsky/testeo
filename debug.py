@@ -128,7 +128,7 @@ def plot():
 def fix_log_market():
     import log_markets
     import config
-    from market import market
+    import market
     import boto3
     s3 = boto3.resource('s3')
 
@@ -181,8 +181,6 @@ def fix_log_market2():
 
 
 def debug_imports():
-    from exchanges import bittrex_utils
-    from exchanges import poloniex_utils
     from exchanges import exchange
 
     print exchange.Exchange().currencies_df()

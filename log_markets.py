@@ -7,19 +7,13 @@ I'm following this example from aws documentation
 http://docs.aws.amazon.com/lambda/latest/dg/with-scheduled-events.html
 """
 from __future__ import print_function
-import json
 import os
 import tempfile
 import time
 
-import pandas as pd
-
 from exchanges.exchange import exchange
 import config
-from market import market
-import s3_utils
 
-bucket_name = 'my-bittrex'
 
 
 def lambda_handler(event, context):
@@ -30,7 +24,6 @@ def lambda_handler(event, context):
 
 
 def main():
-
     timestamp = int(time.time())
 
     df_summaries = exchange.market_summaries()
@@ -38,12 +31,19 @@ def main():
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
     df_summaries.to_json(filename)
 
+    if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
+        bucket_name = 'exchanges-scratch'
+    elif os.environ['EXCHANGE_ACCOUNT'] == 'prod':
+        bucket_name = 'exchange-markets'
+    else:
+        raise IOError("env 'EXCHANGE_ACCOUNT': {} not understood".format(os.environ['EXCHANGE_ACCOUNT']))
+
     bucket = config.s3_client.Bucket(bucket_name)
 
-    dest_key = '{account}/{timestamp}_full'.format(account=os.environ['EXCHANGE_ACCOUNT'], timestamp=timestamp)
+    dest_key = '{exchange}/{timestamp}'.format(exchange=os.environ['EXCHANGE'],
+                                               timestamp=timestamp)
     print('uploading {} to {}'.format(filename, dest_key))
     bucket.upload_file(filename, dest_key)
-
 
 
 if __name__ == "__main__":

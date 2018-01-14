@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import unittest
 
-from market import market
+import market
 from market import market_operations
 from portfolio import portfolio
 

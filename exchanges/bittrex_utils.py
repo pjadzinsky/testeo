@@ -124,8 +124,14 @@ def get_private_client():
 
         BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
         BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
-        private_client = bittrex.Bittrex(BITTREX_KEY, BITTREX_SECRET)
 
+    if 'BITTREX_KEY' in os.environ:
+        # Decrypt code should run once and variables stored outside of the function
+        # handler so that these are decrypted once per container
+        BITTREX_KEY = os.environ['BITTREX_KEY']
+        BITTREX_SECRET = os.environ['BITTREX_SECRET']
+
+    private_client = bittrex.Bittrex(BITTREX_KEY, BITTREX_SECRET)
     return private_client
 
 

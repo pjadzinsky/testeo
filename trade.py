@@ -1,11 +1,12 @@
 #!/usr/bin/python
 import os
 
-from exchanges.exchange import exchange
-from market import market
-from portfolio import portfolio
-import state
+import market
 import report
+import state
+from exchanges.exchange import exchange
+from portfolio import portfolio
+
 print 'Finished with imports in', __file__
 
 

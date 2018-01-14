@@ -1,8 +1,8 @@
 #!/usr/bin/python
 import unittest
 
+import market
 from portfolio import portfolio
-from market import market
 
 
 class TestPortfolio(unittest.TestCase):

@@ -1,11 +1,12 @@
 #!/usr/bin/python
-import unittest
 import time
+import unittest
 
-import pandas as pd
 import mock
+import pandas as pd
 
-from market import market
+import market
+
 FIRST_S3_KEY = '1502981286_short'
 
 def currencies_df():

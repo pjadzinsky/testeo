@@ -5,10 +5,9 @@ import sys
 import gflags
 import pandas as pd
 
-from market import market
-from simulations_code import simulate
-from portfolio import portfolio
 import config
+from portfolio import portfolio
+from simulations_code import simulate
 
 FLAGS = gflags.FLAGS
 

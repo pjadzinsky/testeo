@@ -1,11 +1,11 @@
 #!/usr/bin/python
-import os
 import time
 
 import pandas as pd
 
-from market import market
+import market
 import state
+
 
 def main(json_input, context):
     """
@@ -20,7 +20,7 @@ def main(json_input, context):
     markets_distance = 3600
     rolling_window_size = 7 * 24    # one week when markets_distance is one_hour
     timestamp = int(time.time())
-    markets = market.Markets(markets_distance, 0, start_time=timestamp - rolling_window_size*markets_distance)
+    markets = market.Markets(markets_distance, 0, start_time=timestamp - rolling_window_size * markets_distance)
 
     print 'Estimating best currencies with {} markets'.format(len(markets.times))
 

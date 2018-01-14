@@ -21,8 +21,8 @@ echo $LAMBDA
 
 echo 0
 #   0. Delete Folder and all its contents
-#rm -rf $FOLDER/*
-#rmdir $FOLDER
+rm -rf $FOLDER/*
+rmdir $FOLDER
 
 echo 1
 #   1. Make a folder and correct tree structrue
@@ -30,12 +30,13 @@ mkdir $FOLDER
 
 echo 2
 #   2. Put all necessary files in it
-cp -r market $FOLDER
+cp -r exchanges $FOLDER
 cp bittrex_utils.py $FOLDER
 cp config.py $FOLDER
+cp log_markets.py $FOLDER
+cp market.py $FOLDER
 cp memoize.py $FOLDER
 cp s3_utils.py $FOLDER
-cp log_markets.py $FOLDER
 
 #   3. Make sure we have no left over PUDB statements
 pudb_lines=$(grep -R --include=$FOLDER PUDB)
@@ -49,7 +50,7 @@ fi
 
 echo 4
 #   4. Add pip packages
-for package in {bittrex,pandas,numpy}; do
+for package in {bittrex,poloniex,pandas,numpy}; do
     if [ ! -d "$FOLDER/$package" ]; then
         pip install $package -t $FOLDER
     fi
