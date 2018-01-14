@@ -25,7 +25,7 @@ class Exchange(object):
         """
         response = self.public_client.get_currencies()
         result = _to_df(response['result'], 'Currency')
-        result = result[['IsActive'], ['TxFee']]
+        result = result[['IsActive', 'TxFee']]
         return result
 
     @memoize.memoized

@@ -33,6 +33,8 @@ def main():
 
     current_market = market.Market(timestamp, df_summaries[['Last', 'BaseVolume']])
 
+    import pudb; pudb.set_trace()
+
     last = current_market.last_in_usdt(['BTC'])
 
     if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
