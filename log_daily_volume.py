@@ -44,9 +44,9 @@ def main():
     else:
         raise IOError("env 'EXCHANGE_ACCOUNT': {} not understood".format(os.environ['EXCHANGE_ACCOUNT']))
 
-    last_dest_key = '{exchange}/markets_lasts.csv'.format(account=os.environ['EXCHANGE'])
+    last_dest_key = '{exchange}/markets_lasts.csv'.format(exchange=os.environ['EXCHANGE'])
     _append(bucket_name, last_dest_key, last, current_market.time)
-    volume_dest_key = '{account}/markets_volumes.csv'.format(account=os.environ['EXCHANGE'])
+    volume_dest_key = '{exchange}/markets_volumes.csv'.format(exchange=os.environ['EXCHANGE'])
     volume = current_market.usd_volumes(['BTC'])
     _append(bucket_name, volume_dest_key, volume, current_market.time)
 
