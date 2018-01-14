@@ -23,14 +23,14 @@ class Exchange(object):
         :return: Dataframe indexed by "Currency" with available currencies. Columns are:
          [u'IsActive', u'TxFee']
         """
-        response = self.publict_client.get_currencies()
+        response = self.public_client.get_currencies()
         result = _to_df(response['result'], 'Currency')
         result = result[['IsActive'], ['TxFee']]
         return result
 
     @memoize.memoized
     def market_names(self):
-        return [r['MarketName'] for r in self.publict_client.get_markets()['result']]
+        return [r['MarketName'] for r in self.public_client.get_markets()['result']]
 
     def get_balances(self):
         """
