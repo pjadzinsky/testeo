@@ -24,7 +24,7 @@ def fix_buy_order_folder():
     bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
     all_summaries = bucket.objects.all()
     for summary in all_summaries:
-        if os.environ['BITTREX_ACCOUNT'] not in summary.key:
+        if os.environ['EXCHANGE_ACCOUNT'] not in summary.key:
             index = s3_utils.get_df(config.BUY_ORDERS_BUCKET, summary.key, index_col=0).index
             if "EDG" in index and "BAY" not in index:
                 print "aws s3 mv s3://{bucket}/{key} s3://{bucket}/pablo/{key} --profile=user2".format(

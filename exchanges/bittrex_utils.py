@@ -91,7 +91,7 @@ class Exchange(object):
                  'Address': withdrawal.get('Address'),
                  'Amount': withdrawal.get('Amount'),
                  'Txid': withdrawal.get('TxId'),
-                 'Timestamp': parser.parse(withdrawal.get('Opened')),
+                 'TimeStamp': parser.parse(withdrawal.get('Opened')),
                  'Status': withdrawal.get('Status'),
                  'ipAddress': withdrawal.get('ipAddress'),
                  'Type': 'deposit'
@@ -104,7 +104,7 @@ class Exchange(object):
                  'Address': deposit.get('Address'),
                  'Amount': deposit.get('Amount'),
                  'Txid': deposit.get('TxId'),
-                 'Timestamp': parser.parse(deposit.get('Opened')),
+                 'TimeStamp': parser.parse(deposit.get('Opened')),
                  'Status': deposit.get('Status'),
                  'ipAddress': deposit.get('ipAddress'),
                  'Type': 'deposit'

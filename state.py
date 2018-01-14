@@ -46,7 +46,7 @@ def at_time(time_sec):
     If STATES_BUCKET doesn't have a csv corresponding to a time before 'time_sec', retrun None, None
     """
     bucket = config.s3_client.Bucket(config.STATES_BUCKET)
-    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
 
     delta = np.inf
     state_timestamp = None
@@ -70,7 +70,7 @@ def at_time(time_sec):
 def from_previous_buy_order(time):
     orders_bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
 
-    all_summaries = orders_bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = orders_bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
 
     time_diff = np.inf
     best_key = None
@@ -105,7 +105,7 @@ def save(time_sec, state):
 
     _, other = at_time(time_sec)
     if other is None or not frames_are_equal(state, other):
-        s3_key = '{account}/{time_sec}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+        s3_key = '{account}/{time_sec}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                    time_sec=time_sec)
         s3_utils.put_csv(state, config.STATES_BUCKET, s3_key)
         print '*' * 80
@@ -222,13 +222,13 @@ def update_state_old(time_sec, desired_state):
         states.to_json(temp)
 
         bucket = config.s3_client.Bucket(config.STATES_BUCKET)
-        s3_key = "{account}/states.json".format(account=os.environ['BITTREX_ACCOUNT'])
+        s3_key = "{account}/states.json".format(account=os.environ['EXCHANGE_ACCOUNT'])
         bucket.upload_file(temp, s3_key)
 
 
 def get_states_old():
     bucket = config.s3_client.Bucket(config.STATES_BUCKET)
-    s3_key = "{account}/states.json".format(account=os.environ['BITTREX_ACCOUNT'])
+    s3_key = "{account}/states.json".format(account=os.environ['EXCHANGE_ACCOUNT'])
 
     _, temp = tempfile.mkstemp()
     try:

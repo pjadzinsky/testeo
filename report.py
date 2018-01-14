@@ -57,7 +57,7 @@ def plot():
 
     """
     for account in ['pablo', 'gaby']:
-        os.environ['BITTREX_ACCOUNT'] = account
+        os.environ['EXCHANGE_ACCOUNT'] = account
         holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=account))
         trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=account))
         bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=account))
@@ -84,7 +84,7 @@ def plot():
 
     """
     # upload html to s3
-    s3_key = "{account}/plot.html".format(account=os.environ['BITTREX_ACCOUNT'])
+    s3_key = "{account}/plot.html".format(account=os.environ['EXCHANGE_ACCOUNT'])
     bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
     bucket.upload_file(temp, s3_key)
     """
@@ -114,7 +114,7 @@ def recompute():
     """
 
     bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
     for summary in all_summaries:
         print '*' * 80
         print 'processing portfolio from key:', summary.key
@@ -130,14 +130,14 @@ def recompute():
 
 def clean():
     """
-    Delete all files in RESULTS_BUCKET that contain the word os.environ['BITTREX_ACCOUNT'] in the key
+    Delete all files in RESULTS_BUCKET that contain the word os.environ['EXCHANGE_ACCOUNT'] in the key
     
     :return: 
         None
     """
 
     bucket = config.s3_client.Bucket(config.RESULTS_BUCKET)
-    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
     objects = [{'Key': summary.key} for summary in all_summaries]
     if objects:
         bucket.delete_objects(Delete={'Objects': objects})
@@ -154,7 +154,7 @@ def deposits(market):
     :param market: 
     :return: 
     """
-    account = os.environ['BITTREX_ACCOUNT']
+    account = os.environ['EXCHANGE_ACCOUNT']
     deposits_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/deposits.csv'.format(account=account))
     if deposits_df.empty:
         last_time = 0
@@ -162,7 +162,7 @@ def deposits(market):
         last_time = deposits_df['time'].iloc[-1]
 
     df = exchange.withdrawals_and_deposits()
-    df = df[(df['Timestamp'] > last_time) & (df['Timestamp'] < market.time)]
+    df = df[(df['TimeStamp'] > last_time) & (df['TimeStamp'] < market.time)]
 
     def in_btc(row):
         if row['Type'] == 'deposit':
@@ -199,7 +199,7 @@ def bitcoin_value(market):
     """
     time = market.time
 
-    account = os.environ['BITTREX_ACCOUNT']
+    account = os.environ['EXCHANGE_ACCOUNT']
     deposits_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/deposits.csv'.format(account=account))
 
     total_deposits = deposits_df.sum()
@@ -224,7 +224,7 @@ def holding_value(market):
     :return: 
     """
     time = market.time
-    account = os.environ['BITTREX_ACCOUNT']
+    account = os.environ['EXCHANGE_ACCOUNT']
 
     try:
         portfolio_creation_time, _ = state.at_time(market.time)
@@ -251,7 +251,7 @@ def trading_value(market, current_portfolio):
     :return: 
     """
     time = market.time
-    account = os.environ['BITTREX_ACCOUNT']
+    account = os.environ['EXCHANGE_ACCOUNT']
 
     btc_value = current_portfolio.total_value(market, ['BTC'])
     usd_value = current_portfolio.total_value(market, ['USDT', 'BTC'])
@@ -294,9 +294,9 @@ def currency_changes_in_portfolio():
     bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
 
     previous_currencies = set([])
-    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
     try:
-        os.makedirs('/tmp/{}'.format(os.environ['BITTREX_ACCOUNT']))
+        os.makedirs('/tmp/{}'.format(os.environ['EXCHANGE_ACCOUNT']))
     except:
         pass
     for summary in all_summaries:
@@ -318,7 +318,7 @@ def currency_changes_in_portfolio():
                 continue
 
             df = state.from_currencies(current_currencies)
-            df.to_csv('/tmp/{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+            df.to_csv('/tmp/{account}/{time}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                     time=time))
             print 'All currencies:', current_currencies
             previous_currencies = current_currencies

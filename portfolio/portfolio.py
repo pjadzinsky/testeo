@@ -96,7 +96,7 @@ class Portfolio(object):
         # if we get here, is because '<account>/<time_stamp>_buy_df.csv' was not found in BUY_ORDERS_BUCKET
         # In this case, we'll use the 1st portfolio defined after time_stamp (when the 'state' was defined)
         portfolios_bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        all_summaries = portfolios_bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+        all_summaries = portfolios_bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
         time_diff = np.inf
         key = None
         for summary in all_summaries:
@@ -125,7 +125,7 @@ class Portfolio(object):
     @classmethod
     def at_time(cls, timestamp, max_time_difference):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        for summary in bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT']):
+        for summary in bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT']):
             time = int(summary.key.split('/')[-1].rstrip('.csv'))
             if abs(time - timestamp) < max_time_difference:
                 return cls.from_s3_key(summary.key)
@@ -135,7 +135,7 @@ class Portfolio(object):
         max_time_difference = np.inf
         best_key = None
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        for summary in bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT']):
+        for summary in bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT']):
             time = int(summary.key.split('/')[-1].rstrip('.csv'))
             if time >= timestamp and  time - timestamp < max_time_difference:
                 max_time_difference = time - timestamp
@@ -149,7 +149,7 @@ class Portfolio(object):
         max_time_difference = np.inf
         best_key = None
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        for summary in bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT']):
+        for summary in bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT']):
             time = int(summary.key.split('/')[-1].rstrip('.csv'))
             if time <= timestamp and  timestamp - time < max_time_difference:
                 max_time_difference = timestamp - time
@@ -160,7 +160,7 @@ class Portfolio(object):
     @classmethod
     def last_logged(cls):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        all_object_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+        all_object_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
         all_keys = [os.key for os in all_object_summaries]
 
         # each key is of the form <account>/timestamp.csv. Keep only timestamp and convert it to an int
@@ -373,7 +373,7 @@ class Portfolio(object):
 
             if os.environ['PORTFOLIO_TRADE'] == 'True':
                 # log the requested portfolio
-                s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+                s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                               time=int(market.time))
                 s3_utils.log_df(config.BUY_ORDERS_BUCKET, s3_key, buy_df)
                 trade(market_name, amount_to_buy_in_currency, rate)
@@ -424,7 +424,7 @@ class Portfolio(object):
         if os.environ['PORTFOLIO_REPORT'] == 'True':
             assert self.dataframe.index.name == 'Currency'
             bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-            s3_key = '{account}/{time}.csv'.format(account=os.environ['BITTREX_ACCOUNT'],
+            s3_key = '{account}/{time}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                    time=time_sec)
             _, temp = tempfile.mkstemp()
             self.dataframe.to_csv(temp)

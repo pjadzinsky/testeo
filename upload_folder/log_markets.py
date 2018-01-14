@@ -42,7 +42,7 @@ def main():
 
     bucket = config.s3_client.Bucket(bucket_name)
 
-    dest_key = '{account}/{timestamp}_full'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
+    dest_key = '{account}/{timestamp}_full'.format(account=os.environ['EXCHANGE_ACCOUNT'], timestamp=timestamp)
     print('uploading {} to {}'.format(filename, dest_key))
     bucket.upload_file(filename, dest_key)
 
@@ -65,7 +65,7 @@ def main():
     with open(filename, 'w') as fid:
         fid.write(json.dumps(short_results))
 
-    dest_key = '{account}/{timestamp}_short'.format(account=os.environ['BITTREX_ACCOUNT'], timestamp=timestamp)
+    dest_key = '{account}/{timestamp}_short'.format(account=os.environ['EXCHANGE_ACCOUNT'], timestamp=timestamp)
     bucket.upload_file(filename, dest_key)
 
     current_market = market.Market.from_dictionary(short_results, timestamp)
@@ -75,9 +75,9 @@ def main():
 def _log_last_and_volume(current_market):
     last = current_market.last_in_usdt(['BTC'])
 
-    last_dest_key = '{account}/markets_lasts.csv'.format(account=os.environ['BITTREX_ACCOUNT'])
+    last_dest_key = '{account}/markets_lasts.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'])
     _append(bucket_name, last_dest_key, last, current_market.time)
-    volume_dest_key = '{account}/markets_volumes.csv'.format(account=os.environ['BITTREX_ACCOUNT'])
+    volume_dest_key = '{account}/markets_volumes.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'])
     volume = current_market.usd_volumes(['BTC'])
     _append(bucket_name, volume_dest_key, volume, current_market.time)
 

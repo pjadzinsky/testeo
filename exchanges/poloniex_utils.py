@@ -116,7 +116,7 @@ class Exchange(object):
                      'Address': transaction.get('address'),
                      'Amount': transaction.get('amount'),
                      'Txid': transaction.get('txid'),
-                     'Timestamp': transaction.get('timestamp'),
+                     'TimeStamp': transaction.get('timestamp'),
                      'Status': transaction.get('status'),
                      'ipAddress': transaction.get('ipAddress'),
                      'Type': withdrawal_flag.rstrip('s')

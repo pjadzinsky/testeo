@@ -25,23 +25,23 @@ def main():
             os.environ['BITTREX_SECRET_ENCRYPTED'] = os.environ['BITTREX_SECRET_PABLO_ENCRYPTED']
             os.environ['BITTREX_KEY_ENCRYPTED'] = os.environ['BITTREX_KEY_PABLO_ENCRYPTED']
 
-        os.environ['BITTREX_ACCOUNT'] = account
+        os.environ['EXCHANGE_ACCOUNT'] = account
         print '*' * 80
-        print 'BITTREX_ACCOUNT:', account
+        print 'EXCHANGE_ACCOUNT:', account
 
         current_portfolio = portfolio.Portfolio.from_bittrex()
         portfolio_change = report.portfolio_change(current_portfolio)
         print portfolio_change
 
-        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+        bitcoin_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/bitcoin.csv'.format(account=os.environ['EXCHANGE_ACCOUNT']))
         print '*' * 8
         print 'bitcoin_df'
         print bitcoin_df
-        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+        trading_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/trading.csv'.format(account=os.environ['EXCHANGE_ACCOUNT']))
         print '*' * 8
         print 'trading_df'
         print trading_df
-        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=os.environ['BITTREX_ACCOUNT']))
+        holding_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/holding.csv'.format(account=os.environ['EXCHANGE_ACCOUNT']))
         print '*' * 8
         print 'holding_df'
         print holding_df

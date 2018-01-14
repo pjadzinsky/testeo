@@ -92,7 +92,7 @@ def bucket_timestamps(bucket_name):
 
     """
     bucket = config.s3_client.Bucket(bucket_name)
-    all_summaries = bucket.objects.filter(Prefix=os.environ['BITTREX_ACCOUNT'])
+    all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
     s3_keys = [summary.key for summary in all_summaries]
 
     regex = re.compile('.*\d+')
