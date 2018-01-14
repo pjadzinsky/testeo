@@ -3,8 +3,8 @@ import sys
 
 import gflags
 
-import market
 from simulations_code import simulate
+import market
 
 FLAGS = gflags.FLAGS
 

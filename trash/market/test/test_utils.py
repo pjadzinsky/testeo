@@ -1,7 +1,7 @@
 import numpy as np
-import pandas as pd
 
-from my_bittrex import volume
+from trash.my_bittrex import volume
+
 
 def perturb_market(market, sigma):
     """

@@ -1,11 +1,11 @@
 #!/usr/bin/python
 import os
 
-import market
 import report
 import state
 from exchanges.exchange import exchange
 from portfolio import portfolio
+import market
 
 print 'Finished with imports in', __file__
 

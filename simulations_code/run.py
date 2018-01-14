@@ -3,9 +3,9 @@ import sys
 
 import gflags
 
-import market
 from portfolio import portfolio
 from simulations_code import simulate
+import market
 
 gflags.DEFINE_multi_int('hours', [1, 2, 3, 6, 12, 24], 'Hours in between market')
 gflags.DEFINE_float('min_percentage_change', 0.1, "Minimum variation in 'balance' needed to place an order."

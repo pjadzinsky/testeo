@@ -5,11 +5,11 @@ import time
 import pandas as pd
 
 import config
-import market
 import s3_utils
 import state
 from exchanges.exchange import exchange
 from portfolio import portfolio
+import market
 
 print 'Finished with imports in', __file__
 if os.environ['LOGNAME'] == 'pablo':

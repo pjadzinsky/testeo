@@ -3,7 +3,6 @@
 Download keys from s3 and generate a dataframe with all
 the information in them
 """
-from collections import defaultdict
 from itertools import product
 import os
 import json

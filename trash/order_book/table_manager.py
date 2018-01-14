@@ -1,4 +1,5 @@
 import boto3
+
 import config
 
 TABLE_NAME = config.TABLE_NAME

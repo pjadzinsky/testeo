@@ -1,13 +1,12 @@
 #!/usr/bin/python
+import hashlib
 import os
-import time
 import tempfile
+import time
 
 import boto3
-import hashlib
 
-from my_bittrex import volume
-import credentials      # sets environmental variables needed to test locally
+from trash.my_bittrex import volume
 
 portfolio_csv = os.path.join('data', 'portfolio.csv')
 market_csv = os.path.join('data', 'market.csv')

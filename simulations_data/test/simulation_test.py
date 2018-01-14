@@ -1,9 +1,9 @@
 #!/usr/bin/python
 import unittest
 
-import market
-from market import market_operations
 from portfolio import portfolio
+import market
+from trash.market import market_operations
 
 
 class TestState(unittest.TestCase):

@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 import pprint
 
-from order_book import populate_table
-from order_book import table_manager
 import credentials
+from order_book import populate_table
 
+from trash.order_book import table_manager
 
 
 def main():

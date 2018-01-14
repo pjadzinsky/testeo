@@ -13,9 +13,9 @@ import time
 
 import pandas as pd
 
-import market
 import s3_utils
 from exchanges.exchange import exchange
+import market
 
 
 def lambda_handler(event, context):

@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
 import json
-import mock
 import time
-import pandas as pd
-import tempfile
 import unittest
 
-from my_bittrex import volume
-from my_bittrex.test import test_utils
+import mock
+import pandas as pd
+
+from trash.my_bittrex import test_utils
+from trash.my_bittrex import volume
 
 
 class TestMarket(unittest.TestCase):

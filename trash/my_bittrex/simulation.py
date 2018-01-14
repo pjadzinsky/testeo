@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import os
 
-from my_bittrex import volume
+from trash.my_bittrex import volume
 
 portfolio_csv = os.path.join('data', 'portfolio.csv')
 market_csv = os.path.join('data', 'market.csv')

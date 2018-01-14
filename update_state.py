@@ -3,8 +3,8 @@ import time
 
 import pandas as pd
 
-import market
 import state
+import market
 
 
 def main(json_input, context):
