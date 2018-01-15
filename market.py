@@ -279,7 +279,8 @@ class Market(object):
         elif potential_market_name in self.prices_df.index:
             volume = self.prices_df.loc[potential_market_name, 'BaseVolume']
         elif reversed_market_name in self.prices_df.index:
-            volume = self.prices_df.loc[reversed_market_name, 'Volume']
+            reversed_market_row = self.prices_df.loc[reversed_market_name]
+            volume = reversed_market_row['BaseVolume'] / reversed_market_row['Last']
         else:
             volume = 0
 
