@@ -21,7 +21,6 @@ class Exchange(object):
         
         :return: Dataframe indexed by "Currency" with columns: 'IsActive', and 'TxFee'
         """
-        import pudb; pudb.set_trace()
         response = self.public_client.returnCurrencies()
         result = _to_df(response)
 

@@ -34,7 +34,6 @@ class TestMarkets(unittest.TestCase):
     def test_next(self):
         time1, first_market = self.markets.next()
         time2, second_market = self.markets.next()
-        print time2, time1
         #self.assertEqual(time2 - time1, 3600)
 
 """
@@ -147,7 +146,6 @@ class TestMarket(unittest.TestCase):
 
     def test_usd_volumes2(self):
         m = market.Market.from_s3_key(FIRST_S3_KEY)
-        print m.usd_volumes(['BTC', 'ETH'])
 
     def test_base_currencies(self):
         computed = self.market.base_currencies()
