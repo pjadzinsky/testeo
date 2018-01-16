@@ -104,15 +104,15 @@ class TestMarket(unittest.TestCase):
     @mock.patch('exchanges.poloniex_utils.Exchange.currencies_df', return_value=currencies_df())
     def test__direct_volume_in_base(self, mocked_currencies):
 
-        computed = self.market._direct_volume_in_base(base='USDT', currency='AAA')
+        computed = self.market.currency_volume(base='USDT', intermediaries=[], currencies=['AAA'])
         self.assertEqual(computed, 200)
-        computed = self.market._direct_volume_in_base(base='AAA', currency='USDT')
+        computed = self.market.currency_volume(base='AAA', intermediaries=[], currencies=['USDT'])
         self.assertEqual(computed, 100)
-        computed = self.market._direct_volume_in_base(base='USDT', currency='BBB')
+        computed = self.market.currency_volume(base='USDT', intermediaries=[], currencies=['BBB'])
         self.assertEqual(computed, 0)
-        computed = self.market._direct_volume_in_base(base='CCC', currency='AAA')
+        computed = self.market.currency_volume(base='CCC', intermediaries=[], currencies=['AAA'])
         self.assertEqual(computed, 300)
-        computed = self.market._direct_volume_in_base(base='AAA', currency='CCC')
+        computed = self.market.currency_volume(base='AAA', intermediaries=[], currencies=['CCC'])
         self.assertEqual(computed, 30)
 
     @mock.patch('exchanges.poloniex_utils.Exchange.currencies_df', return_value=currencies_df())
