@@ -1,6 +1,10 @@
 #!/usr/bin/python
 import time
+import os
 import unittest
+
+# make sure that 'EXCHANGE' is defined so that we know which module in 'exchanges' to mock
+os.environ['EXCHANGE'] = 'POLONIEX'
 
 import mock
 import pandas as pd
@@ -15,6 +19,7 @@ def currencies_df():
     return pd.DataFrame(values, index=names)
 
 
+"""
 class TestMarkets(unittest.TestCase):
     def setUp(self):
 
@@ -32,21 +37,20 @@ class TestMarkets(unittest.TestCase):
         print time2, time1
         #self.assertEqual(time2 - time1, 3600)
 
+"""
 
 
 class TestMarket(unittest.TestCase):
     def setUp(self):
         time = 10
-        names = ['USDT-AAA', 'AAA-BBB', 'AAA-CCC']
-        last = [2, 10, 0.1]
-        volume = [100, 200, 300]
-        names += ['USDT-XXX', 'XXX-BBB']
-        last += [.1, 2]
-        volume += [10, 100]
+        names = ['USDT-AAA', 'AAA-BBB', 'AAA-CCC', 'USDT-XXX', 'XXX-BBB']
+        last = [2, 10, 0.1, .1, 2]
+        volume = [100, 200, 300, 10, 100]
 
         df = fake_short_s3_key(names, last, volume)
         self.market = market.Market(time, df)
 
+    """
     def test_caching(self):
 
         market.Market.from_s3_key('1502981286_short')
@@ -57,6 +61,7 @@ class TestMarket(unittest.TestCase):
         t2 = time.time()
         self.assertLess(t1 - t0, 1E-3)
         self.assertLess(t2 - t1, 1E-3)
+    """
 
     def test_currency_chain_value(self):
         self.assertEqual(self.market.currency_chain_value(['USDT']), 1)
@@ -96,8 +101,7 @@ class TestMarket(unittest.TestCase):
         computed = self.market.currency_chain_volume(['CCC', 'AAA', 'USDT', 'XXX', 'BBB', 'XXX', 'USDT', 'AAA', 'CCC'])
         self.assertEqual(computed, 300)
 
-
-    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.poloniex_utils.Exchange.currencies_df', return_value=currencies_df())
     def test__direct_volume_in_base(self, mocked_currencies):
 
         computed = self.market._direct_volume_in_base(base='USDT', currency='AAA')
@@ -111,45 +115,49 @@ class TestMarket(unittest.TestCase):
         computed = self.market._direct_volume_in_base(base='AAA', currency='CCC')
         self.assertEqual(computed, 30)
 
-    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.poloniex_utils.Exchange.currencies_df', return_value=currencies_df())
     def test_currency_volume(self, mocked_currencies):
 
-        computed = self.market.currency_volume('USDT', [[]])
+        computed = self.market.currency_volume('USDT', [], currencies_df().index.tolist())
         self.assertEqual(computed, 201)
-        computed = self.market.currency_volume('USDT', [['AAA']])
+        computed = self.market.currency_volume('USDT', [], ['AAA'])
         self.assertEqual(computed, 200)
-        computed = self.market.currency_volume('USDT', [['XXX']])
+        computed = self.market.currency_volume('USDT', [], ['XXX'])
         self.assertEqual(computed, 1)
-        computed = self.market.currency_volume('USDT', [['AAA'], ['USDT']])
+        computed = self.market.currency_volume('USDT', ['AAA'], ['USDT'])
         self.assertEqual(computed, 200)
-        computed = self.market.currency_volume('USDT', [['XXX'], ['USDT']])
+        computed = self.market.currency_volume('USDT', ['XXX'], ['USDT'])
         self.assertEqual(computed, 1)
-        computed = self.market.currency_volume('USDT', [['BBB'], ['AAA']])
-        self.assertEqual(computed, 0)
-        computed = self.market.currency_volume('USDT', [['AAA'], ['BBB']])
+        computed = self.market.currency_volume('USDT', ['BBB'], ['AAA'])
+        self.assertEqual(computed, 200)
+        computed = self.market.currency_volume('USDT', ['AAA'], ['BBB'])
         self.assertEqual(computed, 4000)
-        computed = self.market.currency_volume('USDT', [['XXX'], ['BBB']])
+        computed = self.market.currency_volume('USDT', ['XXX'], ['BBB'])
         self.assertEqual(computed, 20)
-        computed = self.market.currency_volume('USDT', [['AAA', 'XXX'], ['BBB']])
+        computed = self.market.currency_volume('USDT', ['AAA', 'XXX'], ['BBB'])
         self.assertEqual(computed, 4020)
 
-    @mock.patch('exchanges.bittrex_exchange.Exchange.currencies_df', return_value=currencies_df())
+    @mock.patch('exchanges.poloniex_utils.Exchange.currencies_df', return_value=currencies_df())
     def test_usd_volumes(self, mocked_currencies):
         computed = self.market.usd_volumes(['AAA', 'XXX'])
+        self.assertEqual(computed.loc['BBB'], 4020)
 
-        self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4020)
         computed = self.market.usd_volumes(['AAA'])
-        self.assertEqual(computed.loc['BBB', 'Volume (USDT)'], 4000)
+        self.assertEqual(computed.loc['BBB'], 4000)
 
     def test_usd_volumes2(self):
-        market = market.Market.from_s3_key(FIRST_S3_KEY)
-        print market.usd_volumes(['BTC', 'ETH'])
+        m = market.Market.from_s3_key(FIRST_S3_KEY)
+        print m.usd_volumes(['BTC', 'ETH'])
 
+    def test_base_currencies(self):
+        computed = self.market.base_currencies()
+        expected = set(['USDT', 'XXX', 'AAA'])
+        self.assertEquals(computed, expected)
 
 
 
 def fake_market(currency_prices_vols):
-    """ Return a jsong blob as would be returned by bittrex_exchange.Exchange.get_market_summaries
+    """ Return a jsong blob as would be returned by exchange.Exchange.get_market_summaries
     but where the currencies, prices, volues are the tuples in currency_prices_vols
     """
     response = """ {
