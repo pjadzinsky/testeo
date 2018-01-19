@@ -15,6 +15,7 @@ BUY_ORDERS_BUCKET = 'bittrex-buy-orders'
 PORTFOLIOS_BUCKET = 'bittrex-portfolios'
 RESULTS_BUCKET = 'bittrex-results'
 STATES_BUCKET = 'bittrex-states'
+MARKETS_BUCKET = 'exchange-markets'
 
 if os.environ['LOGNAME'] == 'pablo':
     boto3.setup_default_session(profile_name='user2')

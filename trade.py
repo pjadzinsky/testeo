@@ -13,8 +13,6 @@ print 'Finished with imports in', __file__
 def main():
     print '*' * 80
 
-    import pudb; pudb.set_trace()
-
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'

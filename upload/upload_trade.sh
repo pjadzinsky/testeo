@@ -17,7 +17,7 @@
 FOLDER=upload_trade
 
 #   0. Make sure we have no left ofer PUDB statements
-pudb_lines=$(grep -R --exclude=upload_trade.sh --exclude=to_upload.zip PUDB)
+pudb_lines=$(grep -R --include=*.py pudb)
 pudb_cnt=$(echo $pudb_lines | wc -w)
 echo $pudb_cnt
 if [ $pudb_cnt -gt 0 ]; then

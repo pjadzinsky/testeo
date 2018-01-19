@@ -39,7 +39,7 @@ cp ../memoize.py $FOLDER
 cp ../s3_utils.py $FOLDER
 
 #   3. Make sure we have no left over PUDB statements
-pudb_lines=$(grep -R --include=$FOLDER PUDB)
+pudb_lines=$(grep -R --include=*.py pudb)
 pudb_cnt=$(echo $pudb_lines | wc -w)
 echo $pudb_cnt
 if [ $pudb_cnt -gt 0 ]; then
