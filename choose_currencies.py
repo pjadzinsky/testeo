@@ -18,7 +18,7 @@ import config
 import s3_utils
 
 ONEDAY = 86400
-NDAYS = 14
+NDAYS = 1
 MIN_VOLUME = 1E6
 N = 10
 
@@ -120,12 +120,10 @@ def upload_series(top, time):
     top.to_csv(temp)
     bucket.upload_file(temp, s3_key)
 
-    print 'uploaded {} to {}'.format(s3_key, bucket.bucket_name)
+    print 'uploaded {} to {}'.format(s3_key, bucket.name)
 
 
 def upload_currencies(currencies, time):
-    import pudb; pudb.set_trace()
-
     bucket = s3_utils.get_write_bucket(config.CURRENCIES_BUCKET)
 
     s3_key = '{exchange}/{account}/currencies.csv'.format(
@@ -147,7 +145,7 @@ def upload_currencies(currencies, time):
 
     df.to_csv(temp)
     bucket.upload_file(temp, s3_key)
-    print 'updated {} to {}'.format(s3_key, bucket.bucket_name)
+    print 'updated {} to {}'.format(s3_key, bucket.name)
 
 
 if __name__ == "__main__":

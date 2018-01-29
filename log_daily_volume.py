@@ -39,10 +39,10 @@ def main():
     bucket = s3_utils.get_write_bucket(config.MARKETS_BUCKET)
 
     last_dest_key = '{exchange}/markets_lasts.csv'.format(exchange=os.environ['EXCHANGE'])
-    _append(bucket.bucket_name, last_dest_key, last, current_market.time)
+    _append(bucket.name, last_dest_key, last, current_market.time)
     volume_dest_key = '{exchange}/markets_volumes.csv'.format(exchange=os.environ['EXCHANGE'])
     volume = current_market.usd_volumes(['BTC'])
-    _append(bucket.bucket_name, volume_dest_key, volume, current_market.time)
+    _append(bucket.name, volume_dest_key, volume, current_market.time)
 
     print('Finished')
 
