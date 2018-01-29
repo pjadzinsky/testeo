@@ -157,11 +157,13 @@ class Portfolio(object):
 
         if best_key:
             return cls.from_s3_key(best_key)
+
     @classmethod
     def last_logged(cls):
         bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
+
         all_object_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
-        all_keys = [os.key for os in all_object_summaries]
+        all_keys = [aos.key for aos in all_object_summaries]
 
         # each key is of the form <account>/timestamp.csv. Keep only timestamp and convert it to an int
         timestamps = [int(key.rstrip('.csv').split('/')[1]) for key in all_keys]
@@ -256,13 +258,14 @@ class Portfolio(object):
 
         return buy_df
 
-    def rebalance(self, market, state, intermediate_currencies, min_percentage_change, by_currency=False):
+    def rebalance(self, market, state, intermediate_currencies, min_percentage_change=0, by_currency=False):
         """
         Given a state, buy/sell positions to approximate target_portfolio
         
         base_currency:  base currency to do computations
-        threshold:  currencies are only balanced if difference with target is above/below this threshold (express
-                    as a percentage)
+        min_percentage_change:  currencies are only balanced if difference with target is above/below this threshold
+                                (express as a percentage)
+        by_currency:    bool, when computing percentage_change we can do so by currency or in intermediate_currencies[0]
         """
         buy_df = self.ideal_rebalance(market, state, intermediate_currencies)
         if os.environ['PORTFOLIO_SIMULATING'] == 'True':
@@ -273,35 +276,33 @@ class Portfolio(object):
 
         # we only buy/sell if movement is above 'min_percentage_change'. However, this movement could be in the
         # amount of cryptocurrency we own (by_currency=True) or in the amount of 'base' it represents (by_currency=False)
-        for currency in buy_df.index:
-            """
-            if by_currency:
-                # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
-                percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
-            else:
-                # if 'buy_df['Buy (base)'] represents less than 'min_percentage_change' from 'position' don't do anything
-                percentage_change = np.abs(buy_df.loc[currency, 'Buy ({})'.format(base)]) / \
-                                    buy_df.loc[currency, 'target_base']
-            buy_df.loc[currency, "change"] = percentage_change
-            if percentage_change < min_percentage_change:
-                buy_df.loc[currency, 'Buy'] = 0
-            """
-            pass
+        if min_percentage_change > 0:
+            for currency in buy_df.index:
+                if by_currency:
+                    # if 'buy_df['Buy'] represents less than 'min_percentage_change' from 'position' don't do anything
+                    percentage_change = np.abs(buy_df.loc[currency, 'Buy']) / buy_df.loc[currency, 'Balance']
+                else:
+                    # if 'buy_df['Buy (base)'] represents less than 'min_percentage_change' from 'position' don't do anything
+                    percentage_change = np.abs(buy_df.loc[currency, 'Buy ({})'.format(base)]) / \
+                                        buy_df.loc[currency, 'target_base']
+                buy_df.loc[currency, "change"] = percentage_change
+                if percentage_change < min_percentage_change:
+                    buy_df.loc[currency, 'Buy'] = 0
 
-        # if 'base' is in self.dataframe, remove it. Each transaction is simulated against 'base' but we don't
+        # if 'base' is in self.dataframe, remove it. Each transaction is done/simulated against 'base'. We don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
         if base in buy_df.index:
             remove_transaction(buy_df, base)
 
+        # As of 01/28/2017 this was 100K Satoshi's for Bittrex
         apply_min_transaction_size(market, buy_df, base)
 
         msg = ''
         if os.environ['PORTFOLIO_SIMULATING'] == 'True':
             self.mock_buy(buy_df[['Buy', 'Buy ({})'.format(base), 'change']])
         else:
-            msg = self.buy(market, buy_df, base)
+            self.buy(market, buy_df, base)
 
-        return msg
 
     def mock_buy(self, buy_df):
         """
@@ -346,7 +347,6 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
-        msg = ''
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
@@ -364,11 +364,12 @@ class Portfolio(object):
                 trade = exchange.sell_limit
                 amount_to_buy_in_currency *= -1
 
-            msg += '*'*80 + '\n'
+            print '*' * 80
+            # Do not change next next condition. The environmental variable is a string, not a bool
             if not os.environ['PORTFOLIO_TRADE'] == 'True':
-                msg += "PORTFOLIO_TRADE: False\n"
-            msg += msg_order + '\n'
-            msg += 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
+                print "PORTFOLIO_TRADE: False\n"
+            print msg_order
+            print 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
                                                                            rate, satoshis)
 
             if os.environ['PORTFOLIO_TRADE'] == 'True':
@@ -377,7 +378,6 @@ class Portfolio(object):
                                                               time=int(market.time))
                 s3_utils.log_df(config.BUY_ORDERS_BUCKET, s3_key, buy_df)
                 trade(market_name, amount_to_buy_in_currency, rate)
-        return msg
 
     def limit_to(self, limit_df):
         """

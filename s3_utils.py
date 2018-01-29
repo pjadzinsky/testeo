@@ -9,6 +9,15 @@ import config
 print 'Finished with imports in', __file__
 
 
+def get_write_bucket(bucket_name):
+    if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
+        bucket = config.s3_client.Bucket(config.STAGING_BUCKET)
+    else:
+        bucket = config.s3_client.Bucket(bucket_name)
+
+    return bucket
+
+
 def log_df(bucket_name, s3_key, some_df):
     if os.environ['PORTFOLIO_REPORT'] == 'True':
         bucket = config.s3_client.Bucket(bucket_name)

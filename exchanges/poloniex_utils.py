@@ -128,6 +128,8 @@ class Exchange(object):
 
 def get_private_client():
     private_client = None
+    import pudb; pudb.set_trace()
+
     if 'POLONIEX_KEY_ENCRYPTED' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
@@ -137,7 +139,7 @@ def get_private_client():
         POLONIEX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
         POLONIEX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
-    if 'POLONIEX_KEY' in os.environ:
+    elif 'POLONIEX_KEY' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
         POLONIEX_KEY = os.environ['POLONIEX_KEY']

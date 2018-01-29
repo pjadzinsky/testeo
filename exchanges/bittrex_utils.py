@@ -116,6 +116,8 @@ class Exchange(object):
 
 def get_private_client():
     private_client = None
+    import pudb; pudb.set_trace()
+
     if 'BITTREX_KEY_ENCRYPTED' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
@@ -125,7 +127,7 @@ def get_private_client():
         BITTREX_KEY = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_KEY))['Plaintext']
         BITTREX_SECRET = config.kms_client.decrypt(CiphertextBlob=b64decode(ENCRYPTED_SECRET))['Plaintext']
 
-    if 'BITTREX_KEY' in os.environ:
+    elif 'BITTREX_KEY' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
         BITTREX_KEY = os.environ['BITTREX_KEY']
