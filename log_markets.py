@@ -12,6 +12,7 @@ import tempfile
 import time
 
 from exchanges.exchange import exchange
+import s3_utils
 import config
 
 
@@ -31,14 +32,7 @@ def main():
     fid, filename = tempfile.mkstemp(suffix='{}.json'.format(timestamp))
     df_summaries.to_json(filename)
 
-    if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
-        bucket_name = 'exchanges-scratch'
-    elif os.environ['EXCHANGE_ACCOUNT'] == 'prod':
-        bucket_name = 'exchange-markets'
-    else:
-        raise IOError("env 'EXCHANGE_ACCOUNT': {} not understood".format(os.environ['EXCHANGE_ACCOUNT']))
-
-    bucket = config.s3_client.Bucket(bucket_name)
+    bucket = s3_utils.get_write_bucket(config.MARKETS_BUCKET)
 
     dest_key = '{exchange}/{timestamp}'.format(exchange=os.environ['EXCHANGE'],
                                                timestamp=timestamp)

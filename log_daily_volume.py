@@ -13,6 +13,7 @@ import time
 
 import pandas as pd
 
+import config
 import s3_utils
 from exchanges.exchange import exchange
 import market
@@ -35,18 +36,13 @@ def main():
 
     last = current_market.last_in_usdt(['BTC'])
 
-    if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
-        bucket_name = 'exchanges-scratch'
-    elif os.environ['EXCHANGE_ACCOUNT'] == 'prod':
-        bucket_name = 'exchange-markets'
-    else:
-        raise IOError("env 'EXCHANGE_ACCOUNT': {} not understood".format(os.environ['EXCHANGE_ACCOUNT']))
+    bucket = s3_utils.get_write_bucket(config.MARKETS_BUCKET)
 
     last_dest_key = '{exchange}/markets_lasts.csv'.format(exchange=os.environ['EXCHANGE'])
-    _append(bucket_name, last_dest_key, last, current_market.time)
+    _append(bucket.bucket_name, last_dest_key, last, current_market.time)
     volume_dest_key = '{exchange}/markets_volumes.csv'.format(exchange=os.environ['EXCHANGE'])
     volume = current_market.usd_volumes(['BTC'])
-    _append(bucket_name, volume_dest_key, volume, current_market.time)
+    _append(bucket.bucket_name, volume_dest_key, volume, current_market.time)
 
     print('Finished')
 

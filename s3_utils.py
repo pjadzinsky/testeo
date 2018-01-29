@@ -10,7 +10,7 @@ print 'Finished with imports in', __file__
 
 
 def get_write_bucket(bucket_name):
-    if os.environ['EXCHANGE_ACCOUNT'] == 'staging':
+    if os.environ['BUILD_ENV'] == 'staging':
         bucket = config.s3_client.Bucket(config.STAGING_BUCKET)
     else:
         bucket = config.s3_client.Bucket(bucket_name)
