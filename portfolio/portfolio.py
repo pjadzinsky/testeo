@@ -66,7 +66,7 @@ class Portfolio(object):
 
     @classmethod
     def from_exchange(cls):
-        return cls(exchange.get_balances())
+        return cls(exchange.get_balances().to_frame())
 
     @classmethod
     def from_first_buy_order(cls):
@@ -212,7 +212,7 @@ class Portfolio(object):
     def value_per_currency(self, market, intermediate_currencies):
         portfolio = self.dataframe
 
-        return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Balance'],
+        return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Available'],
                                axis=1)
     def ideal_rebalance(self, market, state, intermediate_currencies):
         """
@@ -250,7 +250,7 @@ class Portfolio(object):
             lambda x: market.currency_chain_value([base] + intermediate_currencies + [x.name]), axis=1)
         buy_df.loc[:, 'target_currency'] = buy_df['target_base'] / buy_df['currency_in_base']
 
-        buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
+        buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Available']
         buy_df.loc[:, 'Buy ({base})'.format(base=intermediate_currencies[0])] = buy_df.apply(
             lambda x: x.Buy * market.currency_chain_value([base] + intermediate_currencies + [x.name]),
             axis=1

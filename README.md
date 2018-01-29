@@ -14,3 +14,5 @@ Things to do
 1.  Clean code, remove dead code
 
 1.  Change references to 'state' to use the 'new' csv in s3://echange-currencies/<EXCHANGE>/<ACCOUNT>/currencies.csv
+
+1.  Withdrawal and deposits not working for bittrex

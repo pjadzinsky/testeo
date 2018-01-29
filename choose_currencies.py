@@ -18,7 +18,7 @@ import config
 import s3_utils
 
 ONEDAY = 86400
-NDAYS = 1
+NDAYS = 14
 MIN_VOLUME = 1E6
 N = 10
 

@@ -84,7 +84,8 @@ class Exchange(object):
             self.private_client.cancel(order['OrderUuid'])
 
     def withdrawals_and_deposits(self):
-        withdrawals = self.private_client.getwithdrawalhistory()
+        withdrawals = self.private_client.get_withdrawal_history()
+
         df = pd.DataFrame()
         for withdrawal in withdrawals['result']:
             s = {'Currencty': withdrawal.get('Currency'),
@@ -98,7 +99,7 @@ class Exchange(object):
             }
             df = df.append(s, ignore_index=True)
 
-        deposits = self.private_client.getdeposithistory()
+        deposits = self.private_client.get_deposit_history()
         for deposit in deposits['result']:
             s = {'Currencty': deposit.get('Currency'),
                  'Address': deposit.get('Address'),
@@ -113,11 +114,15 @@ class Exchange(object):
 
         return df
 
+    def buy_limit(self, market, quantity, rate):
+        self.private_client.buy_limit(market, quantity, rate)
+
+    def sell_limit(self, market, quantity, rate):
+        self.private_client.buy_limit(market, quantity, rate)
+
+
 
 def get_private_client():
-    private_client = None
-    import pudb; pudb.set_trace()
-
     if 'BITTREX_KEY_ENCRYPTED' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container

@@ -28,7 +28,6 @@ print 'Finished with imports in', __file__
 
 def main():
     print '*' * 80
-
     print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
     print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'
@@ -50,7 +49,7 @@ def main():
 
     # log everything state, portfolio, values according to current market in BTC, USD (only logs if environmental
     # variable PORTFOLIO_REPORT is set
-    report.during_trading(current_market, current_portfolio, desired_state)
+    #report.during_trading(current_market, current_portfolio, desired_state)
 
     current_portfolio.rebalance(current_market, desired_state, ['BTC'], 0, by_currency=False)
 

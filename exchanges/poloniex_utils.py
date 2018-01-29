@@ -29,11 +29,16 @@ class Exchange(object):
         result.columns = ['IsActive', 'TxFee']
         return result
 
-
     @memoize.memoized
     def market_names(self):
+
         response = self.public_client.returnTicker()
-        return response.keys()
+        answer = response.keys()
+
+        if os.environ['EXCHANGE'] == 'POLONIEX':
+            answer = [a.replace('_', '-') for a in answer]
+
+        return answer
 
 
     def get_balances(self):
@@ -45,6 +50,8 @@ class Exchange(object):
         response = self.private_client.returnBalances()
         s = pd.Series(response.values(), index=response.keys())
         s = s[s > 0]
+        s.name = 'Available'
+        s.index.name = 'Currency'
 
         return s
 
@@ -91,6 +98,7 @@ class Exchange(object):
         prices_df = _to_df(response)
         prices_df = prices_df[['last', 'baseVolume']]
         prices_df.columns = ['Last', 'BaseVolume']
+        prices_df.index.name = 'MarketName'
 
         timestamp = int(time.time())
         return timestamp, prices_df
@@ -125,11 +133,14 @@ class Exchange(object):
 
         return df
 
+    def buy_limit(self, market, quantity, rate):
+        self.private_client.buy(market.replace('_', '-'), rate, quantity)
+
+    def sell_limit(self, market, quantity, rate):
+        self.private_client.sell(market.replace('_', '-'), rate, quantity)
+
 
 def get_private_client():
-    private_client = None
-    import pudb; pudb.set_trace()
-
     if 'POLONIEX_KEY_ENCRYPTED' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
