@@ -22,10 +22,10 @@ def during_trading(current_market, current_portfolio, desired_state):
 
     current_portfolio.to_s3(current_market.time)
     state.save(current_market.time, desired_state)
-    deposits(current_market)
+    #deposits(current_market)
     trading_value(current_market, current_portfolio)
-    bitcoin_value(current_market)
-    holding_value(current_market)
+    #bitcoin_value(current_market)
+    #holding_value(current_market)
 
 
 ONEDAY = 86400      # seconds in a day
@@ -152,6 +152,8 @@ def deposits(market):
     :param market: 
     :return: 
     """
+    import pudb; pudb.set_trace()
+
     account = os.environ['EXCHANGE_ACCOUNT']
     deposits_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/deposits.csv'.format(account=account))
     if deposits_df.empty:

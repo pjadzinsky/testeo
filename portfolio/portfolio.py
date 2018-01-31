@@ -347,6 +347,8 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
+        import pudb; pudb.set_trace()
+
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
@@ -373,11 +375,13 @@ class Portfolio(object):
                                                                            rate, satoshis)
 
             if os.environ['PORTFOLIO_TRADE'] == 'True':
+                trade(market_name, amount_to_buy_in_currency, rate)
+
                 # log the requested portfolio
                 s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                               time=int(market.time))
                 s3_utils.log_df(config.BUY_ORDERS_BUCKET, s3_key, buy_df)
-                trade(market_name, amount_to_buy_in_currency, rate)
+
 
     def limit_to(self, limit_df):
         """
@@ -453,6 +457,7 @@ def apply_min_transaction_size(market, buy_df, base):
 
 def _market_name(base, currency):
     name = base + '-' + currency
+
     if name in exchange.market_names():
         return name
 

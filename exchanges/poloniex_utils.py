@@ -134,10 +134,20 @@ class Exchange(object):
         return df
 
     def buy_limit(self, market, quantity, rate):
-        self.private_client.buy(market.replace('_', '-'), rate, quantity)
+        self.private_client.buy(market.replace('-', '_'), rate, quantity)
 
     def sell_limit(self, market, quantity, rate):
-        self.private_client.sell(market.replace('_', '-'), rate, quantity)
+        self.private_client.sell(market.replace('-', '_'), rate, quantity)
+
+    def btc_value(self):
+        balances = self.private_client.returnCompleteBalances()
+        # only keep items with positive balance
+        balances = {k: v for k, v in balances.items() if v['available']}
+
+        # now keep only the approximated value in bitcoins
+        btcs = [d['btcValue'] for d in balances.values()]
+
+        return sum(btcs)
 
 
 def get_private_client():

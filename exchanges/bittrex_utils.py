@@ -118,8 +118,20 @@ class Exchange(object):
         self.private_client.buy_limit(market, quantity, rate)
 
     def sell_limit(self, market, quantity, rate):
-        self.private_client.buy_limit(market, quantity, rate)
+        self.private_client.sell_limit(market, quantity, rate)
 
+    def btc_value(self):
+        balance = self.get_balances()
+        _, market = self.get_current_market()
+        btc = 0
+        for currency in balance.index:
+            if currency == 'BTC':
+                btc += balance[currency]
+            else:
+                market_name = 'BTC-' + currency
+                if market_name in market.index:
+                    btc += market.loc[market_name]['Last'] * balance[currency]
+        return btc
 
 
 def get_private_client():
