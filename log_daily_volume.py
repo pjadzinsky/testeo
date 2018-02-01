@@ -15,7 +15,7 @@ import pandas as pd
 
 import config
 import s3_utils
-from exchanges.exchange import exchange
+from exchanges import exchange
 import market
 
 

@@ -134,7 +134,11 @@ class Exchange(object):
         return df
 
     def buy_limit(self, market, quantity, rate):
-        self.private_client.buy(market.replace('-', '_'), rate, quantity)
+        try:
+            self.private_client.buy(market.replace('-', '_'), rate, quantity)
+        except:
+            self.private_client.buy(market.replace('-', '_'), rate, quantity * 0.9)
+
 
     def sell_limit(self, market, quantity, rate):
         self.private_client.sell(market.replace('-', '_'), rate, quantity)

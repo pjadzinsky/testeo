@@ -11,7 +11,7 @@ import os
 import tempfile
 import time
 
-from exchanges.exchange import exchange
+from exchanges import exchange
 import s3_utils
 import config
 

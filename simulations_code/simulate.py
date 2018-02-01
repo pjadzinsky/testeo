@@ -13,7 +13,7 @@ import pandas as pd
 
 import config
 from portfolio import portfolio
-from exchanges.exchange import exchange
+from exchanges import exchange
 
 
 try:

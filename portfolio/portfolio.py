@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 
-from exchanges.exchange import exchange
+from exchanges import exchange
 import config
 import s3_utils
 import state
@@ -347,8 +347,6 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
-        import pudb; pudb.set_trace()
-
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]

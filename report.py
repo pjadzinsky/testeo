@@ -7,7 +7,7 @@ import pandas as pd
 import config
 import s3_utils
 import state
-from exchanges.exchange import exchange
+from exchanges import exchange
 from portfolio import portfolio
 import market
 

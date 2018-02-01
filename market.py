@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 import config
-from exchanges.exchange import exchange
+from exchanges import exchange
 print 'Finished with imports in', __file__
 
 

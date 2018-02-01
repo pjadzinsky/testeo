@@ -19,7 +19,7 @@ import os
 
 import report
 import state
-from exchanges.exchange import exchange
+from exchanges import exchange
 from portfolio import portfolio
 import market
 
