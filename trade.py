@@ -32,6 +32,7 @@ def main():
     print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
     print 'cancel all open orders'
     if os.environ['PORTFOLIO_TRADE'] == 'True':
+        #pass
         exchange.cancel_all_orders()
     else:
         print 'Would be canceling all orders from {}'.format(os.environ['EXCHANGE'])

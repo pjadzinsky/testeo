@@ -30,7 +30,7 @@ print 'Finished with imports in', __file__
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
-MINIMUM_TRADE = 100000   # in SAT (satohis)
+MINIMUM_TRADE = exchange.MINIMUM_TRADE   # in SAT (satohis)
 
 class Portfolio(object):
     def __init__(self, dataframe):
@@ -347,6 +347,9 @@ class Portfolio(object):
         :param base_currency: 
         :return: 
         """
+
+        # Poloniex has a problem if we don't have enough BTC to place a buy order.
+        # Maybe sort buy_df, execute all sell orders first, wait and execute buy?
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]

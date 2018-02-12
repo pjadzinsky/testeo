@@ -152,8 +152,6 @@ def deposits(market):
     :param market: 
     :return: 
     """
-    import pudb; pudb.set_trace()
-
     account = os.environ['EXCHANGE_ACCOUNT']
     deposits_df = s3_utils.get_df(config.RESULTS_BUCKET, '{account}/deposits.csv'.format(account=account))
     if deposits_df.empty:

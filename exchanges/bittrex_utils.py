@@ -10,7 +10,6 @@ import config
 import memoize
 print 'Finished with imports in', __file__
 
-
 class Exchange(object):
     def __init__(self):
         self.public_client = bittrex.Bittrex('', '')
@@ -115,10 +114,15 @@ class Exchange(object):
         return df
 
     def buy_limit(self, market, quantity, rate):
-        self.private_client.buy_limit(market, quantity, rate)
+        result = self.private_client.buy_limit(market, quantity, rate)
+        if not result['success']:
+            print result
 
     def sell_limit(self, market, quantity, rate):
-        self.private_client.sell_limit(market, quantity, rate)
+        result = self.private_client.sell_limit(market, quantity, rate)
+        if not result['success']:
+            print result
+
 
     def btc_value(self):
         balance = self.get_balances()
