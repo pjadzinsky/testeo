@@ -189,7 +189,7 @@ class Portfolio(object):
             if csv_files:
                 csv_files.sort()
                 filename = csv_files[-1]
-                print filename
+                print(filename)
 
                 portfolio = cls(portfolio = pd.read_csv(filename, index_col=0))
             else:
@@ -217,8 +217,8 @@ class Market(object):
             response = json_blob
             response = json.loads(response)
         else:
-            print "about to call client.get_market_summaries()"
-            print int(time.time())
+            print("about to call client.get_market_summaries()")
+            print(int(time.time()))
             response = client.get_market_summaries()
 
         self._timestamp = time.time()

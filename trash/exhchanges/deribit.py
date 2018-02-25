@@ -16,7 +16,7 @@ def deribit_signature(tstamp, uri, params, key, secret, debug=False):
         sign += '&{0}={1}'.format(key, params[key])
     
     if debug:
-        print sign
+        print(sign)
     return "{0}.{1}.{2}".format(key, tstamp, base64.b64encode(hashlib.sha256(sign).digest()))
 
 
@@ -38,7 +38,7 @@ def get_account(tstamp=None, debug=False):
             'x-deribit-sig': deribit_signature(tstamp, uri, params, KEY, SECRET, debug=debug)
     }
     if debug:
-        print headers
+        print(headers)
     response = requests.get(BASE_URL + uri, headers=headers).json()
     return response
 
@@ -53,7 +53,7 @@ def buy(params, tstamp=None, debug=False):
             'x-deribit-sig': deribit_signature(tstamp, uri, params, KEY, SECRET, debug=debug)
     }
     if debug:
-        print params
+        print(params)
 
     response = requests.post(BASE_URL + uri, params, signature).json()
     return response
@@ -67,4 +67,4 @@ def compare_strings(str1, str2):
         if a == b:
             pass
         else:
-            print i, a, b
+            print(i, a, b)

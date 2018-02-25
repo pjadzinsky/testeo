@@ -27,14 +27,14 @@ def fix_buy_order_folder():
         if os.environ['EXCHANGE_ACCOUNT'] not in summary.key:
             index = s3_utils.get_df(config.BUY_ORDERS_BUCKET, summary.key, index_col=0).index
             if "EDG" in index and "BAY" not in index:
-                print "aws s3 mv s3://{bucket}/{key} s3://{bucket}/pablo/{key} --profile=user2".format(
+                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/pablo/{key} --profile=user2".format()
                     bucket=config.BUY_ORDERS_BUCKET, key=summary.key)
             elif "EDG" not in index and "BAY" in index:
-                print "aws s3 mv s3://{bucket}/{key} s3://{bucket}/gaby/{key} --profile=user2".format(
+                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/gaby/{key} --profile=user2".format()
                     bucket=config.BUY_ORDERS_BUCKET, key=summary.key)
             else:
-                print "Error with key:", summary.key
-                print "index:", index
+                print("Error with key:", summary.key)
+                print("index:", index)
 
 
 def debug1():
@@ -47,15 +47,15 @@ def debug1():
     p = portfolio.Portfolio.from_bittrex()
     _, state1 = state.at_time(time.time())
     state2 =  state.from_portfolio(p)
-    print '#' * 80
-    print state1
-    print state1.shape
-    print '#' * 80
-    print state2
-    print state2.shape
-    print '#' * 80
-    #print state1.merge(state2, how='outer')
-    print state.frames_are_equal(state1, state2)
+    print('#' * 80)
+    print(state1)
+    print(state1.shape)
+    print('#' * 80)
+    print(state2)
+    print(state2.shape)
+    print('#' * 80)
+    #print(state1.merge(state2, how='outer'))
+    print(state.frames_are_equal(state1, state2))
 
 def state_at_time():
     import time
@@ -70,18 +70,18 @@ def currency_changes_in_portfolio():
 
 def env_variables():
     import os
-    print os.environ['PORTFOLIO_REPORT']
-    print int(os.environ['PORTFOLIO_REPORT'])
+    print(os.environ['PORTFOLIO_REPORT'])
+    print(int(os.environ['PORTFOLIO_REPORT']))
     if int(os.environ['PORTFOLIO_REPORT']):
-        print True
+        print(True)
     else:
-        print False
+        print(False)
 
 
 def bucket_timestamp():
     import s3_utils
     import config
-    print s3_utils.bucket_timestamps(config.PORTFOLIOS_BUCKET)
+    print(s3_utils.bucket_timestamps(config.PORTFOLIOS_BUCKET))
 
 
 def remove_equal():
@@ -106,10 +106,10 @@ def remove_equal():
         df2 = pd.read_csv(second, index_col=0)
 
         if len(df1)==len(df2) and np.all(df1.index == df2.index) and np.all(df1.Weight == df2.Weight):
-            print 'removing', second
+            print('removing', second)
             os.unlink(second)
         else:
-            print '\tkeeping', first
+            print('\tkeeping', first)
             df1 = df2
 
 
@@ -118,7 +118,7 @@ def report_change():
     from portfolio import portfolio
     current_portfolio = portfolio.Portfolio.from_bittrex()
 
-    print report.portfolio_change(current_portfolio)
+    print(report.portfolio_change(current_portfolio))
 
 def plot():
     import report
@@ -155,19 +155,19 @@ def fix_log_market():
         }
         dest_key = 'prod/{}'.format(object.key)
 
-        print copy_source
-        print dest_key
+        print(copy_source)
+        print(dest_key)
         bucket.copy(copy_source, dest_key)
 
         new_object = s3.Object('my-bittrex', dest_key)
         msg = 'etags are equal: '
         if new_object.e_tag == object.e_tag:
             msg += 'True'
-            print 'deleting:', object.key
+            print('deleting:', object.key)
             object.delete()
         else:
             msg += 'False'
-        print msg
+        print(msg)
 
 
 def fix_log_market2():
@@ -183,7 +183,7 @@ def fix_log_market2():
 def debug_imports():
     from exchanges import exchange
 
-    print exchange.Exchange().currencies_df()
+    print(exchange.Exchange().currencies_df())
 
 
 if __name__ == "__main__":

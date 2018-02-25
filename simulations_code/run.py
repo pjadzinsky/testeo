@@ -25,7 +25,7 @@ if __name__ == "__main__":
     try:
         argv = FLAGS(sys.argv)
     except gflags.FlagsError as e:
-        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
+        print("%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS))
         sys.exit(1)
 
     #np.random.seed(1)
@@ -44,6 +44,6 @@ if __name__ == "__main__":
     elif FLAGS.N:
         desired_state = portfolio.state_from_largest_markes(markets.first_market(), FLAGS.N)
 
-    print "Deisred State is:"
-    print desired_state
+    print("Deisred State is:")
+    print(desired_state)
     simulate.simulate_set(desired_state, BASE, VALUE, FLAGS.hours, markets, FLAGS.min_percentage_change)

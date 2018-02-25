@@ -36,7 +36,7 @@ def _public_request(endpoint, symbol):
     if symbol:
         url += symbol
 
-    print url
+    print(url)
     response = urllib2.urlopen(url)
     return json.loads(response.read())
 

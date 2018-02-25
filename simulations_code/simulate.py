@@ -52,7 +52,7 @@ def simulate_set(desired_state, base, value, hours, markets, min_percentage_chan
     for simulation_index, sim_params in all_params_to_simulate:
         hour = sim_params['hour']
         markets.reset(seconds=config.ONEHOUR * hour)
-        print 'Simulation Index: ', simulation_index
+        print('Simulation Index: ', simulation_index)
         simulate(markets, sim_params)
 
 
@@ -112,7 +112,7 @@ def simulate(markets, sim_params):
     csv_filename = os.path.join(config.DATAFOLDER, '{0}.csv'.format(sim_params.name))
 
     if os.path.isfile(csv_filename):
-        print 'csv found:', csv_filename
+        print('csv found:', csv_filename)
         data = pd.read_csv(csv_filename)
 
         # advance market iterator until 'time' exceeds the last time in 'data'
@@ -129,12 +129,12 @@ def simulate(markets, sim_params):
     write_file = False
 
     for market in markets:
-        print "simulating:", market.time
+        print("simulating:", market.time)
         write_file = True
         data = simulate_step(current_portfolio, market, data, sim_params)
 
     if write_file:
-        print "Saving {0}".format(csv_filename)
+        print("Saving {0}".format(csv_filename))
         data.to_csv(csv_filename, index=False)
 
 
@@ -172,7 +172,7 @@ def simulate_step(current_portfolio, market, data, sim_params):
     markets.reset(seconds=3600 * hour)
     if current_time in data['time']:
         # don't simulate this step, we already have and the result is in the row with 'time' = current_time
-        p.dataframe['Balance'] = data[data['time']==current_time].drop('time', 'value')
+        p.values = data[data['time']==current_time].drop('time', 'value')
     data.to_csv(csv_filename, index=False)
     """
 
@@ -187,7 +187,7 @@ def simulate_step(current_portfolio, market, data, sim_params):
         current_portfolio.rebalance(market, desired_state, ['BTC'], min_percentage_change)
 
     value = current_portfolio.total_value(market, ['USDT', 'BTC'])
-    s = current_portfolio.dataframe['Balance']
+    s = current_portfolio.values
     s['time'] = time
     s['value'] = value
 
@@ -243,9 +243,9 @@ def fix_csv():
     index = columns.index('percentage_to_baseline')
     columns[index] = 'mean %'
     df.columns = columns
-    print columns[-5:]
+    print(columns[-5:])
     columns = columns[:-4] + [columns[-4], columns[-3], columns[-5]] + columns[-2:]
-    print columns[-5:]
+    print(columns[-5:])
     df = df[columns]
     df.to_csv('test.csv', index=False)
 '''

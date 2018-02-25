@@ -25,7 +25,7 @@ class TestClass(unittest.TestCase):
     def test_account(self):
         tstamp = 1495359724041
 
-        print sdk.get_account(tstamp=tstamp, debug=True)
+        print(sdk.get_account(tstamp=tstamp, debug=True))
 
 if __name__ == "__main__":
     unittest.main()

@@ -269,14 +269,14 @@ class TestRebalance1(unittest.TestCase):
 
         """
         time.sleep(.1)
-        print market.summaries()
+        print(market.summaries())
 
         # Now we have 2500 , after rebalancing there should 1250 in each
         # since Market2 is [('USDT-BTC', 2000, 10), ('USDT-ETH', 500, 10), ('BTC-ETH', 0.25, 10)]
         # 'BTC' @ 2000, position should be 1250/2000 = 0.625
         # 'ETH' @ 500, position should be 1250/500 = 2.5
         portfolio.rebalance(market, state, portfolio, 'USDT', 0)
-        print portfolio.portfolio
+        print(portfolio.portfolio)
         """
 
 

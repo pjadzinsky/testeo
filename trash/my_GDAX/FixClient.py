@@ -89,7 +89,7 @@ class FixClient(asyncore.dispatcher):
         self.close()
 
     def handle_read(self):
-        print "----------INBOUND----------"
+        print("----------INBOUND----------")
         msg = self.recv(8192)
         self.parse(msg)
 
@@ -100,10 +100,10 @@ class FixClient(asyncore.dispatcher):
         self.handle_error()
 
         def handle_error(self):
-            print "Error"
+            print("Error")
 
     def handle_write(self):
-        print "----------OUTBOUND----------"
+        print("----------OUTBOUND----------")
         self.parse(self.buffer)
         sent = self.send(self.buffer)
         self.buffer = self.buffer[sent:]
@@ -113,44 +113,44 @@ class FixClient(asyncore.dispatcher):
         return datetime.datetime.utcnow().strftime("%Y%m%d-%H:%M:%S.%f")[:-3]
 
     def make_tag(self, tag, value):
-        print "%s=%s" % (TAGSR[tag], value)
+        print("%s=%s" % (TAGSR[tag], value))
 
     def pack(self, msgs):
         # Create body
         body = []
 
         if 'SenderCompID' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['SenderCompID'], msgs['SenderCompID']))
 
         if 'TargetCompID' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['TargetCompID'], msgs['TargetCompID']))
 
         if 'MsgSeqNum' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['MsgSeqNum'], msgs['MsgSeqNum']))
 
         if 'SendingTime' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['SendingTime'], msgs['SendingTime']))
 
         if 'EncryptMethod' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['EncryptMethod'], msgs['EncryptMethod']))
 
         if 'HeartBtInt' not in msgs:
-            print 'ERROR'
+            print('ERROR')
             return
         else:
             body.append("%i=%s" % (TAGSR['HeartBtInt'], msgs['HeartBtInt']))
@@ -179,23 +179,23 @@ class FixClient(asyncore.dispatcher):
         msg = msg[:-1]
         msgs = {}
 
-        print "|".join(msg)
+        print("|".join(msg))
 
         for m in msg:
             tag, value = m.split('=', 1)
             if int(tag) not in TAGS:
-                print "Not valid: %s" % (tag)
+                print("Not valid: %s" % (tag))
             else:
                 t = TAGS[int(tag)]
                 if t == 'CheckSum':
                     cksum = ((sum([ord(i) for i in list(SOH.join(msg[:-1]))]) + 1) % 256)
                     if cksum == int(value):
-                        print "CheckSum\t%s (OK)" % (int(value))
+                        print("CheckSum\t%s (OK)" % (int(value)))
                     else:
-                        print "CheckSum\t%s (INVALID)" % (int(value))
+                        print("CheckSum\t%s (INVALID)" % (int(value)))
                 elif t == 'MsgType':
                     msgs[t] = MSGTYPES[value]
-                    print "MsgType\t\t%s" % msgs[t]
+                    print("MsgType\t\t%s" % msgs[t])
                 else:
                     msgs[t] = value
 

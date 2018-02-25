@@ -14,7 +14,7 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
-print 'About to start loading modules from', __file__
+print('About to start loading modules from', __file__)
 import os
 import tempfile
 
@@ -26,18 +26,18 @@ from exchanges import exchange
 import config
 import s3_utils
 import state
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
 MINIMUM_TRADE = exchange.MINIMUM_TRADE   # in SAT (satohis)
 
 class Portfolio(object):
-    def __init__(self, dataframe):
+    def __init__(self, values):
         """
         Read portfolio from API
         """
-        self.dataframe = dataframe
+        self.values = values
 
     @classmethod
     def from_state(cls, market, state, base, value):
@@ -66,7 +66,7 @@ class Portfolio(object):
 
     @classmethod
     def from_exchange(cls):
-        return cls(exchange.get_balances().to_frame())
+        return cls(exchange.get_balances())
 
     @classmethod
     def from_first_buy_order(cls):
@@ -79,48 +79,55 @@ class Portfolio(object):
         """
         orders_bucket = config.s3_client.Bucket(config.BUY_ORDERS_BUCKET)
 
-        # get the timestamp corresponding to the 'state' definiition.
+        # get the timestamp corresponding to the 'state' definition.
         # IF there is a csv in bittrex-buy-orders bucket matching <account>/<time_stamp>_buy_df.csv. Load
         # portfolio from this key
         time_stamp, _ = state.current()
-        all_summaries = orders_bucket.objects.all()
-        for summary in all_summaries:
-            if str(time_stamp) in summary.key:
-                buy_order_df = s3_utils.get_df(orders_bucket.name, summary.key, comment='#', index_col=0)
-                buy_order_df.loc[:, 'Available'] = buy_order_df['target_currency']
-                buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
-                buy_order_df = buy_order_df[buy_order_df['Available'] > 0]
 
-                return cls(buy_order_df[['Available', 'Balance', 'Pending']])
+        all_summaries = orders_bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
+        keys = [summary.key for summary in all_summaries]
 
-        # if we get here, is because '<account>/<time_stamp>_buy_df.csv' was not found in BUY_ORDERS_BUCKET
-        # In this case, we'll use the 1st portfolio defined after time_stamp (when the 'state' was defined)
-        portfolios_bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
-        all_summaries = portfolios_bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
-        time_diff = np.inf
-        key = None
-        for summary in all_summaries:
-            # summary.key is of the form <account>/<time_stamp>.csv
-            portfolio_time = int(summary.key.rstrip('.csv').split('/')[1])
-            if portfolio_time > time_stamp and portfolio_time - time_stamp < time_diff:
-                time_diff = portfolio_time - time_stamp
-                key = summary.key
-        if key:
-            return cls.from_s3_key(summary.key)
-        else:
-            return None
+        def time_from_key(key):
+            """
+            key is of the form <acount>/<timestamp>_buy_df.csv. Return the number associated with <timestamp>
+            :param key: 
+            :return: 
+            """
+            num_str = key.split('/')[1].split('_')[0]
+            return int(num_str)
+
+        summaries_times = [time_from_key(k) for k in keys]
+
+        # get the 1st summary with time >= time_stamp
+        distance = np.inf
+        best_time = None
+        best_key = None
+        for key, time in zip(keys, summaries_times):
+            if time >= time_stamp and distance > time - time_stamp:
+                distance = time - time_stamp
+                best_key = key
+                best_time = time
+
+        buy_order_df = s3_utils.get_df(orders_bucket.name, best_key, comment='#', index_col=0)
+        #buy_order_df.loc[:, 'Available'] = buy_order_df['target_currency']
+        buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
+        buy_order_df = buy_order_df[buy_order_df['Balance'] > 0]
+
+        return cls(buy_order_df['Balance'])
 
     @classmethod
     def from_csv(cls, csv):
-        dataframe = pd.read_csv(csv, index_col=0)
-        return cls(0, dataframe)
+        # Old csvs were DataFrames, new ones might be just series but we can still load them as dataframes to make
+        # it backwards compatible
+        df = pd.read_csv(csv, index_col=0)
+        return cls(0, df['Balance'])
 
     @classmethod
     def from_s3_key(cls, s3_key):
         _, temp = tempfile.mkstemp()
         config.s3_client.Bucket(config.PORTFOLIOS_BUCKET).download_file(s3_key, temp)
-        dataframe = pd.read_csv(temp, index_col=0, comment='#')
-        return cls(dataframe)
+        df = pd.read_csv(temp, index_col=0, comment='#')
+        return cls(df)
 
     @classmethod
     def at_time(cls, timestamp, max_time_difference):
@@ -177,7 +184,7 @@ class Portfolio(object):
 
     def copy(self):
         cls = self.__class__
-        new_df = self.dataframe.copy()
+        new_df = self.values.copy()
         return cls(new_df)
 
 
@@ -192,8 +199,9 @@ class Portfolio(object):
         :return: 
         """
         intermediate_currencies = ['BTC']
-        dataframe = pd.DataFrame({'Balance': value, 'Available': value, 'Pending': 0}, index=[base])
-        portfolio = Portfolio(dataframe=dataframe)
+        series = pd.Series(value, index=base)
+        series.name = 'Balance'
+        portfolio = Portfolio(values=series)
 
         portfolio.rebalance(market, state, intermediate_currencies, 0)
 
@@ -203,14 +211,14 @@ class Portfolio(object):
         """
         Compute the total amount of the portfolio
         param: intermediate_currendcies: list of str
-            for each currency in self.dataframe.index 
+            for each currency in self.values.index 
             intermdiate_currencies + [currency] has to be a valid currency chain
             [A, B, C] (c trades with B and B trades with A and A is the base price to return in)
         """
         return self.value_per_currency(market, intermediate_currencies).sum()
 
     def value_per_currency(self, market, intermediate_currencies):
-        portfolio = self.dataframe
+        portfolio = self.values
 
         return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Available'],
                                axis=1)
@@ -240,7 +248,7 @@ class Portfolio(object):
         """
         total_value = self.total_value(market, intermediate_currencies)
 
-        buy_df = pd.merge(self.dataframe, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
+        buy_df = pd.merge(self.values, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
         buy_df.fillna(0, inplace=True)
 
         base = intermediate_currencies[0]
@@ -289,7 +297,7 @@ class Portfolio(object):
                 if percentage_change < min_percentage_change:
                     buy_df.loc[currency, 'Buy'] = 0
 
-        # if 'base' is in self.dataframe, remove it. Each transaction is done/simulated against 'base'. We don't
+        # if 'base' is in self.values, remove it. Each transaction is done/simulated against 'base'. We don't
         # buy/sell 'base' directly. Not doing this will lead to problems and double counting
         if base in buy_df.index:
             remove_transaction(buy_df, base)
@@ -327,17 +335,17 @@ class Portfolio(object):
         column = [c for c in buy_df.columns if c.startswith("Buy (")][0]
         base = column[5:-1]
 
-        # the 'index' in buy_df might not be the same as in self.dataframe. That's why we start merging based on
+        # the 'index' in buy_df might not be the same as in self.values. That's why we start merging based on
         # index and we use 'outer'.
-        self.dataframe = pd.merge(self.dataframe, buy_df, left_index=True, right_index=True, how='outer')
+        self.values = pd.merge(self.values, buy_df, left_index=True, right_index=True, how='outer')
         #  If new values are added to index there will be NaN
-        self.dataframe.fillna(0, inplace=True)
-        self.dataframe['Balance'] += self.dataframe['Buy']
-        self.dataframe['Available'] += self.dataframe['Buy']
+        self.values.fillna(0, inplace=True)
+        self.values['Balance'] += self.values['Buy']
+        self.values['Available'] += self.values['Buy']
 
-        self.dataframe.loc[base, 'Balance'] -= self.dataframe[column].sum()
-        self.dataframe.loc[base, 'Available'] -= self.dataframe[column].sum()
-        self.dataframe.drop(['Buy', column, 'change'], inplace=True, axis=1)
+        self.values.loc[base, 'Balance'] -= self.values[column].sum()
+        self.values.loc[base, 'Available'] -= self.values[column].sum()
+        self.values.drop(['Buy', column, 'change'], inplace=True, axis=1)
 
     def buy(self, market, buy_df, base_currency):
         """
@@ -367,13 +375,13 @@ class Portfolio(object):
                 trade = exchange.sell_limit
                 amount_to_buy_in_currency *= -1
 
-            print '*' * 80
+            print('*' * 80)
             # Do not change next next condition. The environmental variable is a string, not a bool
             if not os.environ['PORTFOLIO_TRADE'] == 'True':
-                print "PORTFOLIO_TRADE: False\n"
-            print msg_order
-            print 'Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
-                                                                           rate, satoshis)
+                print("PORTFOLIO_TRADE: False\n")
+            print(msg_order)
+            print('Market_name: {}, amount: {}, rate: {} ({} SAT)\n'.format(market_name, amount_to_buy_in_currency,
+                                                                           rate, satoshis))
 
             if os.environ['PORTFOLIO_TRADE'] == 'True':
                 trade(market_name, amount_to_buy_in_currency, rate)
@@ -386,11 +394,11 @@ class Portfolio(object):
 
     def limit_to(self, limit_df):
         """
-        limit self.dataframe to the given limit_df
-        If a currency is in both self.dataframe and limit_df, the 'Available' and 'Balance' fields
-        of self.dataframe are updated to the minimum between self.dataframe['Available'] and limit_df['Limit']
+        limit self.values to the given limit_df
+        If a currency is in both self.values and limit_df, the 'Available' and 'Balance' fields
+        of self.values are updated to the minimum between self.values['Available'] and limit_df['Limit']
         
-        for example if self.dataframe looks like:
+        for example if self.values looks like:
                 Available   Balance Pending CryptoAddress
         BTC       2.3            2.3     0       xxx
         ETH      53.1           53.1     0       yyy
@@ -401,7 +409,7 @@ class Portfolio(object):
         BTC      1.2
         XRP     600
         
-        Then self.dataframe becomes
+        Then self.values becomes
                 Available   Balance Pending CryptoAddress
         BTC        1.2           1.2     0       xxx
         ETH      53.1           53.1     0       yyy
@@ -409,30 +417,30 @@ class Portfolio(object):
         
         
         :param currencies_df: 
-        :return:    None, operates in self.dataframe in place 
+        :return:    None, operates in self.values in place 
         """
         for currency, limit in limit_df.iteritems():
-            if currency in self.dataframe.index:
-                new_value = min(self.dataframe.loc[currency, 'Available'], limit)
+            if currency in self.values.index:
+                new_value = min(self.values.loc[currency, 'Available'], limit)
                 if new_value == 0:
-                    print 'Removing {} from portfolio'.format(currency)
-                    self.dataframe.drop(currency, inplace=True)
+                    print('Removing {} from portfolio'.format(currency))
+                    self.values.drop(currency, inplace=True)
                 else:
-                    print 'new limit for {} is {}'.format(currency, new_value)
-                    self.dataframe.loc[currency, 'Available'] = new_value
-                    self.dataframe.loc[currency, 'Balance'] = new_value
+                    print('new limit for {} is {}'.format(currency, new_value))
+                    self.values.loc[currency, 'Available'] = new_value
+                    self.values.loc[currency, 'Balance'] = new_value
 
 
     def to_s3(self, time_sec):
-        """ Store self.dataframe in the given key
+        """ Store self.values in the given key
         """
         if os.environ['PORTFOLIO_REPORT'] == 'True':
-            assert self.dataframe.index.name == 'Currency'
+            assert self.values.index.name == 'Currency'
             bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
             s3_key = '{account}/{time}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                    time=time_sec)
             _, temp = tempfile.mkstemp()
-            self.dataframe.to_csv(temp)
+            self.values.to_csv(temp)
             bucket.upload_file(temp, s3_key)
 
 
@@ -452,7 +460,7 @@ def apply_min_transaction_size(market, buy_df, base):
     for currency, remove_flag in below_min_transaction.iteritems():
         if remove_flag:
             satoshis = buy_df.loc[currency, 'SAT']
-            print "Removing {} from transactions. Amount in satoshis is {}".format(currency, satoshis)
+            print("Removing {} from transactions. Amount in satoshis is {}".format(currency, satoshis))
             remove_transaction(buy_df, currency)
 
 
@@ -481,4 +489,4 @@ def apply_transaction_cost(buy):
     return buy
 
 
-print 'finished loading', __file__
+print('finished loading', __file__)

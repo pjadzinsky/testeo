@@ -13,7 +13,7 @@ import pandas as pd
 
 import config
 from exchanges import exchange
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 
 bucket = config.s3_client.Bucket('my-bittrex')
@@ -21,7 +21,7 @@ CACHED_DIR = os.path.expanduser('~/Testeo/simulations_data/markets/')
 try:
     os.makedirs(CACHED_DIR)
 except:
-    print ('Folder {folder} already exists'.format(folder=CACHED_DIR))
+    print(('Folder {folder} already exists'.format(folder=CACHED_DIR)))
 
 
 
@@ -204,7 +204,7 @@ class Market(object):
         if os.path.isfile(filename):
             return cls.from_local_file(filename, timestamp)
 
-        print 'Looking and downloading file from s3:', filename
+        print('Looking and downloading file from s3:', filename)
         if 'short' in s3_key:
             try:
                 # object points to a row that we don't have in df, add it
@@ -380,4 +380,4 @@ def short_s3_key_from_timestamp(time):
 
 
 
-print 'finished loading', __file__
+print('finished loading', __file__)

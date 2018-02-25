@@ -11,7 +11,7 @@ from exchanges import exchange
 from portfolio import portfolio
 import market
 
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 if os.environ['LOGNAME'] == 'pablo':
     import holoviews as hv
     hv.extension('bokeh')
@@ -77,7 +77,7 @@ def plot():
     #if os.path.isfile('/tmp/trading_btc.html')
     temp = '/tmp/trading_btc'
     #_, temp = tempfile.mkstemp()
-    #print temp
+    #print(temp)
     renderer.save(my_object, temp, style=dict(Image={'cmap':'jet'}))
 
     """
@@ -114,8 +114,8 @@ def recompute():
     bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
     all_summaries = bucket.objects.filter(Prefix=os.environ['EXCHANGE_ACCOUNT'])
     for summary in all_summaries:
-        print '*' * 80
-        print 'processing portfolio from key:', summary.key
+        print('*' * 80)
+        print('processing portfolio from key:', summary.key)
         p = portfolio.Portfolio.from_s3_key(summary.key)
         time = int(summary.key.rstrip('.csv').split('/')[-1])
         m = market.Market.at_time(time, 3600)
@@ -259,19 +259,24 @@ def trading_value(market, current_portfolio):
     return updated
 
 
-def portfolio_change(current_portfolio):
+def portfolio_change():
     """
     Build and return a dataframe comparing change in portfolio holdings.
     
     :param current_portfolio: 
     :return: pd.DataFrame indexed by 'currency' with columns: '%', 'Diff', 'original', 'Current'
+    
+    
+    Original portfolio can be downloaded from 
     """
+    current_portfolio = portfolio.Portfolio.from_exchange()
 
-    state_timestamp, _ = state.at_time(time.time())
-    first_portfolio = portfolio.Portfolio.after_time(state_timestamp)
+    first_portfolio = portfolio.Portfolio.from_first_buy_order()
 
-    original = first_portfolio.dataframe['Balance']
-    current = current_portfolio.dataframe['Balance']
+    import pudb; pudb.set_trace()
+
+    original = first_portfolio.values
+    current = current_portfolio.values
     difference = current - original
     percentage = difference * 100 / original
 
@@ -286,7 +291,7 @@ def portfolio_change(current_portfolio):
 
 def currency_changes_in_portfolio():
     """ Load all the portfolios in config.PORTFOLIOS_BUCKET/<account>/<time>.csv
-    and every time there is a chnage in the currencies, print the timestamp of the new portfolio, and the change
+    and every time there is a chnage in the currencies, print(the timestamp of the new portfolio, and the change)
     in currencies
     """
     bucket = config.s3_client.Bucket(config.PORTFOLIOS_BUCKET)
@@ -304,11 +309,11 @@ def currency_changes_in_portfolio():
 
         time = int(summary.key.split('/')[1].replace('.csv', ''))
         if previous_currencies != current_currencies:
-            print '*' * 80
-            print 'Time:', time
-            print 'Currencies gone:', previous_currencies.difference(current_currencies)
-            print 'New currencies:', current_currencies.difference(previous_currencies)
-            print 'len(new_currencies) =', len(current_currencies)
+            print('*' * 80)
+            print('Time:', time)
+            print('Currencies gone:', previous_currencies.difference(current_currencies))
+            print('New currencies:', current_currencies.difference(previous_currencies))
+            print('len(new_currencies) =', len(current_currencies))
             if len(current_currencies) % 2 and 'BTC' in current_currencies:
                 current_currencies.discard('BTC')
 
@@ -318,12 +323,13 @@ def currency_changes_in_portfolio():
             df = state.from_currencies(current_currencies)
             df.to_csv('/tmp/{account}/{time}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                     time=time))
-            print 'All currencies:', current_currencies
+            print('All currencies:', current_currencies)
             previous_currencies = current_currencies
 
-        print summary.key
+        print(summary.key)
 
 
 if __name__ == "__main__":
     #clean()
-    recompute()
+    #recompute()
+    print portfolio_change()

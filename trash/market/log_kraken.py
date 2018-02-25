@@ -26,9 +26,9 @@ data = {
 result = api.url('your-image-url', data);
 
 if result.get('success'):
-    print result.get('kraked_url')
+    print(result.get('kraked_url'))
 else:
-    print result.get('message')
+    print(result.get('message'))
 
 
 def lambda_handler(event, context):

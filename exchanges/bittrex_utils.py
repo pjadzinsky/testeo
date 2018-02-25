@@ -8,7 +8,7 @@ import pandas as pd
 
 import config
 import memoize
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 class Exchange(object):
     def __init__(self):
@@ -42,7 +42,7 @@ class Exchange(object):
         response = self.private_client.get_balances()
         result = _to_df(response['result'], 'Currency')
         result = result[result['Balance'] > 0]
-        result = result['Available']
+        result = result['Balance']
         return result
 
     def market_summaries(self):
@@ -116,12 +116,12 @@ class Exchange(object):
     def buy_limit(self, market, quantity, rate):
         result = self.private_client.buy_limit(market, quantity, rate)
         if not result['success']:
-            print result
+            print(result)
 
     def sell_limit(self, market, quantity, rate):
         result = self.private_client.sell_limit(market, quantity, rate)
         if not result['success']:
-            print result
+            print(result)
 
 
     def btc_value(self):
@@ -174,4 +174,4 @@ def _to_df(response, new_index=None):
         df.set_index(new_index, drop=True, inplace=True)
     return df
 
-print 'finished loading', __file__
+print('finished loading', __file__)

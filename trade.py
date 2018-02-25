@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2.7
 """ Eithre trade or simulate a trade
 This script requires environmental variables:
     PORTFOLIO_SIMULATING:   'True' or 'False'
@@ -23,30 +23,30 @@ from exchanges import exchange
 from portfolio import portfolio
 import market
 
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 
 def main():
-    print '*' * 80
-    print 'PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING']
-    print 'PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE']
-    print 'cancel all open orders'
+    print('*' * 80)
+    print('PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING'])
+    print('PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE'])
+    print('cancel all open orders')
     if os.environ['PORTFOLIO_TRADE'] == 'True':
         #pass
         exchange.cancel_all_orders()
     else:
-        print 'Would be canceling all orders from {}'.format(os.environ['EXCHANGE'])
+        print('Would be canceling all orders from {}'.format(os.environ['EXCHANGE']))
 
     currencies = os.environ['CURRENCIES'].split(',')
     desired_state = state.from_currencies(currencies)
-    print '*'*80
-    print 'Desired state:'
-    print desired_state
+    print('*'*80)
+    print('Desired state:')
+    print(desired_state)
 
     current_market = market.Market.from_exchange()
     current_portfolio = portfolio.Portfolio.from_exchange()
-    print 'Current Portfolio'
-    print current_portfolio.dataframe
+    print('Current Portfolio')
+    print(current_portfolio.values)
 
     # log everything state, portfolio, values according to current market in BTC, USD (only logs if environmental
     # variable PORTFOLIO_REPORT is set

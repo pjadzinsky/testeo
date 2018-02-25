@@ -10,7 +10,7 @@ def get_or_create_table(key, secret, region):
                           aws_secret_access_key=secret, region_name=region)
 
     response = client.list_tables()
-    print response
+    print(response)
     if TABLE_NAME not in response['TableNames']:
         table = _create_order_book_table(key, secret)
     else:

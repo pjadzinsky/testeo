@@ -7,7 +7,7 @@ import pandas as pd
 
 import config
 import s3_utils
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 
 def frames_are_equal(left, right):
@@ -108,12 +108,12 @@ def save(time_sec, state):
         s3_key = '{account}/{time_sec}.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],
                                                    time_sec=time_sec)
         s3_utils.put_csv(state, config.STATES_BUCKET, s3_key)
-        print '*' * 80
-        print s3_key, 'Just saved'
+        print('*' * 80)
+        print(s3_key, 'Just saved')
 
 
 def from_portfolio(p):
-    return from_currencies(p.dataframe.index)
+    return from_currencies(p.values.index)
 
 
 def from_largest_markes(market, N, include_usd):
@@ -233,7 +233,7 @@ def get_states_old():
     _, temp = tempfile.mkstemp()
     try:
         bucket.download_file(s3_key, temp)
-        print temp
+        print(temp)
         states = pd.read_json(temp)
         states.sort_values(['time'], inplace=True)
     except:

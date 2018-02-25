@@ -8,9 +8,9 @@ from exchanges import deribit
 from exchanges import kraken
 try:
     import ccs
-    print 'ccs is working'
+    print('ccs is working')
 except:
-    print 'ccs does not work'
+    print('ccs does not work')
 
 #last_derivit = deribit_api.index()['btc']
 

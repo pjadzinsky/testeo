@@ -22,7 +22,7 @@ if __name__ == "__main__":
     try:
         argv = FLAGS(sys.argv)
     except gflags.FlagsError as e:
-        print "%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS)
+        print("%s\nUsage: %s ARGS\n%s" % (e, sys.argv[0], FLAGS))
         sys.exit(1)
 
     main()

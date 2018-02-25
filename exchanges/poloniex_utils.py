@@ -110,7 +110,7 @@ class Exchange(object):
                 id = order['orderNumber']
                 status = self.private_client.cancelOrder(id)
                 if not status['success']:
-                    print 'currency_pair', order, id, 'failed to cancel'
+                    print('currency_pair', order, id, 'failed to cancel')
 
     def withdrawals_and_deposits(self):
         start = 151000000
@@ -139,7 +139,7 @@ class Exchange(object):
                 self.private_client.buy(market.replace('-', '_'), rate, quantity)
                 return
             except:
-                print "Multiplying original quantity by 0.9"
+                print("Multiplying original quantity by 0.9")
                 quantity *= 0.9
 
 
@@ -198,4 +198,4 @@ def _to_df(response):
 
     return df
 
-print 'finished loading', __file__
+print('finished loading', __file__)

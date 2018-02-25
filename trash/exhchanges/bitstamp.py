@@ -94,7 +94,7 @@ def _public_request(endpoint, symbol):
         _verify_symbol(symbol)
         uri += '/{0}/'.format(symbol)
 
-    print uri
+    print(uri)
     response = requests.get(uri).json()
     return response
 
@@ -105,7 +105,7 @@ def _private_request(uri, params):
                    'signature': _get_signature(nonce),
                    'nonce': nonce})
     uri = BASE_URL + uri
-    print params
+    print(params)
     return requests.post(uri, data=params).json()
 
 

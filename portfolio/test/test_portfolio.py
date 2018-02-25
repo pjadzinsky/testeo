@@ -15,7 +15,7 @@ class TestPortfolio(unittest.TestCase):
         base = 'USDT'
         value = 10000
         p = portfolio.Portfolio.from_largest_markes(market, N, base, value)
-        print p.dataframe
+        print(p.values)
 
     def test_from_currencies_1(self):
         market = self.markets.first_market()
@@ -23,7 +23,7 @@ class TestPortfolio(unittest.TestCase):
         base = 'USDT'
         value = 10000
         p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
-        print p.dataframe
+        print(p.values)
 
     def test_from_currencies_2(self):
         market = self.markets.first_market()
@@ -31,7 +31,7 @@ class TestPortfolio(unittest.TestCase):
         base = 'USDT'
         value = 10000
         p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
-        print p.dataframe
+        print(p.values)
 
     def test_from_currencies_3(self):
         market = self.markets.first_market()
@@ -39,7 +39,7 @@ class TestPortfolio(unittest.TestCase):
         base = 'USDT'
         value = 10000
         p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
-        print p.dataframe
+        print(p.values)
 
     def test_from_currencies_4(self):
         market = self.markets.first_market()
@@ -47,7 +47,7 @@ class TestPortfolio(unittest.TestCase):
         base = 'USDT'
         value = 10000
         p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
-        print p.dataframe
+        print(p.values)
 
     def test_total_value_0(self):
         market = self.markets.first_market()
@@ -80,7 +80,7 @@ class TestPortfolio(unittest.TestCase):
 
         for v in computed.values:
             self.assertAlmostEqual(v, value * (1.0 - portfolio.COMMISION) / 3)
-        print computed
+        print(computed)
 
     def test_ideal_rebalance(self):
         market = self.markets.first_market()
@@ -89,8 +89,8 @@ class TestPortfolio(unittest.TestCase):
         value = 10000
         state, p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
 
-        balance_XRP_0 = p.dataframe.loc['XRP', 'Balance']
-        balance_ETH_0 = p.dataframe.loc['ETH', 'Balance']
+        balance_XRP_0 = p.values.loc['XRP']
+        balance_ETH_0 = p.values.loc['ETH']
 
         # now suppose ETH multiplies in value by 2 and XRP multiplies by 0 (total money is constant)
         # after another round of ideal rebalancing Balance of ETH has to multiply by 0.5 and
@@ -103,8 +103,8 @@ class TestPortfolio(unittest.TestCase):
         min_percentage_change = 0
         p.rebalance(market, state, ['BTC'], min_percentage_change)
 
-        balance_XRP_1 = p.dataframe.loc['XRP', 'Balance']
-        balance_ETH_1 = p.dataframe.loc['ETH', 'Balance']
+        balance_XRP_1 = p.values.loc['XRP']
+        balance_ETH_1 = p.values.loc['ETH']
 
         self.assertAlmostEqual(balance_ETH_1, balance_ETH_0 * 0.5 * (1 - portfolio.COMMISION))
 
@@ -115,9 +115,9 @@ class TestPortfolio(unittest.TestCase):
         value = 10000
         state, p = portfolio.Portfolio.from_currencies(market, currencies, base, value)
 
-        balance_XRP_0 = p.dataframe.loc['XRP', 'Balance']
-        balance_ETH_0 = p.dataframe.loc['ETH', 'Balance']
-        balance_BTC_0 = p.dataframe.loc['BTC', 'Balance']
+        balance_XRP_0 = p.values.loc['XRP']
+        balance_ETH_0 = p.values.loc['ETH']
+        balance_BTC_0 = p.values.loc['BTC']
 
         # now suppose one of the currencies multiplies in value by 4, (total money doubles)
         # after one round of ideal rebalancing the amount in USD in each currency has to multiply by 2.
@@ -131,9 +131,9 @@ class TestPortfolio(unittest.TestCase):
         min_percentage_change = 0
         p.rebalance(market, state, ['BTC'], min_percentage_change)
 
-        balance_XRP_1 = p.dataframe.loc['XRP', 'Balance']
-        balance_ETH_1 = p.dataframe.loc['ETH', 'Balance']
-        balance_BTC_1 = p.dataframe.loc['BTC', 'Balance']
+        balance_XRP_1 = p.values.loc['XRP']
+        balance_ETH_1 = p.values.loc['ETH']
+        balance_BTC_1 = p.values.loc['BTC']
 
         self.assertAlmostEqual(balance_ETH_1, balance_ETH_0 * 0.5 * (1 - portfolio.COMMISION))
         self.assertAlmostEqual(balance_BTC_1, balance_BTC_0 + balance_BTC_0 * 1 * (1 - portfolio.COMMISION))
@@ -148,8 +148,8 @@ class TestPortfolio(unittest.TestCase):
         limit = pd.Series({'BTC': 0.005, 'ETH': 0})
         p.limit_to(limit)
 
-        self.assertEqual(p.dataframe.loc['BTC', 'Available'], 0.005)
-        self.assertEqual(p.dataframe.loc['ETH', 'Available'], 0)
+        self.assertEqual(p.values.loc['BTC'], 0.005)
+        self.assertEqual(p.values.loc['ETH'], 0)
 
 
 if __name__ == "__main__":

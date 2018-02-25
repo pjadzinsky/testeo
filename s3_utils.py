@@ -6,7 +6,7 @@ import re
 import pandas as pd
 
 import config
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 
 def get_write_bucket(bucket_name):

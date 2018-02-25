@@ -1,7 +1,7 @@
 import os
 
 import boto3
-print 'Finished with imports in', __file__
+print('Finished with imports in', __file__)
 
 ONEHOUR = 3600
 ONEDAY = 86400.0

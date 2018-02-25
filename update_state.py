@@ -22,27 +22,27 @@ def main(json_input, context):
     timestamp = int(time.time())
     markets = market.Markets(markets_distance, 0, start_time=timestamp - rolling_window_size * markets_distance)
 
-    print 'Estimating best currencies with {} markets'.format(len(markets.times))
+    print('Estimating best currencies with {} markets'.format(len(markets.times)))
 
     volumes = markets.stats_volume()
-    print '*' * 80
-    print 'market volumes'
-    print volumes.head(20)
+    print('*' * 80)
+    print('market volumes')
+    print(volumes.head(20))
 
     variance_df = markets.stats_variance(rolling_window_size)
     mean_variance = variance_df.mean(axis=0)
 
     mean_variance.sort_values(ascending=False, inplace=True)
-    print mean_variance.head(20)
-    print mean_variance.index.values[:30]
-    print '*' * 80
+    print(mean_variance.head(20))
+    print(mean_variance.index.values[:30])
+    print('*' * 80)
 
-    print type(volumes), type(mean_variance)
+    print(type(volumes), type(mean_variance))
     df = pd.concat([volumes, mean_variance], axis=1)
     df.columns = ['volume', 'variance']
     df = df[df['volume'] > 1E6]
     df = df.sort_values('variance', ascending=False)
-    print ','.join(df.index.values[:N])
+    print(','.join(df.index.values[:N]))
     currencies = df.index.tolist()[:N]
 
     # save state to s3

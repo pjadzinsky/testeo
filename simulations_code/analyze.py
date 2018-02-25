@@ -408,8 +408,8 @@ def final_analysis():
     Compute something like 'rate' in between start and "n" days into the data and then from "n" days until the end
     Then scatter 1st result vs last. Can we trust past behaviour as a predictar of immediate future one?
     """
-    print df.head()
-    print 1
+    print(df.head())
+    print(1)
 
 
 def plot_result():

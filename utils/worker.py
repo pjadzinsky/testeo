@@ -23,7 +23,7 @@ def main():
         pprint.pprint(response)
 
     scan = table.scan()
-    print '#'*80
+    print('#'*80)
     pprint.pprint(scan['Items'])
     #pprint.pprint(table.describe_table())
 

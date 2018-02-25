@@ -12,8 +12,8 @@ class TestClass(unittest.TestCase):
         simulate.compute_mean_percentage(data)
         computed = data['mean percentage']
         expected = [np.NaN, 100, -25]
-        print computed
-        print expected
+        print(computed)
+        print(expected)
         self.assertItemsEqual(computed.values[1:], expected[1:])
         self.assertTrue(np.isnan(computed.values[0]))
 

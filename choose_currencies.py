@@ -110,7 +110,7 @@ def upload_series(top, time):
     bucket = s3_utils.get_write_bucket(config.CURRENCIES_BUCKET)
 
     _, temp = tempfile.mkstemp(suffix='.csv')
-    print temp
+    print(temp)
 
     s3_key = '{exchange}/{account}/{time}.csv'.format(
         exchange=os.environ['EXCHANGE'],
@@ -120,7 +120,7 @@ def upload_series(top, time):
     top.to_csv(temp)
     bucket.upload_file(temp, s3_key)
 
-    print 'uploaded {} to {}'.format(s3_key, bucket.name)
+    print('uploaded {} to {}'.format(s3_key, bucket.name))
 
 
 def upload_currencies(currencies, time):
@@ -145,7 +145,7 @@ def upload_currencies(currencies, time):
 
     df.to_csv(temp)
     bucket.upload_file(temp, s3_key)
-    print 'updated {} to {}'.format(s3_key, bucket.name)
+    print('updated {} to {}'.format(s3_key, bucket.name))
 
 
 if __name__ == "__main__":
