@@ -23,7 +23,8 @@ from exchanges import exchange
 from portfolio import portfolio
 import market
 
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 
 def main():

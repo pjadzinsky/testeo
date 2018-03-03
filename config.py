@@ -1,7 +1,8 @@
 import os
 
 import boto3
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 ONEHOUR = 3600
 ONEDAY = 86400.0

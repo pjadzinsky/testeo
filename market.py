@@ -13,7 +13,8 @@ import pandas as pd
 
 import config
 from exchanges import exchange
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 
 bucket = config.s3_client.Bucket('my-bittrex')
@@ -380,4 +381,5 @@ def short_s3_key_from_timestamp(time):
 
 
 
-print('finished loading', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)

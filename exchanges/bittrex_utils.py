@@ -8,7 +8,8 @@ import pandas as pd
 
 import config
 import memoize
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 class Exchange(object):
     def __init__(self):
@@ -34,10 +35,10 @@ class Exchange(object):
     def get_balances(self):
         """
         bittrex.client returns balances as a list of dictionaries with these keys:
-        Currency, Available, Balance, CryptoAddress, Pending, Requested, Uuid
+        Currency, Balance, CryptoAddress, Pending, Requested, Uuid
         
         :return:  pd.Series that can be used with portfolio.Portfolio(s)
-                  It is indexed by "Currency" and has columns Available, Balance, CryptoAddress, Pending, Requested, Uuid
+                  It is indexed by "Currency" and has columns, Balance, CryptoAddress, Pending, Requested, Uuid
         """
         response = self.private_client.get_balances()
         result = _to_df(response['result'], 'Currency')
@@ -174,4 +175,5 @@ def _to_df(response, new_index=None):
         df.set_index(new_index, drop=True, inplace=True)
     return df
 
-print('finished loading', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)

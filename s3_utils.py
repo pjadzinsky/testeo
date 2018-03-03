@@ -6,7 +6,8 @@ import re
 import pandas as pd
 
 import config
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 
 def get_write_bucket(bucket_name):

@@ -1,6 +1,6 @@
 """
 bittrex.client returns balances as a list of dictionaries with:
- Currency, Available, Balance, CryptoAddress, Pending, Requested, Uuid
+ Currency, Balance, CryptoAddress, Pending, Requested, Uuid
 
 A portfolio is the type and amount of each cryptocurrency held along with some basic operations.
 .
@@ -14,7 +14,6 @@ To prevent from buying too much of a sinking currency we are going to put bounds
 quantities (not clear yet). One idea is to compute the ratio between the current balance and the initial balance
 per currency and then say that no currency can have a ratio that is N times bigger than the average ratio.
 """
-print('About to start loading modules from', __file__)
 import os
 import tempfile
 
@@ -26,7 +25,8 @@ from exchanges import exchange
 import config
 import s3_utils
 import state
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 
 COMMISION = 0.25/100
 SATOSHI = 10**-8  # in BTC
@@ -218,10 +218,14 @@ class Portfolio(object):
         return self.value_per_currency(market, intermediate_currencies).sum()
 
     def value_per_currency(self, market, intermediate_currencies):
-        portfolio = self.values
+        # since now self.values is a series, to minimize changes I convert to DataFrame, compute and convert back to
+        # series
+        portfolio = self.values.to_frame()
 
-        return portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Available'],
-                               axis=1)
+        answer = portfolio.apply(lambda x: market.currency_chain_value(intermediate_currencies + [x.name]) * x['Balance'], axis=1)
+        # But since now it is a series
+        return answer
+
     def ideal_rebalance(self, market, state, intermediate_currencies):
         """
         Given market, state and intermediate_currencies return the amount to buy (+) or sell (-) for each currency
@@ -248,7 +252,7 @@ class Portfolio(object):
         """
         total_value = self.total_value(market, intermediate_currencies)
 
-        buy_df = pd.merge(self.values, state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
+        buy_df = pd.merge(self.values.to_frame(), state, left_index=True, right_index=True, how='outer')      # if state has new cryptocurrencies there will be NaNs
         buy_df.fillna(0, inplace=True)
 
         base = intermediate_currencies[0]
@@ -258,7 +262,7 @@ class Portfolio(object):
             lambda x: market.currency_chain_value([base] + intermediate_currencies + [x.name]), axis=1)
         buy_df.loc[:, 'target_currency'] = buy_df['target_base'] / buy_df['currency_in_base']
 
-        buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Available']
+        buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
         buy_df.loc[:, 'Buy ({base})'.format(base=intermediate_currencies[0])] = buy_df.apply(
             lambda x: x.Buy * market.currency_chain_value([base] + intermediate_currencies + [x.name]),
             axis=1
@@ -341,10 +345,8 @@ class Portfolio(object):
         #  If new values are added to index there will be NaN
         self.values.fillna(0, inplace=True)
         self.values['Balance'] += self.values['Buy']
-        self.values['Available'] += self.values['Buy']
 
         self.values.loc[base, 'Balance'] -= self.values[column].sum()
-        self.values.loc[base, 'Available'] -= self.values[column].sum()
         self.values.drop(['Buy', column, 'change'], inplace=True, axis=1)
 
     def buy(self, market, buy_df, base_currency):
@@ -395,14 +397,14 @@ class Portfolio(object):
     def limit_to(self, limit_df):
         """
         limit self.values to the given limit_df
-        If a currency is in both self.values and limit_df, the 'Available' and 'Balance' fields
-        of self.values are updated to the minimum between self.values['Available'] and limit_df['Limit']
+        If a currency is in both self.values and limit_df, the and 'Balance' fields
+        of self.values are updated to the minimum between self.values['Balance'] and limit_df['Limit']
         
         for example if self.values looks like:
-                Available   Balance Pending CryptoAddress
-        BTC       2.3            2.3     0       xxx
-        ETH      53.1           53.1     0       yyy
-        XRP    1200.0         1200.0     0       zzz
+                Balance Pending CryptoAddress
+        BTC       2.3     0       xxx
+        ETH      53.1     0       yyy
+        XRP    1200.0     0       zzz
         
         and limit_df is:
                 Limit
@@ -410,10 +412,10 @@ class Portfolio(object):
         XRP     600
         
         Then self.values becomes
-                Available   Balance Pending CryptoAddress
-        BTC        1.2           1.2     0       xxx
-        ETH      53.1           53.1     0       yyy
-        XRP     600.0          600.0     0       zzz
+                Balance Pending CryptoAddress
+        BTC       1.2     0       xxx
+        ETH      53.1     0       yyy
+        XRP     600.0     0       zzz
         
         
         :param currencies_df: 
@@ -421,13 +423,13 @@ class Portfolio(object):
         """
         for currency, limit in limit_df.iteritems():
             if currency in self.values.index:
-                new_value = min(self.values.loc[currency, 'Available'], limit)
+                new_value = min(self.values.loc[currency, 'Balance'], limit)
                 if new_value == 0:
                     print('Removing {} from portfolio'.format(currency))
                     self.values.drop(currency, inplace=True)
                 else:
                     print('new limit for {} is {}'.format(currency, new_value))
-                    self.values.loc[currency, 'Available'] = new_value
+                    self.values.loc[currency, 'Balance'] = new_value
                     self.values.loc[currency, 'Balance'] = new_value
 
 
@@ -460,7 +462,8 @@ def apply_min_transaction_size(market, buy_df, base):
     for currency, remove_flag in below_min_transaction.iteritems():
         if remove_flag:
             satoshis = buy_df.loc[currency, 'SAT']
-            print("Removing {} from transactions. Amount in satoshis is {}".format(currency, satoshis))
+            btc = buy_df.loc[currency, 'Buy (BTC)']
+            print("Removing {} from transactions. Amount in satoshis is {}, ({}BTC)".format(currency, satoshis, btc))
             remove_transaction(buy_df, currency)
 
 
@@ -489,4 +492,5 @@ def apply_transaction_cost(buy):
     return buy
 
 
-print('finished loading', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)

@@ -15,4 +15,9 @@ setup(name='Testeo',
           'License :: OSI Approved :: MIT License',
           'Development Status :: 3 - Alpha',
           'Topic :: Office/Business :: Financial',
+      ],
+      install_requires=[
+          'numpy',
+          'pandas',
+          'bittrex',
       ])

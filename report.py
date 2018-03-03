@@ -11,7 +11,8 @@ from exchanges import exchange
 from portfolio import portfolio
 import market
 
-print('Finished with imports in', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
 if os.environ['LOGNAME'] == 'pablo':
     import holoviews as hv
     hv.extension('bokeh')
@@ -273,8 +274,6 @@ def portfolio_change():
 
     first_portfolio = portfolio.Portfolio.from_first_buy_order()
 
-    import pudb; pudb.set_trace()
-
     original = first_portfolio.values
     current = current_portfolio.values
     difference = current - original
@@ -285,6 +284,7 @@ def portfolio_change():
                               'Diff': difference,
                               '%': percentage})
     change_df.dropna(inplace=True)
+    change_df = change_df[['Original', 'Current', 'Diff', '%']]
 
     return change_df
 

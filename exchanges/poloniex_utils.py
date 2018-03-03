@@ -50,7 +50,7 @@ class Exchange(object):
         response = self.private_client.returnBalances()
         s = pd.Series(response.values(), index=response.keys())
         s = s[s > 0]
-        s.name = 'Available'
+        s.name = 'Balance'
         s.index.name = 'Currency'
 
         return s
@@ -198,4 +198,5 @@ def _to_df(response):
 
     return df
 
-print('finished loading', __file__)
+if os.environ['LOGNAME'] == 'aws':
+    print('Finished loading', __file__)
