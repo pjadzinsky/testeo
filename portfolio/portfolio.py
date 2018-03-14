@@ -16,6 +16,7 @@ per currency and then say that no currency can have a ratio that is N times bigg
 """
 import os
 import tempfile
+import time
 
 import numpy as np
 import pandas as pd
@@ -33,11 +34,12 @@ SATOSHI = 10**-8  # in BTC
 MINIMUM_TRADE = exchange.MINIMUM_TRADE   # in SAT (satohis)
 
 class Portfolio(object):
-    def __init__(self, values):
+    def __init__(self, values, timestamp):
         """
         Read portfolio from API
         """
         self.values = values
+        self.timestamp = timestamp
 
     @classmethod
     def from_state(cls, market, state, base, value):
@@ -66,7 +68,7 @@ class Portfolio(object):
 
     @classmethod
     def from_exchange(cls):
-        return cls(exchange.get_balances())
+        return cls(exchange.get_balances(), int(time.time()))
 
     @classmethod
     def from_first_buy_order(cls):
@@ -113,7 +115,7 @@ class Portfolio(object):
         buy_order_df.loc[:, 'Balance'] = buy_order_df['target_currency']
         buy_order_df = buy_order_df[buy_order_df['Balance'] > 0]
 
-        return cls(buy_order_df['Balance'])
+        return cls(buy_order_df['Balance'], best_time)
 
     @classmethod
     def from_csv(cls, csv):
@@ -124,10 +126,17 @@ class Portfolio(object):
 
     @classmethod
     def from_s3_key(cls, s3_key):
+        """
+        s3_key is of the form <path>/<timestamp>.csv
+        
+        :param s3_key: 
+        :return: 
+        """
+        timestamp = int(rsplit('/', 1)[0].replace('.csv', ''))
         _, temp = tempfile.mkstemp()
         config.s3_client.Bucket(config.PORTFOLIOS_BUCKET).download_file(s3_key, temp)
         df = pd.read_csv(temp, index_col=0, comment='#')
-        return cls(df)
+        return cls(df, timestamp)
 
     @classmethod
     def at_time(cls, timestamp, max_time_difference):
@@ -201,7 +210,7 @@ class Portfolio(object):
         intermediate_currencies = ['BTC']
         series = pd.Series(value, index=base)
         series.name = 'Balance'
-        portfolio = Portfolio(values=series)
+        portfolio = Portfolio(series, market.time)
 
         portfolio.rebalance(market, state, intermediate_currencies, 0)
 
@@ -263,6 +272,8 @@ class Portfolio(object):
         buy_df.loc[:, 'target_currency'] = buy_df['target_base'] / buy_df['currency_in_base']
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
+        import pudb; pudb.set_trace()
+
         buy_df.loc[:, 'Buy ({base})'.format(base=intermediate_currencies[0])] = buy_df.apply(
             lambda x: x.Buy * market.currency_chain_value([base] + intermediate_currencies + [x.name]),
             axis=1
@@ -362,6 +373,8 @@ class Portfolio(object):
         # Maybe sort buy_df, execute all sell orders first, wait and execute buy?
         for currency, row in buy_df.iterrows():
             market_name = _market_name(base_currency, currency)
+            if market_name is None:
+                continue
             amount_to_buy_in_base = row['Buy ({})'.format(base_currency)]
             amount_to_buy_in_currency = row['Buy']
             if amount_to_buy_in_currency == 0:

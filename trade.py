@@ -28,6 +28,8 @@ if os.environ['LOGNAME'] == 'aws':
 
 
 def main():
+    import pudb; pudb.set_trace()
+
     print('*' * 80)
     print('PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING'])
     print('PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE'])
@@ -46,6 +48,12 @@ def main():
 
     current_market = market.Market.from_exchange()
     current_portfolio = portfolio.Portfolio.from_exchange()
+
+    # exclude some currencies from portolio, edited as needed
+    if 'ZCL' in current_portfolio.values:
+        current_portfolio.values.drop('ZCL', inplace=True)
+        desired_state.drop('ZCL', inplace=True)
+
     print('Current Portfolio')
     print(current_portfolio.values)
 

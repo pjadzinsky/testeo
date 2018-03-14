@@ -329,6 +329,14 @@ def currency_changes_in_portfolio():
         print(summary.key)
 
 
+def dollar_change(market_now, original_portfolio, current_portfolio):
+
+    btc_ori = original_portfolio.total_value(market_ori, ['BTC'])
+    btc_now = current_portfolio.total_value(market_now, ['BTC'])
+
+    usd_ori = original_portfolio.total_value(market_ori, ['USDT', 'BTC'])
+    usd_now = current_portfolio.total_value(market_now, ['USDT', 'BTC'])
+
 if __name__ == "__main__":
     #clean()
     #recompute()
