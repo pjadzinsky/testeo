@@ -5,5 +5,5 @@ aws lambda invoke \
     --function-name main \
     --region us-west-2 \
     --payload file://inputfile.txt \
-    --profile user2 \
+    --profile pablo \
     outputfile.txt

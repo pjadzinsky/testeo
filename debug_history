@@ -139,18 +139,18 @@
  1281  ./debug.py 
  1282  ipython
  1283  ./debug.py 
- 1284  aws s3 mv s3://bittrex-buy-orders/1511532036_buy_df.csv s3://bittrex-buy-orders/gaby/1511532036_buy_df.csv --profile=user2
- 1285  aws s3 mv s3://bittrex-buy-orders/1511532039_buy_df.csv s3://bittrex-buy-orders/pablo/1511532039_buy_df.csv --profile=user2
- 1286  aws s3 mv s3://bittrex-buy-orders/1511618435_buy_df.csv s3://bittrex-buy-orders/gaby/1511618435_buy_df.csv --profile=user2
- 1287  aws s3 mv s3://bittrex-buy-orders/1511618436_buy_df.csv s3://bittrex-buy-orders/pablo/1511618436_buy_df.csv --profile=user2
- 1288  aws s3 mv s3://bittrex-buy-orders/1511704836_buy_df.csv s3://bittrex-buy-orders/gaby/1511704836_buy_df.csv --profile=user2
- 1289  aws s3 mv s3://bittrex-buy-orders/1511704838_buy_df.csv s3://bittrex-buy-orders/pablo/1511704838_buy_df.csv --profile=user2
- 1290  aws s3 mv s3://bittrex-buy-orders/1511791238_buy_df.csv s3://bittrex-buy-orders/gaby/1511791238_buy_df.csv --profile=user2
- 1291  aws s3 mv s3://bittrex-buy-orders/1511791239_buy_df.csv s3://bittrex-buy-orders/pablo/1511791239_buy_df.csv --profile=user2
- 1292  aws s3 mv s3://bittrex-buy-orders/1511877637_buy_df.csv s3://bittrex-buy-orders/gaby/1511877637_buy_df.csv --profile=user2
- 1293  aws s3 mv s3://bittrex-buy-orders/1511877638_buy_df.csv s3://bittrex-buy-orders/pablo/1511877638_buy_df.csv --profile=user2
- 1294  aws s3 mv s3://bittrex-buy-orders/1511964035_buy_df.csv s3://bittrex-buy-orders/gaby/1511964035_buy_df.csv --profile=user2
- 1295  aws s3 mv s3://bittrex-buy-orders/1511964036_buy_df.csv s3://bittrex-buy-orders/pablo/1511964036_buy_df.csv --profile=user2
+ 1284  aws s3 mv s3://bittrex-buy-orders/1511532036_buy_df.csv s3://bittrex-buy-orders/gaby/1511532036_buy_df.csv --profile=pablo
+ 1285  aws s3 mv s3://bittrex-buy-orders/1511532039_buy_df.csv s3://bittrex-buy-orders/pablo/1511532039_buy_df.csv --profile=pablo
+ 1286  aws s3 mv s3://bittrex-buy-orders/1511618435_buy_df.csv s3://bittrex-buy-orders/gaby/1511618435_buy_df.csv --profile=pablo
+ 1287  aws s3 mv s3://bittrex-buy-orders/1511618436_buy_df.csv s3://bittrex-buy-orders/pablo/1511618436_buy_df.csv --profile=pablo
+ 1288  aws s3 mv s3://bittrex-buy-orders/1511704836_buy_df.csv s3://bittrex-buy-orders/gaby/1511704836_buy_df.csv --profile=pablo
+ 1289  aws s3 mv s3://bittrex-buy-orders/1511704838_buy_df.csv s3://bittrex-buy-orders/pablo/1511704838_buy_df.csv --profile=pablo
+ 1290  aws s3 mv s3://bittrex-buy-orders/1511791238_buy_df.csv s3://bittrex-buy-orders/gaby/1511791238_buy_df.csv --profile=pablo
+ 1291  aws s3 mv s3://bittrex-buy-orders/1511791239_buy_df.csv s3://bittrex-buy-orders/pablo/1511791239_buy_df.csv --profile=pablo
+ 1292  aws s3 mv s3://bittrex-buy-orders/1511877637_buy_df.csv s3://bittrex-buy-orders/gaby/1511877637_buy_df.csv --profile=pablo
+ 1293  aws s3 mv s3://bittrex-buy-orders/1511877638_buy_df.csv s3://bittrex-buy-orders/pablo/1511877638_buy_df.csv --profile=pablo
+ 1294  aws s3 mv s3://bittrex-buy-orders/1511964035_buy_df.csv s3://bittrex-buy-orders/gaby/1511964035_buy_df.csv --profile=pablo
+ 1295  aws s3 mv s3://bittrex-buy-orders/1511964036_buy_df.csv s3://bittrex-buy-orders/pablo/1511964036_buy_df.csv --profile=pablo
  1296  ./debug.py 
  1297  env | grep BITTREX_A
  1298  ./report.py 

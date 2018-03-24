@@ -272,7 +272,6 @@ class Portfolio(object):
         buy_df.loc[:, 'target_currency'] = buy_df['target_base'] / buy_df['currency_in_base']
 
         buy_df.loc[:, 'Buy'] = buy_df['target_currency'] - buy_df['Balance']
-        import pudb; pudb.set_trace()
 
         buy_df.loc[:, 'Buy ({base})'.format(base=intermediate_currencies[0])] = buy_df.apply(
             lambda x: x.Buy * market.currency_chain_value([base] + intermediate_currencies + [x.name]),

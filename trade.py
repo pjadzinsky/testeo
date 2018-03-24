@@ -27,9 +27,9 @@ if os.environ['LOGNAME'] == 'aws':
     print('Finished loading', __file__)
 
 
-def main():
-    import pudb; pudb.set_trace()
+BITTREX_EXCLUDE_COINS = ['BTC', 'BTCP', 'EDG', 'SAFEX', 'SYS', 'TRIG', 'ZCL']
 
+def main():
     print('*' * 80)
     print('PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING'])
     print('PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE'])
@@ -50,9 +50,13 @@ def main():
     current_portfolio = portfolio.Portfolio.from_exchange()
 
     # exclude some currencies from portolio, edited as needed
-    if 'ZCL' in current_portfolio.values:
-        current_portfolio.values.drop('ZCL', inplace=True)
-        desired_state.drop('ZCL', inplace=True)
+    if os.environ['EXCHANGE'] == 'BITTREX':
+        __import__('pudb').set_trace()
+        for coin in BITTREX_EXCLUDE_COINS:
+            if coin in current_portfolio.values:
+                current_portfolio.values.drop(coin, inplace=True)
+            if coin in desired_state.index:
+                desired_state.drop(coin, inplace=True)
 
     print('Current Portfolio')
     print(current_portfolio.values)

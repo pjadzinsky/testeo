@@ -21,8 +21,8 @@ CURRENCIES_BUCKET = 'exchange-currencies'
 STAGING_BUCKET = 'exchanges-scratch'
 
 if os.environ['LOGNAME'] == 'pablo':
-    boto3.setup_default_session(profile_name='user2')
-    session = boto3.Session(profile_name='user2')
+    boto3.setup_default_session(profile_name='pablo')
+    session = boto3.Session(profile_name='pablo')
 else:
     boto3.setup_default_session()
     session = boto3.Session()

@@ -27,10 +27,10 @@ def fix_buy_order_folder():
         if os.environ['EXCHANGE_ACCOUNT'] not in summary.key:
             index = s3_utils.get_df(config.BUY_ORDERS_BUCKET, summary.key, index_col=0).index
             if "EDG" in index and "BAY" not in index:
-                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/pablo/{key} --profile=user2".format()
+                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/pablo/{key} --profile=pablo".format()
                     bucket=config.BUY_ORDERS_BUCKET, key=summary.key)
             elif "EDG" not in index and "BAY" in index:
-                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/gaby/{key} --profile=user2".format()
+                print("aws s3 mv s3://{bucket}/{key} s3://{bucket}/gaby/{key} --profile=pablo".format()
                     bucket=config.BUY_ORDERS_BUCKET, key=summary.key)
             else:
                 print("Error with key:", summary.key)
