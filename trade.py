@@ -28,6 +28,7 @@ if os.environ['LOGNAME'] == 'aws':
 
 
 BITTREX_EXCLUDE_COINS = ['BTC', 'BTCP', 'EDG', 'SAFEX', 'SYS', 'TRIG', 'ZCL']
+POLONIEX_EXCLUDE_COINS = ['BCH']
 
 def main():
     print('*' * 80)
@@ -50,13 +51,20 @@ def main():
     current_portfolio = portfolio.Portfolio.from_exchange()
 
     # exclude some currencies from portolio, edited as needed
+    import pudb; pudb.set_trace()
+
     if os.environ['EXCHANGE'] == 'BITTREX':
-        __import__('pudb').set_trace()
-        for coin in BITTREX_EXCLUDE_COINS:
-            if coin in current_portfolio.values:
-                current_portfolio.values.drop(coin, inplace=True)
-            if coin in desired_state.index:
-                desired_state.drop(coin, inplace=True)
+        exclude_coins = BITTREX_EXCLUDE_COINS
+    elif os.environ['EXCHANGE'] == 'POLONIEX':
+        exclude_coins = POLONIEX_EXCLUDE_COINS
+    else:
+        exclude_coins = []
+
+    for coin in exclude_coins:
+        if coin in current_portfolio.values:
+            current_portfolio.values.drop(coin, inplace=True)
+        if coin in desired_state.index:
+            desired_state.drop(coin, inplace=True)
 
     print('Current Portfolio')
     print(current_portfolio.values)
