@@ -398,7 +398,10 @@ class Portfolio(object):
                                                                            rate, satoshis))
 
             if os.environ['PORTFOLIO_TRADE'] == 'True':
-                trade(market_name, amount_to_buy_in_currency, rate)
+                try:
+                    trade(market_name, amount_to_buy_in_currency, rate)
+                except:
+                    print('Previous trade Failed')
 
                 # log the requested portfolio
                 s3_key = '{account}/{time}_buy_df.csv'.format(account=os.environ['EXCHANGE_ACCOUNT'],

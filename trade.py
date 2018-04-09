@@ -27,7 +27,7 @@ if os.environ['LOGNAME'] == 'aws':
     print('Finished loading', __file__)
 
 
-BITTREX_EXCLUDE_COINS = ['BTC', 'BTCP', 'EDG', 'SAFEX', 'SYS', 'TRIG', 'ZCL']
+BITTREX_EXCLUDE_COINS = ['BTCP', 'EDG', 'SAFEX', 'SYS', 'TRIG', 'ZCL']
 POLONIEX_EXCLUDE_COINS = ['BCH']
 
 def main():
@@ -35,6 +35,7 @@ def main():
     print('PORTFOLIO_SIMULATING:', os.environ['PORTFOLIO_SIMULATING'])
     print('PORTFOLIO_TRADE:', os.environ['PORTFOLIO_TRADE'])
     print('cancel all open orders')
+
     if os.environ['PORTFOLIO_TRADE'] == 'True':
         #pass
         exchange.cancel_all_orders()

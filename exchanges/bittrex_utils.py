@@ -140,6 +140,8 @@ class Exchange(object):
 
 
 def get_private_client():
+    import pudb; pudb.set_trace()
+
     if 'BITTREX_KEY_ENCRYPTED' in os.environ:
         # Decrypt code should run once and variables stored outside of the function
         # handler so that these are decrypted once per container
