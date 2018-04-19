@@ -145,7 +145,6 @@ def fix_log_market():
         if 'short' not in object.key:
             continue
 
-        import pudb; pudb.set_trace()
         current_market = market.Market.from_s3_key(object.key)
         log_markets._log_last_and_volume(current_market)
 
