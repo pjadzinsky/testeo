@@ -381,16 +381,24 @@ class Portfolio(object):
             rate = amount_to_buy_in_base / amount_to_buy_in_currency
             satoshis = row['SAT']
 
+            import pudb; pudb.set_trace()
+
             if amount_to_buy_in_base > 0:
                 msg_order = 'send BUY order'
                 trade = exchange.buy_limit
+                if os.environ['EXCHANGE'] == 'POLONIEX':
+                    print('Decreasing sell price by 0.995')
+                    rate *= 0.995
             else:
                 msg_order = 'send SELL order'
                 trade = exchange.sell_limit
                 amount_to_buy_in_currency *= -1
+                if os.environ['EXCHANGE'] == 'POLONIEX':
+                    print('Increasing sell price by 1.005')
+                    rate *= 1.005
 
             print('*' * 80)
-            # Do not change next next condition. The environmental variable is a string, not a bool
+            # Do not change next "if" condition. The environmental variable is a string, not a bool
             if not os.environ['PORTFOLIO_TRADE'] == 'True':
                 print("PORTFOLIO_TRADE: False\n")
             print(msg_order)
