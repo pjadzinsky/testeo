@@ -371,6 +371,7 @@ class Portfolio(object):
         # Poloniex has a problem if we don't have enough BTC to place a buy order.
         # Maybe sort buy_df, execute all sell orders first, wait and execute buy?
         for currency, row in buy_df.iterrows():
+            print('*' * 80)
             market_name = _market_name(base_currency, currency)
             if market_name is None:
                 continue
@@ -381,23 +382,20 @@ class Portfolio(object):
             rate = amount_to_buy_in_base / amount_to_buy_in_currency
             satoshis = row['SAT']
 
-            import pudb; pudb.set_trace()
-
             if amount_to_buy_in_base > 0:
                 msg_order = 'send BUY order'
                 trade = exchange.buy_limit
                 if os.environ['EXCHANGE'] == 'POLONIEX':
-                    print('Decreasing sell price by 0.995')
-                    rate *= 0.995
+                    print('Decreasing buy price by 0.995')
+                    rate *= 0.997
             else:
                 msg_order = 'send SELL order'
                 trade = exchange.sell_limit
                 amount_to_buy_in_currency *= -1
                 if os.environ['EXCHANGE'] == 'POLONIEX':
                     print('Increasing sell price by 1.005')
-                    rate *= 1.005
+                    rate *= 1.003
 
-            print('*' * 80)
             # Do not change next "if" condition. The environmental variable is a string, not a bool
             if not os.environ['PORTFOLIO_TRADE'] == 'True':
                 print("PORTFOLIO_TRADE: False\n")

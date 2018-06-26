@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-""" Eithre trade or simulate a trade
+""" Either trade or simulate a trade
 This script requires environmental variables:
     PORTFOLIO_SIMULATING:   'True' or 'False'
     PORTFOLIO_TRADE:    'True' or 'False'   (these two are redundant are to make sure we don't pass the wrong logic
@@ -27,9 +27,9 @@ if os.environ['LOGNAME'] == 'aws':
     print('Finished loading', __file__)
 
 
-BITTREX_EXCLUDE_COINS = ['BTCP', 'EDG', 'SAFEX', 'SYS', 'TRIG', 'ZCL', 'USDT']
-POLONIEX_EXCLUDE_COINS = ['BCH', 'USDT']
-POLONIEX_PRIVATE_COINS = {'BTC': 0.10972517}
+BITTREX_EXCLUDE_COINS = ['BTCP', 'EDG', 'SYS', 'TRIG', 'USDT']
+POLONIEX_EXCLUDE_COINS = ['BCH', 'USDT', 'GAS']
+POLONIEX_PRIVATE_COINS = {'BTC': 0.10972517 + 0.00091267}   # total 0.11063784, buy 60 @ .0018353
 BITTREX_PRIVATE_COINS = {'BTC': 0.0}
 
 def main():
@@ -43,6 +43,7 @@ def main():
         exchange.cancel_all_orders()
     else:
         print('Would be canceling all orders from {}'.format(os.environ['EXCHANGE']))
+    __import__('pudb').set_trace()
 
     currencies = os.environ['CURRENCIES'].split(',')
     desired_state = state.from_currencies(currencies)
